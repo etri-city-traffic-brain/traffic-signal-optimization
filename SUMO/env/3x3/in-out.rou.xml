@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- generated on 2020-10-05 20:24:25.871945 by randomTrips.py v1_6_0+0003-190709904e
+  options: -n in-out.net.xml -o in-out.rou.xml -p 0.375
+-->
+
+<routes>
+    <flows>
+        <interval begin="0" end="1800">
+            <flow id="ns1_0" from="top0A2" to="A0bottom0" departLane="random" number="600" via="A2A1 A1A0"/>
+            <flow id="ns2_0" from="top1B2" to="B0bottom1" departLane="random" number="600" via="B2B1 B1B0"/>
+            <flow id="ns3_0" from="top2C2" to="C0bottom2" departLane="random" number="600" via="C2C1 C1C0"/>
+
+            <flow id="we1_0" from="left2A2" to="C2right2" departLane="random" number="600" via="A2B2 B2C2"/>
+            <flow id="we2_0" from="left1A1" to="C1right1" departLane="random" number="600" via="A1B1 B1C1"/>
+            <flow id="we3_0" from="left0A0" to="C0right0" departLane="random" number="600" via="A0B0 B0C0"/>
+
+            <!-- <flow id="wes1" from="left2A2" to="B0bottom1" departLane="random" number="1800" via="A2B2 B2B1 B1B0 B0bottom1"/>
+            <flow id="ews1" from="right2C2" to="B0bottom1" departLane="random" number="1800" via="C2B2 B2B1 B1B0 B0bottom1"/> -->
+<!-- 
+            <flow id="wes2" from="left1A1" to="B0bottom1" departLane="random" number="1800" via="A1B1 B1B0 B0bottom1"/>
+            <flow id="ews2" from="right1C1" to="B0bottom1" departLane="random" number="1800" via="C1B1 B1B0 B0bottom1"/> -->
+
+           <!--  <flow id="wes3" from="left0A0" to="B0bottom1" departLane="random" number="1800" via="A0B0 B0bottom1"/>
+            <flow id="ews3" from="right0C0" to="B0bottom1" departLane="random" number="1800" via="C0B0 B0bottom1"/> -->
+
+            <!-- <flow id="we1" from="left2A2" to="C2right2" departLane="random" number="1800" via=""/>
+            <flow id="we2" from="left1A1" to="C1right1" departLane="random" number="3600" via=""/>
+            <flow id="we3" from="left0A0" to="C0right0" departLane="random" number="1800" via=""/> -->
+        </interval>
+
+        <interval begin="1800" end="3600">
+            <flow id="ns1_1" from="top0A2" to="A0bottom0" departLane="random" number="800" via="A2A1 A1A0"/>
+            <flow id="ns2_1" from="top1B2" to="B0bottom1" departLane="random" number="800" via="B2B1 B1B0"/>
+            <flow id="ns3_1" from="top2C2" to="C0bottom2" departLane="random" number="800" via="C2C1 C1C0"/>
+
+            <flow id="we1_1" from="left2A2" to="C2right2" departLane="random" number="800" via="A2B2 B2C2"/>
+            <flow id="we2_1" from="left1A1" to="C1right1" departLane="random" number="800" via="A1B1 B1C1"/>
+            <flow id="we3_1" from="left0A0" to="C0right0" departLane="random" number="800" via="A0B0 B0C0"/>
+        </interval>
+
+        <interval begin="3600" end="5400">
+            <flow id="ns1_2" from="top0A2" to="A0bottom0" departLane="random" number="1000" via="A2A1 A1A0"/>
+            <flow id="ns2_2" from="top1B2" to="B0bottom1" departLane="random" number="1000" via="B2B1 B1B0"/>
+            <flow id="ns3_2" from="top2C2" to="C0bottom2" departLane="random" number="1000" via="C2C1 C1C0"/>
+
+            <flow id="we1_2" from="left2A2" to="C2right2" departLane="random" number="1000" via="A2B2 B2C2"/>
+            <flow id="we2_2" from="left1A1" to="C1right1" departLane="random" number="1000" via="A1B1 B1C1"/>
+            <flow id="we3_2" from="left0A0" to="C0right0" departLane="random" number="1000" via="A0B0 B0C0"/>
+        </interval>
+    </flows>
+</routes>
+

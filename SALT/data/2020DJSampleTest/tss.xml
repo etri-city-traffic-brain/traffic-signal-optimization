@@ -1,0 +1,1297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<trafficSignalSystem>
+    <trafficSignal nodeID="cluster_563103603_563103838_563103839_563103840_563103841_563103867_563103868_563103869_563103892_563104463_563104464_563105592_563109526_563109527" version="2" crossNo="1514" crossName="계룡대교네거리" date="2017-05-26" signalGroup="SA 103">
+        <schedule offset="31" id="1">
+            <phase state="grrrgrrrrrrgGGGgrrrrrrr" duration="30"/>
+            <phase state="gGGrgrrrrrrgGGrgrrrrrrG" duration="63"/>
+            <phase state="gGGGgrrrrrrgrrrgrrrrrrr" duration="13"/>
+            <phase state="grrrgGGGGGGgrrrgrrrrrrr" duration="37"/>
+            <phase state="grrrgrrrrrrgrrrgGGGGGGG" duration="37"/>
+        </schedule>
+        <schedule offset="18" id="2">
+            <phase state="grrrgrrrrrrgGGGgrrrrrrr" duration="30"/>
+            <phase state="gGGrgrrrrrrgGGrgrrrrrrG" duration="52"/>
+            <phase state="gGGGgrrrrrrgrrrgrrrrrrr" duration="13"/>
+            <phase state="grrrgGGGGGGgrrrgrrrrrrr" duration="37"/>
+            <phase state="grrrgrrrrrrgrrrgGGGGGGG" duration="48"/>
+        </schedule>
+        <schedule offset="18" id="3">
+            <phase state="grrrgrrrrrrgGGGgrrrrrrr" duration="30"/>
+            <phase state="gGGrgrrrrrrgGGrgrrrrrrG" duration="63"/>
+            <phase state="gGGGgrrrrrrgrrrgrrrrrrr" duration="13"/>
+            <phase state="grrrgGGGGGGgrrrgrrrrrrr" duration="37"/>
+            <phase state="grrrgrrrrrrgrrrgGGGGGGG" duration="37"/>
+        </schedule>
+        <schedule offset="18" id="4">
+            <phase state="grrrgrrrrrrgGGGgrrrrrrr" duration="30"/>
+            <phase state="gGGrgrrrrrrgGGrgrrrrrrG" duration="63"/>
+            <phase state="gGGGgrrrrrrgrrrgrrrrrrr" duration="13"/>
+            <phase state="grrrgGGGGGGgrrrgrrrrrrr" duration="37"/>
+            <phase state="grrrgrrrrrrgrrrgGGGGGGG" duration="37"/>
+        </schedule>
+        <schedule offset="31" id="5">
+            <phase state="grrrgrrrrrrgGGGgrrrrrrr" duration="30"/>
+            <phase state="gGGrgrrrrrrgGGrgrrrrrrG" duration="53"/>
+            <phase state="gGGGgrrrrrrgrrrgrrrrrrr" duration="15"/>
+            <phase state="grrrgGGGGGGgrrrgrrrrrrr" duration="45"/>
+            <phase state="grrrgrrrrrrgrrrgGGGGGGG" duration="37"/>
+        </schedule>
+        <schedule offset="31" id="6">
+            <phase state="grrrgrrrrrrgGGGgrrrrrrr" duration="30"/>
+            <phase state="gGGrgrrrrrrgGGrgrrrrrrG" duration="63"/>
+            <phase state="gGGGgrrrrrrgrrrgrrrrrrr" duration="13"/>
+            <phase state="grrrgGGGGGGgrrrgrrrrrrr" duration="37"/>
+            <phase state="grrrgrrrrrrgrrrgGGGGGGG" duration="37"/>
+        </schedule>
+        <schedule offset="31" id="7">
+            <phase state="grrrgrrrrrrgGGGgrrrrrrr" duration="30"/>
+            <phase state="gGGrgrrrrrrgGGrgrrrrrrG" duration="63"/>
+            <phase state="gGGGgrrrrrrgrrrgrrrrrrr" duration="13"/>
+            <phase state="grrrgGGGGGGgrrrgrrrrrrr" duration="37"/>
+            <phase state="grrrgrrrrrrgrrrgGGGGGGG" duration="37"/>
+        </schedule>
+        <TODPlan offset="31" defaultPlan="1">
+            <plan offset="18" schedule="2" startTime="25200"/>
+            <plan offset="18" schedule="3" startTime="34200"/>
+            <plan offset="31" schedule="5" startTime="61200"/>
+            <plan offset="31" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563109510_563109511" version="2" crossNo="68" crossName="구암119안전센터삼거리" date="2019-01-28" signalGroup="SA 101">
+        <schedule offset="0" id="1">
+            <phase state="GGGGGGGGGG" duration="50"/>
+            <phase state="GGGGGGGGGG" duration=" 130"/>
+        </schedule>
+        <schedule offset="0" id="2">
+            <phase state="GGGGGGGGGG" duration="50"/>
+            <phase state="GGGGGGGGGG" duration=" 130"/>
+        </schedule>
+        <schedule offset="0" id="3">
+            <phase state="GGGGGGGGGG" duration="50"/>
+            <phase state="GGGGGGGGGG" duration=" 130"/>
+        </schedule>
+        <schedule offset="0" id="4">
+            <phase state="GGGGGGGGGG" duration="50"/>
+            <phase state="GGGGGGGGGG" duration=" 130"/>
+        </schedule>
+        <schedule offset="0" id="5">
+            <phase state="GGGGGGGGGG" duration="50"/>
+            <phase state="GGGGGGGGGG" duration=" 130"/>
+        </schedule>
+        <schedule offset="0" id="6">
+            <phase state="GGGGGGGGGG" duration="50"/>
+            <phase state="GGGGGGGGGG" duration=" 130"/>
+        </schedule>
+        <schedule offset="0" id="7">
+            <phase state="GGGGGGGGGG" duration="50"/>
+            <phase state="GGGGGGGGGG" duration=" 130"/>
+        </schedule>
+        <TODPlan offset="0" defaultPlan="1">
+            <plan offset="0" schedule="2" startTime="25200"/>
+            <plan offset="0" schedule="3" startTime="34200"/>
+            <plan offset="0" schedule="5" startTime="61200"/>
+            <plan offset="0" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563103607" version="2" crossNo="null" crossName="대전체고네거리" date="2014-12-24" >
+        <schedule offset="51" id="1">
+            <phase state="gGGGGGgrrgrrrrrgrr" duration="15"/>
+            <phase state="rGGGrrrrrrGGGrrrrr" duration="40"/>
+            <phase state="grrrrrgrrgGGGGGgrr" duration="15"/>
+            <phase state="grrrrrgrrgrrrrrgGG" duration="15"/>
+            <phase state="grrrrrgGGgrrrrrgrr" duration="15"/>
+        </schedule>
+        <schedule offset="80" id="2">
+            <phase state="gGGGGGgrrgrrrrrgrr" duration="15"/>
+            <phase state="rGGGrrrrrrGGGrrrrr" duration="50"/>
+            <phase state="grrrrrgrrgGGGGGgrr" duration="20"/>
+            <phase state="grrrrrgrrgrrrrrgGG" duration="20"/>
+            <phase state="grrrrrgGGgrrrrrgrr" duration="15"/>
+        </schedule>
+        <schedule offset="80" id="3">
+            <phase state="gGGGGGgrrgrrrrrgrr" duration="15"/>
+            <phase state="rGGGrrrrrrGGGrrrrr" duration="50"/>
+            <phase state="grrrrrgrrgGGGGGgrr" duration="20"/>
+            <phase state="grrrrrgrrgrrrrrgGG" duration="20"/>
+            <phase state="grrrrrgGGgrrrrrgrr" duration="15"/>
+        </schedule>
+        <schedule offset="80" id="4">
+            <phase state="gGGGGGgrrgrrrrrgrr" duration="15"/>
+            <phase state="rGGGrrrrrrGGGrrrrr" duration="50"/>
+            <phase state="grrrrrgrrgGGGGGgrr" duration="20"/>
+            <phase state="grrrrrgrrgrrrrrgGG" duration="20"/>
+            <phase state="grrrrrgGGgrrrrrgrr" duration="15"/>
+        </schedule>
+        <schedule offset="120" id="5">
+            <phase state="gGGGGGgrrgrrrrrgrr" duration="15"/>
+            <phase state="rGGGrrrrrrGGGrrrrr" duration="60"/>
+            <phase state="grrrrrgrrgGGGGGgrr" duration="30"/>
+            <phase state="grrrrrgrrgrrrrrgGG" duration="30"/>
+            <phase state="grrrrrgGGgrrrrrgrr" duration="15"/>
+        </schedule>
+        <schedule offset="120" id="6">
+            <phase state="gGGGGGgrrgrrrrrgrr" duration="15"/>
+            <phase state="rGGGrrrrrrGGGrrrrr" duration="60"/>
+            <phase state="grrrrrgrrgGGGGGgrr" duration="30"/>
+            <phase state="grrrrrgrrgrrrrrgGG" duration="30"/>
+            <phase state="grrrrrgGGgrrrrrgrr" duration="15"/>
+        </schedule>
+        <schedule offset="120" id="7">
+            <phase state="gGGGGGgrrgrrrrrgrr" duration="15"/>
+            <phase state="rGGGrrrrrrGGGrrrrr" duration="60"/>
+            <phase state="grrrrrgrrgGGGGGgrr" duration="30"/>
+            <phase state="grrrrrgrrgrrrrrgGG" duration="30"/>
+            <phase state="grrrrrgGGgrrrrrgrr" duration="15"/>
+        </schedule>
+        <TODPlan offset="51" defaultPlan="1">
+            <plan offset="120" schedule="5" startTime="25200"/>
+            <plan offset="120" schedule="7" startTime="34200"/>
+            <plan offset="120" schedule="6" startTime="61200"/>
+            <plan offset="80" schedule="2" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563100866_563103911_563103912" version="2" crossNo="1501" crossName="도안1단지(단)" date="2016-08-04" signalGroup="SA 101">
+        <schedule offset="115" id="1">
+            <phase state="rrrrrrrrrg" duration="51"/>
+            <phase state="gGGGGGGGGg" duration="129"/>
+        </schedule>
+        <schedule offset="103" id="2">
+            <phase state="rrrrrrrrrg" duration="51"/>
+            <phase state="gGGGGGGGGg" duration="129"/>
+        </schedule>
+        <schedule offset="103" id="3">
+            <phase state="rrrrrrrrrg" duration="51"/>
+            <phase state="gGGGGGGGGg" duration="129"/>
+        </schedule>
+        <schedule offset="103" id="4">
+            <phase state="rrrrrrrrrg" duration="51"/>
+            <phase state="gGGGGGGGGg" duration="129"/>
+        </schedule>
+        <schedule offset="115" id="5">
+            <phase state="rrrrrrrrrg" duration="51"/>
+            <phase state="gGGGGGGGGg" duration="129"/>
+        </schedule>
+        <schedule offset="115" id="6">
+            <phase state="rrrrrrrrrg" duration="51"/>
+            <phase state="gGGGGGGGGg" duration="129"/>
+        </schedule>
+        <schedule offset="115" id="7">
+            <phase state="rrrrrrrrrg" duration="51"/>
+            <phase state="gGGGGGGGGg" duration="129"/>
+        </schedule>
+        <TODPlan offset="115" defaultPlan="1">
+            <plan offset="103" schedule="2" startTime="25200"/>
+            <plan offset="103" schedule="3" startTime="34200"/>
+            <plan offset="115" schedule="5" startTime="61200"/>
+            <plan offset="115" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103599_563103904_563103905_563103906" version="2" crossNo="1502" crossName="도안1단지네거리" date="2019-03-18" signalGroup="SA 101">
+        <schedule offset="146" id="1">
+            <phase state="grrrrrgrrrgGGGGGgrr" duration="18"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="56"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="30"/>
+            <phase state="grrrrGgrrrrrrrrrrrr" duration="19"/>
+            <phase state="grrrrrgrrrrrrrrrrGG" duration="38"/>
+            <phase state="grrrrrgGGGgrrrrrgrr" duration="19"/>
+        </schedule>
+        <schedule offset="133" id="2">
+            <phase state="grrrrrgrrrgGGGGGgrr" duration="18"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="56"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="30"/>
+            <phase state="grrrrGgrrrrrrrrrrrr" duration="19"/>
+            <phase state="grrrrrgrrrrrrrrrrGG" duration="38"/>
+            <phase state="grrrrrgGGGgrrrrrgrr" duration="19"/>
+        </schedule>
+        <schedule offset="133" id="3">
+            <phase state="grrrrrgrrrgGGGGGgrr" duration="18"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="56"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="30"/>
+            <phase state="grrrrGgrrrrrrrrrrrr" duration="19"/>
+            <phase state="grrrrrgrrrrrrrrrrGG" duration="38"/>
+            <phase state="grrrrrgGGGgrrrrrgrr" duration="19"/>
+        </schedule>
+        <schedule offset="133" id="4">
+            <phase state="grrrrrgrrrgGGGGGgrr" duration="18"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="56"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="30"/>
+            <phase state="grrrrGgrrrrrrrrrrrr" duration="19"/>
+            <phase state="grrrrrgrrrrrrrrrrGG" duration="38"/>
+            <phase state="grrrrrgGGGgrrrrrgrr" duration="19"/>
+        </schedule>
+        <schedule offset="146" id="5">
+            <phase state="grrrrrgrrrgGGGGGgrr" duration="18"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="56"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="30"/>
+            <phase state="grrrrGgrrrrrrrrrrrr" duration="19"/>
+            <phase state="grrrrrgrrrrrrrrrrGG" duration="38"/>
+            <phase state="grrrrrgGGGgrrrrrgrr" duration="19"/>
+        </schedule>
+        <schedule offset="146" id="6">
+            <phase state="grrrrrgrrrgGGGGGgrr" duration="18"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="56"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="30"/>
+            <phase state="grrrrGgrrrrrrrrrrrr" duration="19"/>
+            <phase state="grrrrrgrrrrrrrrrrGG" duration="38"/>
+            <phase state="grrrrrgGGGgrrrrrgrr" duration="19"/>
+        </schedule>
+        <schedule offset="146" id="7">
+            <phase state="grrrrrgrrrgGGGGGgrr" duration="18"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="56"/>
+            <phase state="rGGGGrrrrrrGGGGrrrr" duration="30"/>
+            <phase state="grrrrGgrrrrrrrrrrrr" duration="19"/>
+            <phase state="grrrrrgrrrrrrrrrrGG" duration="38"/>
+            <phase state="grrrrrgGGGgrrrrrgrr" duration="19"/>
+        </schedule>
+        <TODPlan offset="146" defaultPlan="1">
+            <plan offset="133" schedule="2" startTime="25200"/>
+            <plan offset="133" schedule="3" startTime="34200"/>
+            <plan offset="146" schedule="5" startTime="61200"/>
+            <plan offset="146" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103119_563106919_563107911" version="2" crossNo="1316" crossName="도안2단지삼거리" date="2016-12-02" signalGroup="SA 28">
+        <schedule offset="64" id="1">
+            <phase state="rrrrrrgGGgrrrrr" duration="25"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGGgrrgrrrrr" duration="25"/>
+        </schedule>
+        <schedule offset="51" id="2">
+            <phase state="rrrrrrgGGgrrrrr" duration="25"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGGgrrgrrrrr" duration="25"/>
+        </schedule>
+        <schedule offset="51" id="3">
+            <phase state="rrrrrrgGGgrrrrr" duration="25"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGGgrrgrrrrr" duration="25"/>
+        </schedule>
+        <schedule offset="51" id="4">
+            <phase state="rrrrrrgGGgrrrrr" duration="25"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGGgrrgrrrrr" duration="25"/>
+        </schedule>
+        <schedule offset="64" id="5">
+            <phase state="rrrrrrgGGgrrrrr" duration="25"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGGgrrgrrrrr" duration="25"/>
+        </schedule>
+        <schedule offset="64" id="6">
+            <phase state="rrrrrrgGGgrrrrr" duration="25"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGGgrrgrrrrr" duration="25"/>
+        </schedule>
+        <schedule offset="64" id="7">
+            <phase state="rrrrrrgGGgrrrrr" duration="25"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGrrrrrGGGGG" duration="65"/>
+            <phase state="GGGGGGgrrgrrrrr" duration="25"/>
+        </schedule>
+        <TODPlan offset="64" defaultPlan="1">
+            <plan offset="51" schedule="2" startTime="25200"/>
+            <plan offset="51" schedule="3" startTime="34200"/>
+            <plan offset="64" schedule="5" startTime="61200"/>
+            <plan offset="64" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563106861" version="2" crossNo="870" crossName="도안5단지(단)" date="2017-03-08" signalGroup="SA 107">
+        <schedule offset="0" id="1">
+            <phase state="rrrrGrrrrrGr" duration="29"/>
+            <phase state="gGggrggGggrg" duration="91"/>
+        </schedule>
+        <TODPlan offset="0" defaultPlan="1"/>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103437_563103890_563103913_563103914" version="2" crossNo="1509" crossName="도안5단지네거리" date="2019-06-26" signalGroup="SA 101">
+        <schedule offset="157" id="1">
+            <phase state="grrrGgrrrrrrrrrr" duration="29"/>
+            <phase state="rGGGrrrrrGGGrrrr" duration="35"/>
+            <phase state="rrrrrrrrgrrrGgrr" duration="35"/>
+            <phase state="rrrrrrGGgrrrrgrr" duration="29"/>
+            <phase state="grrrrgrrrrrrrrGG" duration="26"/>
+        </schedule>
+        <schedule offset="146" id="2">
+            <phase state="grrrGgrrrrrrrrrr" duration="29"/>
+            <phase state="rGGGrrrrrGGGrrrr" duration="33"/>
+            <phase state="rrrrrrrrgrrrGgrr" duration="33"/>
+            <phase state="rrrrrrGGgrrrrgrr" duration="29"/>
+            <phase state="grrrrgrrrrrrrrGG" duration="26"/>
+        </schedule>
+        <schedule offset="144" id="3">
+            <phase state="grrrGgrrrrrrrrrr" duration="29"/>
+            <phase state="rGGGrrrrrGGGrrrr" duration="35"/>
+            <phase state="rrrrrrrrgrrrGgrr" duration="35"/>
+            <phase state="rrrrrrGGgrrrrgrr" duration="29"/>
+            <phase state="grrrrgrrrrrrrrGG" duration="26"/>
+        </schedule>
+        <schedule offset="144" id="4">
+            <phase state="grrrGgrrrrrrrrrr" duration="29"/>
+            <phase state="rGGGrrrrrGGGrrrr" duration="35"/>
+            <phase state="rrrrrrrrgrrrGgrr" duration="35"/>
+            <phase state="rrrrrrGGgrrrrgrr" duration="29"/>
+            <phase state="grrrrgrrrrrrrrGG" duration="26"/>
+        </schedule>
+        <schedule offset="157" id="5">
+            <phase state="grrrGgrrrrrrrrrr" duration="29"/>
+            <phase state="rGGGrrrrrGGGrrrr" duration="35"/>
+            <phase state="rrrrrrrrgrrrGgrr" duration="35"/>
+            <phase state="rrrrrrGGgrrrrgrr" duration="29"/>
+            <phase state="grrrrgrrrrrrrrGG" duration="26"/>
+        </schedule>
+        <schedule offset="157" id="6">
+            <phase state="grrrGgrrrrrrrrrr" duration="29"/>
+            <phase state="rGGGrrrrrGGGrrrr" duration="35"/>
+            <phase state="rrrrrrrrgrrrGgrr" duration="35"/>
+            <phase state="rrrrrrGGgrrrrgrr" duration="29"/>
+            <phase state="grrrrgrrrrrrrrGG" duration="26"/>
+        </schedule>
+        <schedule offset="157" id="7">
+            <phase state="grrrGgrrrrrrrrrr" duration="29"/>
+            <phase state="rGGGrrrrrGGGrrrr" duration="35"/>
+            <phase state="rrrrrrrrgrrrGgrr" duration="35"/>
+            <phase state="rrrrrrGGgrrrrgrr" duration="29"/>
+            <phase state="grrrrgrrrrrrrrGG" duration="26"/>
+        </schedule>
+        <TODPlan offset="157" defaultPlan="1">
+            <plan offset="146" schedule="2" startTime="25200"/>
+            <plan offset="144" schedule="3" startTime="34200"/>
+            <plan offset="157" schedule="5" startTime="61200"/>
+            <plan offset="157" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563103639" version="2" crossNo="1518" crossName="도안9단지4(10번)" date="2014-04-30" signalGroup="111">
+        <schedule offset="5" id="1">
+            <phase state="rGGgrrrgrrrrrr" duration="35"/>
+            <phase state="rrrrGGGgrrgrrr" duration="40"/>
+            <phase state="grrgrrrrrrrGGG" duration="39"/>
+            <phase state="grrrrrrrGGgrrr" duration="36"/>
+        </schedule>
+        <schedule offset="5" id="2">
+            <phase state="rGGgrrrgrrrrrr" duration="35"/>
+            <phase state="rrrrGGGgrrgrrr" duration="40"/>
+            <phase state="grrgrrrrrrrGGG" duration="39"/>
+            <phase state="grrrrrrrGGgrrr" duration="36"/>
+        </schedule>
+        <schedule offset="5" id="3">
+            <phase state="rGGgrrrgrrrrrr" duration="35"/>
+            <phase state="rrrrGGGgrrgrrr" duration="40"/>
+            <phase state="grrgrrrrrrrGGG" duration="39"/>
+            <phase state="grrrrrrrGGgrrr" duration="36"/>
+        </schedule>
+        <schedule offset="5" id="4">
+            <phase state="rGGgrrrgrrrrrr" duration="35"/>
+            <phase state="rrrrGGGgrrgrrr" duration="40"/>
+            <phase state="grrgrrrrrrrGGG" duration="39"/>
+            <phase state="grrrrrrrGGgrrr" duration="36"/>
+        </schedule>
+        <schedule offset="5" id="5">
+            <phase state="rGGgrrrgrrrrrr" duration="35"/>
+            <phase state="rrrrGGGgrrgrrr" duration="40"/>
+            <phase state="grrgrrrrrrrGGG" duration="39"/>
+            <phase state="grrrrrrrGGgrrr" duration="36"/>
+        </schedule>
+        <schedule offset="5" id="6">
+            <phase state="rGGgrrrgrrrrrr" duration="35"/>
+            <phase state="rrrrGGGgrrgrrr" duration="40"/>
+            <phase state="grrgrrrrrrrGGG" duration="39"/>
+            <phase state="grrrrrrrGGgrrr" duration="36"/>
+        </schedule>
+        <schedule offset="5" id="7">
+            <phase state="rGGgrrrgrrrrrr" duration="35"/>
+            <phase state="rrrrGGGgrrgrrr" duration="40"/>
+            <phase state="grrgrrrrrrrGGG" duration="39"/>
+            <phase state="grrrrrrrGGgrrr" duration="36"/>
+        </schedule>
+        <TODPlan offset="5" defaultPlan="1">
+            <plan offset="5" schedule="5" startTime="25200"/>
+            <plan offset="5" schedule="7" startTime="34200"/>
+            <plan offset="5" schedule="6" startTime="61200"/>
+            <plan offset="5" schedule="2" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563103606" version="2" crossNo="1511" crossName="도안고교삼거리" date="2017-08-22" signalGroup="SA 102">
+        <schedule offset="62" id="1">
+            <phase state="rrrrGrGGgrrr" duration="36"/>
+            <phase state="GGGrrrrrrGGG" duration="40"/>
+            <phase state="GGGGGgrrgrrr" duration="24"/>
+        </schedule>
+        <schedule offset="72" id="2">
+            <phase state="rrrrGrGGgrrr" duration="36"/>
+            <phase state="GGGrrrrrrGGG" duration="60"/>
+            <phase state="GGGGGgrrgrrr" duration="24"/>
+        </schedule>
+        <schedule offset="72" id="3">
+            <phase state="rrrrGrGGgrrr" duration="36"/>
+            <phase state="GGGrrrrrrGGG" duration="60"/>
+            <phase state="GGGGGgrrgrrr" duration="24"/>
+        </schedule>
+        <schedule offset="72" id="4">
+            <phase state="rrrrGrGGgrrr" duration="36"/>
+            <phase state="GGGrrrrrrGGG" duration="60"/>
+            <phase state="GGGGGgrrgrrr" duration="24"/>
+        </schedule>
+        <schedule offset="130" id="5">
+            <phase state="rrrrGrGGgrrr" duration="36"/>
+            <phase state="GGGrrrrrrGGG" duration="70"/>
+            <phase state="GGGGGgrrgrrr" duration="44"/>
+        </schedule>
+        <schedule offset="130" id="6">
+            <phase state="rrrrGrGGgrrr" duration="36"/>
+            <phase state="GGGrrrrrrGGG" duration="70"/>
+            <phase state="GGGGGgrrgrrr" duration="44"/>
+        </schedule>
+        <schedule offset="130" id="7">
+            <phase state="rrrrGrGGgrrr" duration="36"/>
+            <phase state="GGGrrrrrrGGG" duration="70"/>
+            <phase state="GGGGGgrrgrrr" duration="44"/>
+        </schedule>
+        <TODPlan offset="62" defaultPlan="1">
+            <plan offset="130" schedule="5" startTime="25200"/>
+            <plan offset="130" schedule="7" startTime="34200"/>
+            <plan offset="130" schedule="6" startTime="61200"/>
+            <plan offset="72" schedule="2" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563101007" version="2" crossNo="59" crossName="리베라네거리" date="2018-05-25" signalGroup="SA 28">
+        <schedule offset="13" id="1">
+            <phase state="grrrrrrGGGgrr" duration="33"/>
+            <phase state="rrrrrGGrrrrGG" duration="61"/>
+            <phase state="rrrrrGGrrrrGG" duration="60"/>
+            <phase state="rGGGgrrrrrrrr" duration="26"/>
+        </schedule>
+        <schedule offset="5" id="2">
+            <phase state="grrrrrrGGGgrr" duration="33"/>
+            <phase state="rrrrrGGrrrrGG" duration="61"/>
+            <phase state="rrrrrGGrrrrGG" duration="60"/>
+            <phase state="rGGGgrrrrrrrr" duration="26"/>
+        </schedule>
+        <schedule offset="4" id="3">
+            <phase state="grrrrrrGGGgrr" duration="33"/>
+            <phase state="rrrrrGGrrrrGG" duration="61"/>
+            <phase state="rrrrrGGrrrrGG" duration="60"/>
+            <phase state="rGGGgrrrrrrrr" duration="26"/>
+        </schedule>
+        <schedule offset="4" id="4">
+            <phase state="grrrrrrGGGgrr" duration="33"/>
+            <phase state="rrrrrGGrrrrGG" duration="61"/>
+            <phase state="rrrrrGGrrrrGG" duration="60"/>
+            <phase state="rGGGgrrrrrrrr" duration="26"/>
+        </schedule>
+        <schedule offset="18" id="5">
+            <phase state="grrrrrrGGGgrr" duration="33"/>
+            <phase state="rrrrrGGrrrrGG" duration="61"/>
+            <phase state="rrrrrGGrrrrGG" duration="60"/>
+            <phase state="rGGGgrrrrrrrr" duration="26"/>
+        </schedule>
+        <schedule offset="11" id="6">
+            <phase state="grrrrrrGGGgrr" duration="33"/>
+            <phase state="rrrrrGGrrrrGG" duration="61"/>
+            <phase state="rrrrrGGrrrrGG" duration="60"/>
+            <phase state="rGGGgrrrrrrrr" duration="26"/>
+        </schedule>
+        <schedule offset="11" id="7">
+            <phase state="grrrrrrGGGgrr" duration="33"/>
+            <phase state="rrrrrGGrrrrGG" duration="61"/>
+            <phase state="rrrrrGGrrrrGG" duration="60"/>
+            <phase state="rGGGgrrrrrrrr" duration="26"/>
+        </schedule>
+        <TODPlan offset="13" defaultPlan="1">
+            <plan offset="5" schedule="2" startTime="25200"/>
+            <plan offset="4" schedule="3" startTime="34200"/>
+            <plan offset="18" schedule="5" startTime="61200"/>
+            <plan offset="11" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563103266" version="2" crossNo="570" crossName="봉명네거리" date="2006-09-14" signalGroup="31">
+        <schedule offset="38" id="1">
+            <phase state="grrgGGgrrgrr" duration="15"/>
+            <phase state="gGGgrrgGGgrr" duration="57"/>
+            <phase state="grrgrrgrrgGG" duration="68"/>
+        </schedule>
+        <schedule offset="34" id="2">
+            <phase state="grrgGGgrrgrr" duration="16"/>
+            <phase state="gGGgrrgGGgrr" duration="60"/>
+            <phase state="grrgrrgrrgGG" duration="74"/>
+        </schedule>
+        <schedule offset="34" id="3">
+            <phase state="grrgGGgrrgrr" duration="16"/>
+            <phase state="gGGgrrgGGgrr" duration="60"/>
+            <phase state="grrgrrgrrgGG" duration="74"/>
+        </schedule>
+        <schedule offset="34" id="4">
+            <phase state="grrgGGgrrgrr" duration="16"/>
+            <phase state="gGGgrrgGGgrr" duration="60"/>
+            <phase state="grrgrrgrrgGG" duration="74"/>
+        </schedule>
+        <schedule offset="32" id="5">
+            <phase state="grrgGGgrrgrr" duration="18"/>
+            <phase state="gGGgrrgGGgrr" duration="65"/>
+            <phase state="grrgrrgrrgGG" duration="77"/>
+        </schedule>
+        <schedule offset="32" id="6">
+            <phase state="grrgGGgrrgrr" duration="18"/>
+            <phase state="gGGgrrgGGgrr" duration="65"/>
+            <phase state="grrgrrgrrgGG" duration="77"/>
+        </schedule>
+        <schedule offset="32" id="7">
+            <phase state="grrgGGgrrgrr" duration="18"/>
+            <phase state="gGGgrrgGGgrr" duration="65"/>
+            <phase state="grrgrrgrrgGG" duration="77"/>
+        </schedule>
+        <TODPlan offset="38" defaultPlan="1">
+            <plan offset="32" schedule="5" startTime="25200"/>
+            <plan offset="34" schedule="2" startTime="34200"/>
+            <plan offset="32" schedule="6" startTime="61200"/>
+            <plan offset="34" schedule="3" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103476_563103477_563103812_563103813_563103814_563103815_563103816_563103817_563103820_563103821" version="2" crossNo="1516" crossName="상대네거리" date="2011-09-06" signalGroup="111">
+        <schedule offset="0" id="1">
+            <phase state="gGGGgrrrgrrrgrrr" duration="34"/>
+            <phase state="grrrgGGrgrrrgGGr" duration="53"/>
+            <phase state="grrrgrrGgrrrgrrG" duration="29"/>
+            <phase state="grrrgrrrgGGGgrrr" duration="34"/>
+        </schedule>
+        <schedule offset="0" id="2">
+            <phase state="gGGGgrrrgrrrgrrr" duration="34"/>
+            <phase state="grrrgGGrgrrrgGGr" duration="53"/>
+            <phase state="grrrgrrGgrrrgrrG" duration="29"/>
+            <phase state="grrrgrrrgGGGgrrr" duration="34"/>
+        </schedule>
+        <schedule offset="0" id="3">
+            <phase state="gGGGgrrrgrrrgrrr" duration="34"/>
+            <phase state="grrrgGGrgrrrgGGr" duration="53"/>
+            <phase state="grrrgrrGgrrrgrrG" duration="29"/>
+            <phase state="grrrgrrrgGGGgrrr" duration="34"/>
+        </schedule>
+        <schedule offset="0" id="4">
+            <phase state="gGGGgrrrgrrrgrrr" duration="34"/>
+            <phase state="grrrgGGrgrrrgGGr" duration="53"/>
+            <phase state="grrrgrrGgrrrgrrG" duration="29"/>
+            <phase state="grrrgrrrgGGGgrrr" duration="34"/>
+        </schedule>
+        <schedule offset="0" id="5">
+            <phase state="gGGGgrrrgrrrgrrr" duration="34"/>
+            <phase state="grrrgGGrgrrrgGGr" duration="53"/>
+            <phase state="grrrgrrGgrrrgrrG" duration="29"/>
+            <phase state="grrrgrrrgGGGgrrr" duration="34"/>
+        </schedule>
+        <schedule offset="0" id="6">
+            <phase state="gGGGgrrrgrrrgrrr" duration="34"/>
+            <phase state="grrrgGGrgrrrgGGr" duration="53"/>
+            <phase state="grrrgrrGgrrrgrrG" duration="29"/>
+            <phase state="grrrgrrrgGGGgrrr" duration="34"/>
+        </schedule>
+        <schedule offset="0" id="7">
+            <phase state="gGGGgrrrgrrrgrrr" duration="34"/>
+            <phase state="grrrgGGrgrrrgGGr" duration="53"/>
+            <phase state="grrrgrrGgrrrgrrG" duration="29"/>
+            <phase state="grrrgrrrgGGGgrrr" duration="34"/>
+        </schedule>
+        <TODPlan offset="0" defaultPlan="1">
+            <plan offset="0" schedule="5" startTime="25200"/>
+            <plan offset="0" schedule="7" startTime="34200"/>
+            <plan offset="0" schedule="6" startTime="61200"/>
+            <plan offset="0" schedule="2" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563102154_563103845_563109514_563109515" version="2" crossNo="1505" crossName="상대초교(단)" date="2016-02-12" signalGroup="SA 101">
+        <schedule offset="165" id="1">
+            <phase state="rgrrrrrgrrrrr" duration="51"/>
+            <phase state="ggGGGGGggGGGG" duration="129"/>
+        </schedule>
+        <schedule offset="130" id="2">
+            <phase state="rgrrrrrgrrrrr" duration="51"/>
+            <phase state="ggGGGGGggGGGG" duration="129"/>
+        </schedule>
+        <schedule offset="155" id="3">
+            <phase state="rgrrrrrgrrrrr" duration="51"/>
+            <phase state="ggGGGGGggGGGG" duration="129"/>
+        </schedule>
+        <schedule offset="169" id="4">
+            <phase state="rgrrrrrgrrrrr" duration="51"/>
+            <phase state="ggGGGGGggGGGG" duration="129"/>
+        </schedule>
+        <schedule offset="155" id="5">
+            <phase state="rgrrrrrgrrrrr" duration="51"/>
+            <phase state="ggGGGGGggGGGG" duration="129"/>
+        </schedule>
+        <schedule offset="165" id="6">
+            <phase state="rgrrrrrgrrrrr" duration="51"/>
+            <phase state="ggGGGGGggGGGG" duration="129"/>
+        </schedule>
+        <schedule offset="2" id="7">
+            <phase state="rgrrrrrgrrrrr" duration="51"/>
+            <phase state="ggGGGGGggGGGG" duration="129"/>
+        </schedule>
+        <TODPlan offset="165" defaultPlan="1">
+            <plan offset="130" schedule="2" startTime="25200"/>
+            <plan offset="155" schedule="3" startTime="34200"/>
+            <plan offset="155" schedule="5" startTime="61200"/>
+            <plan offset="165" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563103640" version="2" crossNo="1517" crossName="상원삼거리(9-1,2)" date="2014-04-14" signalGroup="102">
+        <schedule offset="0" id="1">
+            <phase state="rGgrrrrr" duration="35"/>
+            <phase state="rrrGGGGr" duration="35"/>
+            <phase state="grrrrGGG" duration="30"/>
+        </schedule>
+        <schedule offset="0" id="2">
+            <phase state="rGgrrrrr" duration="35"/>
+            <phase state="rrrGGGGr" duration="55"/>
+            <phase state="grrrrGGG" duration="30"/>
+        </schedule>
+        <schedule offset="0" id="3">
+            <phase state="rGgrrrrr" duration="35"/>
+            <phase state="rrrGGGGr" duration="55"/>
+            <phase state="grrrrGGG" duration="30"/>
+        </schedule>
+        <schedule offset="0" id="4">
+            <phase state="rGgrrrrr" duration="35"/>
+            <phase state="rrrGGGGr" duration="55"/>
+            <phase state="grrrrGGG" duration="30"/>
+        </schedule>
+        <schedule offset="60" id="5">
+            <phase state="rGgrrrrr" duration="35"/>
+            <phase state="rrrGGGGr" duration="85"/>
+            <phase state="grrrrGGG" duration="30"/>
+        </schedule>
+        <schedule offset="60" id="6">
+            <phase state="rGgrrrrr" duration="35"/>
+            <phase state="rrrGGGGr" duration="85"/>
+            <phase state="grrrrGGG" duration="30"/>
+        </schedule>
+        <schedule offset="60" id="7">
+            <phase state="rGgrrrrr" duration="35"/>
+            <phase state="rrrGGGGr" duration="85"/>
+            <phase state="grrrrGGG" duration="30"/>
+        </schedule>
+        <TODPlan offset="0" defaultPlan="1">
+            <plan offset="60" schedule="5" startTime="25200"/>
+            <plan offset="60" schedule="7" startTime="34200"/>
+            <plan offset="60" schedule="6" startTime="61200"/>
+            <plan offset="0" schedule="2" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103319_563103832_563103861_563103862" version="2" crossNo="1520" crossName="신흥들삼거리" date="2017-05-11" signalGroup="SA 103">
+        <schedule offset="171" id="1">
+            <phase state="grrrrrrrrrgrrG" duration="15"/>
+            <phase state="rrrrGGrrrrrGGr" duration="95"/>
+            <phase state="rrrgrrGgrrrrrr" duration="26"/>
+            <phase state="rGGgrrrgrrrrrr" duration="17"/>
+            <phase state="grrrrrrrGGgrrr" duration="27"/>
+        </schedule>
+        <schedule offset="50" id="2">
+            <phase state="grrrrrrrrrgrrG" duration="15"/>
+            <phase state="rrrrGGrrrrrGGr" duration="95"/>
+            <phase state="rrrgrrGgrrrrrr" duration="26"/>
+            <phase state="rGGgrrrgrrrrrr" duration="17"/>
+            <phase state="grrrrrrrGGgrrr" duration="27"/>
+        </schedule>
+        <schedule offset="50" id="3">
+            <phase state="grrrrrrrrrgrrG" duration="15"/>
+            <phase state="rrrrGGrrrrrGGr" duration="95"/>
+            <phase state="rrrgrrGgrrrrrr" duration="26"/>
+            <phase state="rGGgrrrgrrrrrr" duration="17"/>
+            <phase state="grrrrrrrGGgrrr" duration="27"/>
+        </schedule>
+        <schedule offset="158" id="4">
+            <phase state="grrrrrrrrrgrrG" duration="15"/>
+            <phase state="rrrrGGrrrrrGGr" duration="95"/>
+            <phase state="rrrgrrGgrrrrrr" duration="26"/>
+            <phase state="rGGgrrrgrrrrrr" duration="17"/>
+            <phase state="grrrrrrrGGgrrr" duration="27"/>
+        </schedule>
+        <schedule offset="171" id="5">
+            <phase state="grrrrrrrrrgrrG" duration="15"/>
+            <phase state="rrrrGGrrrrrGGr" duration="95"/>
+            <phase state="rrrgrrGgrrrrrr" duration="26"/>
+            <phase state="rGGgrrrgrrrrrr" duration="17"/>
+            <phase state="grrrrrrrGGgrrr" duration="27"/>
+        </schedule>
+        <schedule offset="171" id="6">
+            <phase state="grrrrrrrrrgrrG" duration="15"/>
+            <phase state="rrrrGGrrrrrGGr" duration="95"/>
+            <phase state="rrrgrrGgrrrrrr" duration="26"/>
+            <phase state="rGGgrrrgrrrrrr" duration="17"/>
+            <phase state="grrrrrrrGGgrrr" duration="27"/>
+        </schedule>
+        <schedule offset="171" id="7">
+            <phase state="grrrrrrrrrgrrG" duration="15"/>
+            <phase state="rrrrGGrrrrrGGr" duration="95"/>
+            <phase state="rrrgrrGgrrrrrr" duration="26"/>
+            <phase state="rGGgrrrgrrrrrr" duration="17"/>
+            <phase state="grrrrrrrGGgrrr" duration="27"/>
+        </schedule>
+        <TODPlan offset="171" defaultPlan="1">
+            <plan offset="50" schedule="2" startTime="25200"/>
+            <plan offset="50" schedule="3" startTime="34200"/>
+            <plan offset="171" schedule="5" startTime="61200"/>
+            <plan offset="171" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563100878_563103320_563103322_563103323_563103324_563107114" version="2" crossNo="660" crossName="용반네거리" date="2015-07-02" signalGroup="28">
+        <schedule offset="92" id="1">
+            <phase state="grrrrgGGGGGGGgrrrrrrgrrrrrrr" duration="33"/>
+            <phase state="rrrrrrGGGGrGrrrrrrrGrGGGGrrr" duration="46"/>
+            <phase state="grrrrgrrrrrrrgrrrrrrgGGGGGGG" duration="18"/>
+            <phase state="grrrrgrrrrrrrgGGGGGGgrrrrrrr" duration="35"/>
+            <phase state="rGGGGgrrrrrrrgrrrrrrrrrrrrrG" duration="48"/>
+        </schedule>
+        <schedule offset="79" id="2">
+            <phase state="grrrrgGGGGGGGgrrrrrrgrrrrrrr" duration="33"/>
+            <phase state="rrrrrrGGGGrGrrrrrrrGrGGGGrrr" duration="41"/>
+            <phase state="grrrrgrrrrrrrgrrrrrrgGGGGGGG" duration="18"/>
+            <phase state="grrrrgrrrrrrrgGGGGGGgrrrrrrr" duration="40"/>
+            <phase state="rGGGGgrrrrrrrgrrrrrrrrrrrrrG" duration="48"/>
+        </schedule>
+        <schedule offset="79" id="3">
+            <phase state="grrrrgGGGGGGGgrrrrrrgrrrrrrr" duration="33"/>
+            <phase state="rrrrrrGGGGrGrrrrrrrGrGGGGrrr" duration="46"/>
+            <phase state="grrrrgrrrrrrrgrrrrrrgGGGGGGG" duration="18"/>
+            <phase state="grrrrgrrrrrrrgGGGGGGgrrrrrrr" duration="35"/>
+            <phase state="rGGGGgrrrrrrrgrrrrrrrrrrrrrG" duration="48"/>
+        </schedule>
+        <schedule offset="79" id="4">
+            <phase state="grrrrgGGGGGGGgrrrrrrgrrrrrrr" duration="33"/>
+            <phase state="rrrrrrGGGGrGrrrrrrrGrGGGGrrr" duration="46"/>
+            <phase state="grrrrgrrrrrrrgrrrrrrgGGGGGGG" duration="18"/>
+            <phase state="grrrrgrrrrrrrgGGGGGGgrrrrrrr" duration="35"/>
+            <phase state="rGGGGgrrrrrrrgrrrrrrrrrrrrrG" duration="48"/>
+        </schedule>
+        <schedule offset="92" id="5">
+            <phase state="grrrrgGGGGGGGgrrrrrrgrrrrrrr" duration="33"/>
+            <phase state="rrrrrrGGGGrGrrrrrrrGrGGGGrrr" duration="46"/>
+            <phase state="grrrrgrrrrrrrgrrrrrrgGGGGGGG" duration="18"/>
+            <phase state="grrrrgrrrrrrrgGGGGGGgrrrrrrr" duration="35"/>
+            <phase state="rGGGGgrrrrrrrgrrrrrrrrrrrrrG" duration="48"/>
+        </schedule>
+        <schedule offset="92" id="6">
+            <phase state="grrrrgGGGGGGGgrrrrrrgrrrrrrr" duration="33"/>
+            <phase state="rrrrrrGGGGrGrrrrrrrGrGGGGrrr" duration="46"/>
+            <phase state="grrrrgrrrrrrrgrrrrrrgGGGGGGG" duration="18"/>
+            <phase state="grrrrgrrrrrrrgGGGGGGgrrrrrrr" duration="35"/>
+            <phase state="rGGGGgrrrrrrrgrrrrrrrrrrrrrG" duration="48"/>
+        </schedule>
+        <schedule offset="92" id="7">
+            <phase state="grrrrgGGGGGGGgrrrrrrgrrrrrrr" duration="33"/>
+            <phase state="rrrrrrGGGGrGrrrrrrrGrGGGGrrr" duration="46"/>
+            <phase state="grrrrgrrrrrrrgrrrrrrgGGGGGGG" duration="18"/>
+            <phase state="grrrrgrrrrrrrgGGGGGGgrrrrrrr" duration="35"/>
+            <phase state="rGGGGgrrrrrrrgrrrrrrrrrrrrrG" duration="48"/>
+        </schedule>
+        <TODPlan offset="92" defaultPlan="1">
+            <plan offset="79" schedule="2" startTime="25200"/>
+            <plan offset="79" schedule="3" startTime="34200"/>
+            <plan offset="92" schedule="5" startTime="61200"/>
+            <plan offset="92" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103888_563103891" version="2" crossNo="1513" crossName="원골(단)" date="2012-01-27" signalGroup="101">
+        <schedule offset="161" id="1">
+            <phase state="GGGGGGGGGG" duration="60"/>
+            <phase state="rrrrrrrrrr" duration="53"/>
+            <phase state="GGGGGGGGGG" duration="67"/>
+        </schedule>
+        <schedule offset="139" id="2">
+            <phase state="GGGGGGGGGG" duration="60"/>
+            <phase state="rrrrrrrrrr" duration="53"/>
+            <phase state="GGGGGGGGGG" duration="67"/>
+        </schedule>
+        <schedule offset="139" id="3">
+            <phase state="GGGGGGGGGG" duration="60"/>
+            <phase state="rrrrrrrrrr" duration="53"/>
+            <phase state="GGGGGGGGGG" duration="67"/>
+        </schedule>
+        <schedule offset="139" id="4">
+            <phase state="GGGGGGGGGG" duration="60"/>
+            <phase state="rrrrrrrrrr" duration="53"/>
+            <phase state="GGGGGGGGGG" duration="67"/>
+        </schedule>
+        <schedule offset="151" id="5">
+            <phase state="GGGGGGGGGG" duration="60"/>
+            <phase state="rrrrrrrrrr" duration="53"/>
+            <phase state="GGGGGGGGGG" duration="67"/>
+        </schedule>
+        <schedule offset="151" id="6">
+            <phase state="GGGGGGGGGG" duration="60"/>
+            <phase state="rrrrrrrrrr" duration="53"/>
+            <phase state="GGGGGGGGGG" duration="67"/>
+        </schedule>
+        <schedule offset="151" id="7">
+            <phase state="GGGGGGGGGG" duration="60"/>
+            <phase state="rrrrrrrrrr" duration="53"/>
+            <phase state="GGGGGGGGGG" duration="67"/>
+        </schedule>
+        <TODPlan offset="161" defaultPlan="1">
+            <plan offset="139" schedule="2" startTime="25200"/>
+            <plan offset="139" schedule="3" startTime="34200"/>
+            <plan offset="151" schedule="5" startTime="61200"/>
+            <plan offset="151" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103641_563103889_563103894_563103895" version="2" crossNo="1510" crossName="원골네거리" date="2013-01-09" signalGroup="101">
+        <schedule offset="157" id="1">
+            <phase state="rrrrrgrrGgrrrrrrGGG" duration="20"/>
+            <phase state="GGGGrrrrrrGGGGrrrrG" duration="85"/>
+            <phase state="rrrrGgrrrgrrrrGrrrr" duration="20"/>
+            <phase state="rrrrrrGGrrrrrrrGrrr" duration="55"/>
+        </schedule>
+        <schedule offset="144" id="2">
+            <phase state="rrrrrgrrGgrrrrrrGGG" duration="30"/>
+            <phase state="GGGGrrrrrrGGGGrrrrG" duration="75"/>
+            <phase state="rrrrGgrrrgrrrrGrrrr" duration="20"/>
+            <phase state="rrrrrrGGrrrrrrrGrrr" duration="55"/>
+        </schedule>
+        <schedule offset="144" id="3">
+            <phase state="rrrrrgrrGgrrrrrrGGG" duration="20"/>
+            <phase state="GGGGrrrrrrGGGGrrrrG" duration="85"/>
+            <phase state="rrrrGgrrrgrrrrGrrrr" duration="20"/>
+            <phase state="rrrrrrGGrrrrrrrGrrr" duration="55"/>
+        </schedule>
+        <schedule offset="144" id="4">
+            <phase state="rrrrrgrrGgrrrrrrGGG" duration="20"/>
+            <phase state="GGGGrrrrrrGGGGrrrrG" duration="85"/>
+            <phase state="rrrrGgrrrgrrrrGrrrr" duration="20"/>
+            <phase state="rrrrrrGGrrrrrrrGrrr" duration="55"/>
+        </schedule>
+        <schedule offset="157" id="5">
+            <phase state="rrrrrgrrGgrrrrrrGGG" duration="20"/>
+            <phase state="GGGGrrrrrrGGGGrrrrG" duration="85"/>
+            <phase state="rrrrGgrrrgrrrrGrrrr" duration="20"/>
+            <phase state="rrrrrrGGrrrrrrrGrrr" duration="55"/>
+        </schedule>
+        <schedule offset="157" id="6">
+            <phase state="rrrrrgrrGgrrrrrrGGG" duration="20"/>
+            <phase state="GGGGrrrrrrGGGGrrrrG" duration="85"/>
+            <phase state="rrrrGgrrrgrrrrGrrrr" duration="20"/>
+            <phase state="rrrrrrGGrrrrrrrGrrr" duration="55"/>
+        </schedule>
+        <schedule offset="157" id="7">
+            <phase state="rrrrrgrrGgrrrrrrGGG" duration="20"/>
+            <phase state="GGGGrrrrrrGGGGrrrrG" duration="85"/>
+            <phase state="rrrrGgrrrgrrrrGrrrr" duration="20"/>
+            <phase state="rrrrrrGGrrrrrrrGrrr" duration="55"/>
+        </schedule>
+        <TODPlan offset="157" defaultPlan="1">
+            <plan offset="144" schedule="2" startTime="25200"/>
+            <plan offset="144" schedule="3" startTime="34200"/>
+            <plan offset="157" schedule="5" startTime="61200"/>
+            <plan offset="157" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103475_563103833_563103866" version="2" crossNo="1522" crossName="원신흥삼거리" date="2017-05-11" signalGroup="SA 103">
+        <schedule offset="157" id="1">
+            <phase state="rrrrrGGGgrr" duration="38"/>
+            <phase state="GGrrrrrGrGG" duration="124"/>
+            <phase state="GGGGgrrrgrr" duration="18"/>
+        </schedule>
+        <schedule offset="30" id="2">
+            <phase state="rrrrrGGGgrr" duration="38"/>
+            <phase state="GGrrrrrGrGG" duration="124"/>
+            <phase state="GGGGgrrrgrr" duration="18"/>
+        </schedule>
+        <schedule offset="38" id="3">
+            <phase state="rrrrrGGGgrr" duration="38"/>
+            <phase state="GGrrrrrGrGG" duration="124"/>
+            <phase state="GGGGgrrrgrr" duration="18"/>
+        </schedule>
+        <schedule offset="144" id="4">
+            <phase state="rrrrrGGGgrr" duration="38"/>
+            <phase state="GGrrrrrGrGG" duration="124"/>
+            <phase state="GGGGgrrrgrr" duration="18"/>
+        </schedule>
+        <schedule offset="157" id="5">
+            <phase state="rrrrrGGGgrr" duration="38"/>
+            <phase state="GGrrrrrGrGG" duration="124"/>
+            <phase state="GGGGgrrrgrr" duration="18"/>
+        </schedule>
+        <schedule offset="157" id="6">
+            <phase state="rrrrrGGGgrr" duration="38"/>
+            <phase state="GGrrrrrGrGG" duration="124"/>
+            <phase state="GGGGgrrrgrr" duration="18"/>
+        </schedule>
+        <schedule offset="157" id="7">
+            <phase state="rrrrrGGGgrr" duration="38"/>
+            <phase state="GGrrrrrGrGG" duration="124"/>
+            <phase state="GGGGgrrrgrr" duration="18"/>
+        </schedule>
+        <TODPlan offset="157" defaultPlan="1">
+            <plan offset="30" schedule="2" startTime="25200"/>
+            <plan offset="38" schedule="3" startTime="34200"/>
+            <plan offset="157" schedule="5" startTime="61200"/>
+            <plan offset="157" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563100016_563103847_563109512_563109513" version="2" crossNo="1318" crossName="유성고후문(단)(5-1번)" date="2016-02-12" signalGroup="SA 101">
+        <schedule offset="165" id="1">
+            <phase state="grrrrrrrgrrrr" duration="48"/>
+            <phase state="ggGGGGGggGGGG" duration="132"/>
+        </schedule>
+        <schedule offset="130" id="2">
+            <phase state="grrrrrrrgrrrr" duration="48"/>
+            <phase state="ggGGGGGggGGGG" duration="132"/>
+        </schedule>
+        <schedule offset="155" id="3">
+            <phase state="grrrrrrrgrrrr" duration="48"/>
+            <phase state="ggGGGGGggGGGG" duration="132"/>
+        </schedule>
+        <schedule offset="169" id="4">
+            <phase state="grrrrrrrgrrrr" duration="48"/>
+            <phase state="ggGGGGGggGGGG" duration="132"/>
+        </schedule>
+        <schedule offset="155" id="5">
+            <phase state="grrrrrrrgrrrr" duration="48"/>
+            <phase state="ggGGGGGggGGGG" duration="132"/>
+        </schedule>
+        <schedule offset="165" id="6">
+            <phase state="grrrrrrrgrrrr" duration="48"/>
+            <phase state="ggGGGGGggGGGG" duration="132"/>
+        </schedule>
+        <schedule offset="2" id="7">
+            <phase state="grrrrrrrgrrrr" duration="48"/>
+            <phase state="ggGGGGGggGGGG" duration="132"/>
+        </schedule>
+        <TODPlan offset="165" defaultPlan="1">
+            <plan offset="130" schedule="2" startTime="25200"/>
+            <plan offset="155" schedule="3" startTime="34200"/>
+            <plan offset="155" schedule="5" startTime="61200"/>
+            <plan offset="165" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563100898" version="2" crossNo="227" crossName="유성고삼거리" date="2019-05-23" signalGroup="56">
+        <schedule offset="11" id="1">
+            <phase state="GGGGGgrrgrrr" duration="12"/>
+            <phase state="GGGrrrrrrGGG" duration="35"/>
+            <phase state="GGGrrrrrrGGG" duration="43"/>
+            <phase state="rrrrGrGGgrrr" duration="32"/>
+            <phase state="GGGGGgrrgrrr" duration="18"/>
+        </schedule>
+        <schedule offset="15" id="2">
+            <phase state="GGGGGgrrgrrr" duration="17"/>
+            <phase state="GGGrrrrrrGGG" duration="35"/>
+            <phase state="GGGrrrrrrGGG" duration="40"/>
+            <phase state="rrrrGrGGgrrr" duration="40"/>
+            <phase state="GGGGGgrrgrrr" duration="18"/>
+        </schedule>
+        <schedule offset="15" id="3">
+            <phase state="GGGGGgrrgrrr" duration="17"/>
+            <phase state="GGGrrrrrrGGG" duration="35"/>
+            <phase state="GGGrrrrrrGGG" duration="40"/>
+            <phase state="rrrrGrGGgrrr" duration="40"/>
+            <phase state="GGGGGgrrgrrr" duration="18"/>
+        </schedule>
+        <schedule offset="0" id="4">
+            <phase state="GGGGGgrrgrrr" duration="17"/>
+            <phase state="GGGrrrrrrGGG" duration="35"/>
+            <phase state="GGGrrrrrrGGG" duration="40"/>
+            <phase state="rrrrGrGGgrrr" duration="40"/>
+            <phase state="GGGGGgrrgrrr" duration="18"/>
+        </schedule>
+        <schedule offset="0" id="5">
+            <phase state="GGGGGgrrgrrr" duration="13"/>
+            <phase state="GGGrrrrrrGGG" duration="35"/>
+            <phase state="GGGrrrrrrGGG" duration="42"/>
+            <phase state="rrrrGrGGgrrr" duration="45"/>
+            <phase state="GGGGGgrrgrrr" duration="25"/>
+        </schedule>
+        <schedule offset="0" id="6">
+            <phase state="GGGGGgrrgrrr" duration="13"/>
+            <phase state="GGGrrrrrrGGG" duration="35"/>
+            <phase state="GGGrrrrrrGGG" duration="42"/>
+            <phase state="rrrrGrGGgrrr" duration="45"/>
+            <phase state="GGGGGgrrgrrr" duration="25"/>
+        </schedule>
+        <schedule offset="0" id="7">
+            <phase state="GGGGGgrrgrrr" duration="13"/>
+            <phase state="GGGrrrrrrGGG" duration="35"/>
+            <phase state="GGGrrrrrrGGG" duration="42"/>
+            <phase state="rrrrGrGGgrrr" duration="45"/>
+            <phase state="GGGGGgrrgrrr" duration="25"/>
+        </schedule>
+        <TODPlan offset="11" defaultPlan="1">
+            <plan offset="0" schedule="5" startTime="25200"/>
+            <plan offset="15" schedule="2" startTime="34200"/>
+            <plan offset="0" schedule="6" startTime="61200"/>
+            <plan offset="15" schedule="3" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563101520_563101521_563101678_563101679_563102728_563102729_563102732_563102733_563102853_563103948_563103950_563103951_563108472_563108475_563108478_563108479" version="2" crossNo="58" crossName="1번 (유성네거리)" date="2019-02-25" signalGroup="SA 28">
+        <schedule offset="52" id="1">
+            <phase state="grrrrrGgGGGGGgrrrrrrgrrrrr" duration="47"/>
+            <phase state="grrrrrrgrrrrrgrrrrrGrGGGGG" duration="49"/>
+            <phase state="gGGGGGGgrrrrrgrrrrrrrrrrrG" duration="40"/>
+            <phase state="gGGGGrrgrrrrGgGGGGrrrrrrrG" duration="23"/>
+            <phase state="grrrrrrgrrrrGgGGGGGGgrrrrr" duration="21"/>
+        </schedule>
+        <schedule offset="50" id="2">
+            <phase state="grrrrrGgGGGGGgrrrrrrgrrrrr" duration="47"/>
+            <phase state="grrrrrrgrrrrrgrrrrrGrGGGGG" duration="49"/>
+            <phase state="gGGGGGGgrrrrrgrrrrrrrrrrrG" duration="35"/>
+            <phase state="gGGGGrrgrrrrGgGGGGrrrrrrrG" duration="23"/>
+            <phase state="grrrrrrgrrrrGgGGGGGGgrrrrr" duration="26"/>
+        </schedule>
+        <schedule offset="40" id="3">
+            <phase state="grrrrrGgGGGGGgrrrrrrgrrrrr" duration="47"/>
+            <phase state="grrrrrrgrrrrrgrrrrrGrGGGGG" duration="49"/>
+            <phase state="gGGGGGGgrrrrrgrrrrrrrrrrrG" duration="40"/>
+            <phase state="gGGGGrrgrrrrGgGGGGrrrrrrrG" duration="23"/>
+            <phase state="grrrrrrgrrrrGgGGGGGGgrrrrr" duration="21"/>
+        </schedule>
+        <schedule offset="40" id="4">
+            <phase state="grrrrrGgGGGGGgrrrrrrgrrrrr" duration="47"/>
+            <phase state="grrrrrrgrrrrrgrrrrrGrGGGGG" duration="49"/>
+            <phase state="gGGGGGGgrrrrrgrrrrrrrrrrrG" duration="40"/>
+            <phase state="gGGGGrrgrrrrGgGGGGrrrrrrrG" duration="23"/>
+            <phase state="grrrrrrgrrrrGgGGGGGGgrrrrr" duration="21"/>
+        </schedule>
+        <schedule offset="52" id="5">
+            <phase state="grrrrrGgGGGGGgrrrrrrgrrrrr" duration="47"/>
+            <phase state="grrrrrrgrrrrrgrrrrrGrGGGGG" duration="49"/>
+            <phase state="gGGGGGGgrrrrrgrrrrrrrrrrrG" duration="40"/>
+            <phase state="gGGGGrrgrrrrGgGGGGrrrrrrrG" duration="23"/>
+            <phase state="grrrrrrgrrrrGgGGGGGGgrrrrr" duration="21"/>
+        </schedule>
+        <schedule offset="52" id="6">
+            <phase state="grrrrrGgGGGGGgrrrrrrgrrrrr" duration="47"/>
+            <phase state="grrrrrrgrrrrrgrrrrrGrGGGGG" duration="49"/>
+            <phase state="gGGGGGGgrrrrrgrrrrrrrrrrrG" duration="40"/>
+            <phase state="gGGGGrrgrrrrGgGGGGrrrrrrrG" duration="23"/>
+            <phase state="grrrrrrgrrrrGgGGGGGGgrrrrr" duration="21"/>
+        </schedule>
+        <schedule offset="52" id="7">
+            <phase state="grrrrrGgGGGGGgrrrrrrgrrrrr" duration="47"/>
+            <phase state="grrrrrrgrrrrrgrrrrrGrGGGGG" duration="49"/>
+            <phase state="gGGGGGGgrrrrrgrrrrrrrrrrrG" duration="40"/>
+            <phase state="gGGGGrrgrrrrGgGGGGrrrrrrrG" duration="23"/>
+            <phase state="grrrrrrgrrrrGgGGGGGGgrrrrr" duration="21"/>
+        </schedule>
+        <TODPlan offset="52" defaultPlan="1">
+            <plan offset="50" schedule="2" startTime="25200"/>
+            <plan offset="40" schedule="3" startTime="34200"/>
+            <plan offset="52" schedule="5" startTime="61200"/>
+            <plan offset="52" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563100788_563103850_563103877_563103878_563103879_563103881_563103882_563103883_563104205" version="2" crossNo="495" crossName="구유성중삼거리(5-6번3)" date="2015-07-10" signalGroup="56">
+        <schedule offset="8" id="1">
+            <phase state="gGGGGgrrrrgrrrg" duration="18"/>
+            <phase state="gGGGrgrrrGgGGGg" duration="90"/>
+            <phase state="rrrrrgGGGGgrrrg" duration="32"/>
+        </schedule>
+        <schedule offset="16" id="2">
+            <phase state="gGGGGgrrrrgrrrg" duration="30"/>
+            <phase state="gGGGrgrrrGgGGGg" duration="88"/>
+            <phase state="rrrrrgGGGGgrrrg" duration="32"/>
+        </schedule>
+        <schedule offset="16" id="3">
+            <phase state="gGGGGgrrrrgrrrg" duration="25"/>
+            <phase state="gGGGrgrrrGgGGGg" duration="93"/>
+            <phase state="rrrrrgGGGGgrrrg" duration="32"/>
+        </schedule>
+        <schedule offset="119" id="4">
+            <phase state="gGGGGgrrrrgrrrg" duration="25"/>
+            <phase state="gGGGrgrrrGgGGGg" duration="93"/>
+            <phase state="rrrrrgGGGGgrrrg" duration="32"/>
+        </schedule>
+        <schedule offset="15" id="5">
+            <phase state="gGGGGgrrrrgrrrg" duration="36"/>
+            <phase state="gGGGrgrrrGgGGGg" duration="89"/>
+            <phase state="rrrrrgGGGGgrrrg" duration="36"/>
+        </schedule>
+        <schedule offset="15" id="6">
+            <phase state="gGGGGgrrrrgrrrg" duration="36"/>
+            <phase state="gGGGrgrrrGgGGGg" duration="89"/>
+            <phase state="rrrrrgGGGGgrrrg" duration="36"/>
+        </schedule>
+        <schedule offset="132" id="7">
+            <phase state="gGGGGgrrrrgrrrg" duration="33"/>
+            <phase state="gGGGrgrrrGgGGGg" duration="95"/>
+            <phase state="rrrrrgGGGGgrrrg" duration="32"/>
+        </schedule>
+        <TODPlan offset="8" defaultPlan="1">
+            <plan offset="15" schedule="5" startTime="25200"/>
+            <plan offset="16" schedule="2" startTime="34200"/>
+            <plan offset="15" schedule="6" startTime="61200"/>
+            <plan offset="16" schedule="3" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563103431" version="2" crossNo="1319" crossName="유성중(단)" date="2017-03-08" signalGroup="SA 107">
+        <schedule offset="0" id="1">
+            <phase state="rgrggr" duration="26"/>
+            <phase state="GrgrgG" duration="94"/>
+        </schedule>
+        <TODPlan offset="0" defaultPlan="1"/>
+    </trafficSignal>
+    <trafficSignal nodeID="563103625" version="2" crossNo="1508" crossName="유성중삼거리" date="2017-03-08" signalGroup="SA 107">
+        <schedule offset="0" id="1">
+            <phase state="rrgGgr" duration="35"/>
+            <phase state="GgrrGG" duration="43"/>
+            <phase state="GgrrGG" duration="42"/>
+        </schedule>
+        <TODPlan offset="0" defaultPlan="1"/>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103433_563103849_563103871_563103872_563103873_563103874_563103875_563104618" version="2" crossNo="1504" crossName="인삼골네거리" date="2017-12-08" signalGroup="SA 101">
+        <schedule offset="2" id="1">
+            <phase state="rrrrrGgGGGgrrrrrr" duration="46"/>
+            <phase state="rGGGrrgrrrrGGGGrr" duration="84"/>
+            <phase state="grrrGGgrrrrrrrrrr" duration="30"/>
+            <phase state="grrrrrgrrrrrrrrGG" duration="20"/>
+        </schedule>
+        <schedule offset="140" id="2">
+            <phase state="rrrrrGgGGGgrrrrrr" duration="46"/>
+            <phase state="rGGGrrgrrrrGGGGrr" duration="84"/>
+            <phase state="grrrGGgrrrrrrrrrr" duration="30"/>
+            <phase state="grrrrrgrrrrrrrrGG" duration="20"/>
+        </schedule>
+        <schedule offset="169" id="3">
+            <phase state="rrrrrGgGGGgrrrrrr" duration="46"/>
+            <phase state="rGGGrrgrrrrGGGGrr" duration="84"/>
+            <phase state="grrrGGgrrrrrrrrrr" duration="30"/>
+            <phase state="grrrrrgrrrrrrrrGG" duration="20"/>
+        </schedule>
+        <schedule offset="169" id="4">
+            <phase state="rrrrrGgGGGgrrrrrr" duration="46"/>
+            <phase state="rGGGrrgrrrrGGGGrr" duration="84"/>
+            <phase state="grrrGGgrrrrrrrrrr" duration="30"/>
+            <phase state="grrrrrgrrrrrrrrGG" duration="20"/>
+        </schedule>
+        <schedule offset="165" id="5">
+            <phase state="rrrrrGgGGGgrrrrrr" duration="46"/>
+            <phase state="rGGGrrgrrrrGGGGrr" duration="84"/>
+            <phase state="grrrGGgrrrrrrrrrr" duration="30"/>
+            <phase state="grrrrrgrrrrrrrrGG" duration="20"/>
+        </schedule>
+        <schedule offset="2" id="6">
+            <phase state="rrrrrGgGGGgrrrrrr" duration="46"/>
+            <phase state="rGGGrrgrrrrGGGGrr" duration="84"/>
+            <phase state="grrrGGgrrrrrrrrrr" duration="30"/>
+            <phase state="grrrrrgrrrrrrrrGG" duration="20"/>
+        </schedule>
+        <schedule offset="2" id="7">
+            <phase state="rrrrrGgGGGgrrrrrr" duration="46"/>
+            <phase state="rGGGrrgrrrrGGGGrr" duration="84"/>
+            <phase state="grrrGGgrrrrrrrrrr" duration="30"/>
+            <phase state="grrrrrgrrrrrrrrGG" duration="20"/>
+        </schedule>
+        <TODPlan offset="2" defaultPlan="1">
+            <plan offset="140" schedule="2" startTime="25200"/>
+            <plan offset="169" schedule="3" startTime="34200"/>
+            <plan offset="165" schedule="5" startTime="61200"/>
+            <plan offset="2" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563103430_563103601_563103853_563103854_563103855_563103884_563103885_563103893_563103946_563103947_563107941_563107942" version="2" crossNo="1506" crossName="진터네거리" date="2018-08-10" signalGroup="SA 101">
+        <schedule offset="157" id="1">
+            <phase state="grrrggrrrrgrrggrrrG" duration="22"/>
+            <phase state="rrrrggGGGrgrrgrGGGr" duration="76"/>
+            <phase state="rrrrggrrrGgrrgrrrrr" duration="22"/>
+            <phase state="rGGGggrrrrgrrgrrrrr" duration="32"/>
+            <phase state="grrrggrrrrgGGggrrrr" duration="28"/>
+        </schedule>
+        <schedule offset="144" id="2">
+            <phase state="grrrggrrrrgrrggrrrG" duration="22"/>
+            <phase state="rrrrggGGGrgrrgrGGGr" duration="76"/>
+            <phase state="rrrrggrrrGgrrgrrrrr" duration="22"/>
+            <phase state="rGGGggrrrrgrrgrrrrr" duration="32"/>
+            <phase state="grrrggrrrrgGGggrrrr" duration="28"/>
+        </schedule>
+        <schedule offset="144" id="3">
+            <phase state="grrrggrrrrgrrggrrrG" duration="22"/>
+            <phase state="rrrrggGGGrgrrgrGGGr" duration="76"/>
+            <phase state="rrrrggrrrGgrrgrrrrr" duration="22"/>
+            <phase state="rGGGggrrrrgrrgrrrrr" duration="32"/>
+            <phase state="grrrggrrrrgGGggrrrr" duration="28"/>
+        </schedule>
+        <schedule offset="144" id="4">
+            <phase state="grrrggrrrrgrrggrrrG" duration="22"/>
+            <phase state="rrrrggGGGrgrrgrGGGr" duration="76"/>
+            <phase state="rrrrggrrrGgrrgrrrrr" duration="22"/>
+            <phase state="rGGGggrrrrgrrgrrrrr" duration="32"/>
+            <phase state="grrrggrrrrgGGggrrrr" duration="28"/>
+        </schedule>
+        <schedule offset="157" id="5">
+            <phase state="grrrggrrrrgrrggrrrG" duration="25"/>
+            <phase state="rrrrggGGGrgrrgrGGGr" duration="73"/>
+            <phase state="rrrrggrrrGgrrgrrrrr" duration="22"/>
+            <phase state="rGGGggrrrrgrrgrrrrr" duration="32"/>
+            <phase state="grrrggrrrrgGGggrrrr" duration="28"/>
+        </schedule>
+        <schedule offset="157" id="6">
+            <phase state="grrrggrrrrgrrggrrrG" duration="22"/>
+            <phase state="rrrrggGGGrgrrgrGGGr" duration="76"/>
+            <phase state="rrrrggrrrGgrrgrrrrr" duration="22"/>
+            <phase state="rGGGggrrrrgrrgrrrrr" duration="32"/>
+            <phase state="grrrggrrrrgGGggrrrr" duration="28"/>
+        </schedule>
+        <schedule offset="157" id="7">
+            <phase state="grrrggrrrrgrrggrrrG" duration="22"/>
+            <phase state="rrrrggGGGrgrrgrGGGr" duration="76"/>
+            <phase state="rrrrggrrrGgrrgrrrrr" duration="22"/>
+            <phase state="rGGGggrrrrgrrgrrrrr" duration="32"/>
+            <phase state="grrrggrrrrgGGggrrrr" duration="28"/>
+        </schedule>
+        <TODPlan offset="157" defaultPlan="1">
+            <plan offset="144" schedule="2" startTime="25200"/>
+            <plan offset="144" schedule="3" startTime="34200"/>
+            <plan offset="157" schedule="5" startTime="61200"/>
+            <plan offset="157" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+    <trafficSignal nodeID="563103631" version="2" crossNo="null" crossName="휴먼시아4단지(단)"  >
+        <schedule offset="70" id="1">
+            <phase state="rgGrrrrgGrrr" duration="28"/>
+            <phase state="grrgGggrrgGg" duration="92"/>
+        </schedule>
+        <TODPlan offset="70" defaultPlan="1"/>
+    </trafficSignal>
+    <trafficSignal nodeID="cluster_563100902_563101915" version="2" crossNo="57" crossName="휴양소삼거리" date="2011-11-03" signalGroup="SA 28">
+        <schedule offset="67" id="1">
+            <phase state="ggGGgrrrrrrrrrr" duration="50"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+        </schedule>
+        <schedule offset="54" id="2">
+            <phase state="ggGGgrrrrrrrrrr" duration="50"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+        </schedule>
+        <schedule offset="54" id="3">
+            <phase state="ggGGgrrrrrrrrrr" duration="50"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+        </schedule>
+        <schedule offset="58" id="4">
+            <phase state="ggGGgrrrrrrrrrr" duration="50"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+        </schedule>
+        <schedule offset="67" id="5">
+            <phase state="ggGGgrrrrrrrrrr" duration="50"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+        </schedule>
+        <schedule offset="67" id="6">
+            <phase state="ggGGgrrrrrrrrrr" duration="50"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+        </schedule>
+        <schedule offset="67" id="7">
+            <phase state="ggGGgrrrrrrrrrr" duration="50"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+            <phase state="rrrrrGGGGGGGGGG" duration="65"/>
+        </schedule>
+        <TODPlan offset="67" defaultPlan="1">
+            <plan offset="54" schedule="2" startTime="25200"/>
+            <plan offset="54" schedule="3" startTime="34200"/>
+            <plan offset="67" schedule="5" startTime="61200"/>
+            <plan offset="67" schedule="6" startTime="75600"/>
+        </TODPlan>
+    </trafficSignal>
+</trafficSignalSystem>

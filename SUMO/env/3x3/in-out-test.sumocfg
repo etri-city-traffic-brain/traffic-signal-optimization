@@ -1,0 +1,21 @@
+<configuration>
+
+	<input>
+		<net-file value="in-out.net.xml"/>
+		<!-- <route-files value="in-out-light.rou.xml"/> -->
+		<!-- <route-files value="in-out-normal.rou.xml"/> --> <!-- 3757 -->
+		<route-files value="in-out.rou.xml"/> <!-- 6380 -->
+		<additional-files value="../output-config.xml"/>
+	</input>
+
+	<time>
+		<begin value="0"/>
+		<end value="5400"/>
+	</time>
+
+    <output>
+        <output-prefix value="3x3/output/rl/"/>
+    </output>
+
+</configuration>
+

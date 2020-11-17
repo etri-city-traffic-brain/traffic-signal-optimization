@@ -1,0 +1,18 @@
+<additional xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/additional_file.xsd">
+
+    <laneData id="5min-lane" file="output-lane-5min.xml" freq="300" begin="0" end="6000" excludeEmpty="False"/>
+    <edgeData id="5min-edge" file="output-edge-5min.xml" freq="300" begin="0" end="6000" excludeEmpty="False"/>
+    <laneData id="10min-lane" file="output-lane-10min.xml" freq="600" begin="0" end="6000" excludeEmpty="False"/>
+    <edgeData id="10min-edge" file="output-edge-10min.xml" freq="600" begin="0" end="6000" excludeEmpty="False"/>
+    <laneData id="15min-lane" file="output-lane-15min.xml" freq="900" begin="0" end="6000" excludeEmpty="False"/>
+    <edgeData id="15min-edge" file="output-edge-15min.xml" freq="900" begin="0" end="6000" excludeEmpty="False"/>
+    <laneData id="60min-lane" file="output-lane-60min.xml" freq="3600" begin="0" end="6000" excludeEmpty="False"/>
+    <edgeData id="60min-edge" file="output-edge-60min.xml" freq="3600" begin="0" end="6000" excludeEmpty="False"/>
+    <!-- <edgeData id="10min" file="result_10min.xml" freq="600" begin="0" end="86400" excludeEmpty="False"/> -->
+    <!-- <edgeData id="30min" file="result_30min.xml" freq="1800" begin="25200" end="35999" excludeEmpty="False"/> -->
+    <!-- <edgeData id="30min" file="result_30min.xml" freq="1800" begin="28800" end="35999" excludeEmpty="False"/> -->
+    <!-- <edgeData id="30min" file="result_30min_nonempty.xml" freq="1800" begin="0" end="86400" excludeEmpty="True"/> -->
+    <!-- <edgeData id="60min" file="result_60min.xml" freq="3600" begin="0" end="86400" excludeEmpty="False"/> -->
+    <!-- <edgeData id="60min" file="result_60min_nonempty.xml" freq="3600" begin="0" end="86400" excludeEmpty="True"/> -->
+
+</additional>

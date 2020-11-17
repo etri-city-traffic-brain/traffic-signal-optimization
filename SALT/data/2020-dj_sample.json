@@ -1,0 +1,27 @@
+{
+  "scenario": {
+    "id": "2020_dj_sample",
+    "time": {
+      "begin": 25200,
+      "end": 36000
+    },
+    "input": {
+      "fileType": "SALT",
+      "node": "2020DJSampleTest/node.xml",
+      "link": "2020DJSampleTest/edge.xml",
+      "connection": "2020DJSampleTest/connection.xml",
+      "trafficLightSystem": "2020DJSampleTest/tss.xml",
+      "route": "routes/dj_sample_mon.rou.xml"
+    },
+    "parameter": {
+      "minCellLength": 30,
+      "vehLength": 5
+    },
+    "output": {
+      "fileDir": "output/2020DJSampleTest/",
+      "period": 30,
+      "level": "link",
+      "save": 1
+    }
+  }
+}
