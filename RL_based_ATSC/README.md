@@ -6,8 +6,8 @@ Reinforcement Leraning based Adpative Traffic Signal Control
 
 ## SUMO 기반 신호 최적화
 - 마이크로 스코픽 교통 시뮬레이터 SUMO와 동적 인터페이스 TraCI를 활용
-- 사용법: SUMO 디렉토리 참조
+- 실행 환경 및 사용법: SUMO 디렉토리 참조
 
 ## SALT 기반 신호 최적화
 - 메소 스코픽 교통 시뮬레이터 SALT와 동적 인터페이스 Libsalt 활용
-- 사용법: SALT 디렉토리 참조
+- 실행 환경 및 사용법: SALT 디렉토리 참조
