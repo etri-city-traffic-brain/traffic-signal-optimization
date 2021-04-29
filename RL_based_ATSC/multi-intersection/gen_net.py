@@ -152,13 +152,13 @@ class Network():
         # file_name_str=os.path.join(self.current_Env_path,self.file_name)
         file_name_str = os.path.join(self.current_Env_path, self.file_name)
         if len(self.traffic_light) != 0:
-            os.system('netconvert -n {0}.nod.xml -e {0}.edg.xml -i {0}_tl.add.xml -o {0}.net.xml'.format(
+            os.system('netconvert -n {0}.nod.xml -e {0}.edg.xml -i {0}_tl.add.xml -o {0}.net.xml --no-turnarounds True'.format(
                 file_name_str))
         elif len(self.connections) == 0:
-            os.system('netconvert -n {}.nod.xml -e {}.edg.xml -o {}.net.xml'.format(
+            os.system('netconvert -n {}.nod.xml -e {}.edg.xml -o {}.net.xml --no-turnarounds True'.format(
                 file_name_str, file_name_str, file_name_str))
         else:  # connection이 존재하는 경우 -x
-            os.system('netconvert -n {}.nod.xml -e {}.edg.xml -x {}.con.xml -o {}.net.xml'.format(
+            os.system('netconvert -n {}.nod.xml -e {}.edg.xml -x {}.con.xml -o {}.net.xml --no-turnarounds True'.format(
                 file_name_str, file_name_str, file_name_str, file_name_str))
 
     def _generate_rou_xml(self):
@@ -195,11 +195,12 @@ class Network():
         self.traffic_light = traffic_light_set
         data_additional = ET.Element('additional')
         # edgeData와 landData파일의 생성위치는 data
-        data_additional.append(E('edgeData', attrib={'id': 'edgeData_00', 'file': '{}_edge.xml'.format(self.current_path+'/data/'+self.file_name), 'begin': '0', 'end': str(
-            self.configs['max_steps']), 'freq': '1000'}))
+
+        data_additional.append(E('edgeData', attrib={'id': 'edgeData_00', 'file': '{}_edge.xml'.format(self.current_path+'\\data\\'+self.configs['mode']+'\\'+self.file_name), 'begin': '0', 'end': str(
+            self.configs['max_steps']), 'freq': '900'}))
         indent(data_additional, 1)
-        data_additional.append(E('laneData', attrib={'id': 'laneData_00', 'file': '{}_lane.xml'.format(self.current_path+'/data/'+self.file_name), 'begin': '0', 'end': str(
-            self.configs['max_steps']), 'freq': '1000'}))
+        data_additional.append(E('laneData', attrib={'id': 'laneData_00', 'file': '{}_lane.xml'.format(self.current_path+'\\data\\'+self.configs['mode']+'\\'+self.file_name), 'begin': '0', 'end': str(
+            self.configs['max_steps']), 'freq': '900'}))
         indent(data_additional, 1)
         dump(data_additional)
         tree = ET.ElementTree(data_additional)
@@ -238,10 +239,12 @@ class Network():
                     E('route-files', attrib={'value': os.path.join(self.current_Env_path, self.file_name+'.rou.xml')}))
                 indent(sumocfg)
 
-        if os.path.exists(os.path.join(self.current_Env_path, self.file_name+'_data.add.xml')):
-            inputXML.append(
-                E('additional-files', attrib={'value': os.path.join(self.current_Env_path, self.file_name+'_data.add.xml')}))
-            indent(sumocfg)
+        # if os.path.exists(os.path.join(self.current_Env_path, self.file_name+'_data.add.xml')):
+        #     inputXML.append(
+        #         E('additional-files', attrib={'value': os.path.join(self.current_Env_path, self.file_name+'_data.add.xml')}))
+        #     indent(sumocfg)
+        inputXML.append(E('additional-files', attrib={'value': os.path.join(self.current_Env_path, self.file_name+'_data.add.xml')}))
+        indent(sumocfg)
 
         time = ET.SubElement(sumocfg, 'time')
         time.append(E('begin', attrib={'value': str(self.sim_start)}))

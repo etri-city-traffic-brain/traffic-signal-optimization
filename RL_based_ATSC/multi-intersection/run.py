@@ -25,7 +25,7 @@ def parse_args(args):
         'mode', type=str,
         help='train or test, simulate, "train_old" is the old version to train')
     parser.add_argument(
-        '--network', type=str, default='grid',
+        '--network', type=str, default='5x5grid',
         help='choose network in Env or load from map file')
     # optional input parameters
     parser.add_argument(
@@ -35,7 +35,7 @@ def parse_args(args):
         '--algorithm', type=str, default='super_dqn',
         help='choose algorithm super_dqn.')
     parser.add_argument(
-        '--model', type=str, default='city',
+        '--model', type=str, default='base',
         help='choose model "city".')
     parser.add_argument(
         '--gpu', type=bool, default=False,
@@ -49,6 +49,8 @@ def parse_args(args):
     parser.add_argument(
         '--randomness', type=bool, default=False,
         help='activate only in test mode and write file_name to load weights.')
+    parser.add_argument(
+        '--update_type', type=str, default='soft', help='hard or soft')
     return parser.parse_known_args(args)[0]
 
 
@@ -65,39 +67,16 @@ def train(flags, time_data, configs, sumoConfig):
     configs['algorithm'] = flags.algorithm.lower()
     configs['randomness'] = flags.randomness
     print("training algorithm: ", configs['algorithm'])
-    if flags.model.lower() == 'base':
-        from train import super_dqn_train
-        from configs import SUPER_DQN_TRAFFIC_CONFIGS
-        if flags.network.lower() == 'grid':
-            configs = merge_dict_non_conflict(
-                configs, SUPER_DQN_TRAFFIC_CONFIGS)
-        configs['max_phase_num'] = 4
-        configs['offset'] = [0 for i in range(
-            configs['num_agent'])]  # offset 임의 설정
-        configs['tl_period'] = [160 for i in range(
-            configs['num_agent'])]  # max period 임의 설정
-        configs['action_size'] = 2
-        configs['state_space'] = 8  # 4phase에서 각각 받아오는게 아니라 마지막에 한번만 받음
-        # action space
-        configs['rate_action_space'] = 13
-        # time action space지정 (무조건 save param 이후 list화 시키고 나면 이전으로 옮길 것)
-        # TODO 여기 홀수일 때, 어떻게 할 건지 지정해야함
-        configs['time_action_space'] = (torch.min(torch.tensor(configs['max_phase'])-torch.tensor(
-            configs['common_phase']), torch.tensor(configs['common_phase'])-torch.tensor(configs['min_phase']))/2).mean(dim=1).int().tolist()
-        configs['model'] = 'base'
-        super_dqn_train(configs, time_data, sumoCmd)
+    configs['action_size'] = 2
+    # state space 는 map.py에서 결정
+    if flags.network.lower() == 'grid':
+        configs['state_space'] = 10
 
-    elif flags.model.lower() == 'city':
-        configs['action_size'] = 2
-        # state space 는 map.py에서 결정
-        if flags.network.lower() == 'grid':
-            configs['state_space'] = 8
-
-        configs['model'] = 'city'
-        from train import city_dqn_train
-        from configs import SUPER_DQN_TRAFFIC_CONFIGS
-        configs = merge_dict_non_conflict(configs, SUPER_DQN_TRAFFIC_CONFIGS)
-        city_dqn_train(configs, time_data, sumoCmd)
+    configs['model'] = 'city'
+    from train import city_dqn_train
+    from configs import SUPER_DQN_TRAFFIC_CONFIGS
+    configs = merge_dict_non_conflict(configs, SUPER_DQN_TRAFFIC_CONFIGS)
+    city_dqn_train(configs, time_data, sumoCmd)
 
 
 def test(flags, configs, sumoConfig):
@@ -107,12 +86,7 @@ def test(flags, configs, sumoConfig):
         sumoBinary = checkBinary('sumo-gui')
     else:
         sumoBinary = checkBinary('sumo')
-    if flags.network.lower() == "3x3grid":
-        sumoCmd = [sumoBinary, "-c", sumoConfig, "--scale", configs['scale']]
-    elif flags.network.lower() == 'dunsan':
-        sumoCmd = [sumoBinary, "-c", sumoConfig, "--scale", configs['scale']]
-    else:
-        sumoCmd = [sumoBinary, "-c", sumoConfig]
+    sumoCmd = [sumoBinary, "-c", sumoConfig, "--scale", configs['scale']]
 
     if flags.algorithm.lower() == 'super_dqn':
         city_dqn_test(flags, sumoCmd, configs)
@@ -123,13 +97,7 @@ def simulate(flags, configs, sumoConfig):
         sumoBinary = checkBinary('sumo-gui')
     else:
         sumoBinary = checkBinary('sumo')
-    if flags.network.lower() == "3x3grid":
-        sumoCmd = [sumoBinary, "-c", sumoConfig, "--scale", configs['scale']]
-    elif flags.network.lower() == 'dunsan':
-        sumoCmd = [sumoBinary, "-c", sumoConfig, "--scale", configs['scale']]
-    else:
-        sumoCmd = [sumoBinary, "-c", sumoConfig]
-
+    sumoCmd = [sumoBinary, "-c", sumoConfig, "--scale", configs['scale']]
     MAX_STEPS = configs['max_steps']
     traci.start(sumoCmd)
     a = time.time()
@@ -171,17 +139,17 @@ def simulate(flags, configs, sumoConfig):
                         # part_velocity.append(
                         #     traci.edge.getLastStepMeanSpeed(inflow))
                         tmp_travel = traci.edge.getTraveltime(inflow)
-                        if tmp_travel <= 320:  # 이상한 값 거르기
+                        if tmp_travel <= 500 and tmp_travel != -1:  # 이상한 값 거르기
                             travel_time.append(tmp_travel)
                         # print(travel_time)
                     dup_list.append(inflow)
 
                 if outflow != None and outflow not in dup_list:
                     if traci.edge.getLastStepVehicleNumber(outflow) != 0:
-                        part_velocity.append(
-                            traci.edge.getLastStepMeanSpeed(interest['outflow']))
-                        tmp_travel = traci.edge.getTraveltime(inflow)
-                        if tmp_travel <= 320:  # 이상한 값 거르기
+                        # part_velocity.append(
+                        #     traci.edge.getLastStepMeanSpeed(interest['outflow']))
+                        tmp_travel = traci.edge.getTraveltime(outflow)
+                        if tmp_travel <= 500 and tmp_travel != -1:  # 이상한 값 거르기
                             travel_time.append(tmp_travel)
                     dup_list.append(interest['outflow'])
 
@@ -219,14 +187,16 @@ def main(args):
     configs['mode'] = flags.mode.lower()
     time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
     configs['time_data'] = str(time_data)
-
+    if os.path.exists(os.path.join(os.path.dirname(__file__),'data')):
+        if os.path.exists(os.path.join(os.path.dirname(__file__),'data',configs['mode']))==False:
+            os.mkdir(os.path.join(os.path.dirname(__file__),'data',configs['mode']))
     configs['file_name'] = configs['time_data']
     # check the network
     configs['network'] = flags.network.lower()
     if configs['network'] == 'grid':
         from Network.grid import GridNetwork  # network바꿀때 이걸로 바꾸세요(수정 예정)
-        configs['grid_num'] = 3
-        configs['scale']=1
+        configs['grid_num'] = 5
+        configs['scale'] = 1
         if configs['mode'] == 'simulate':
             configs['file_name'] = '{}x{}grid'.format(
                 configs['grid_num'], configs['grid_num'])
@@ -255,10 +225,18 @@ def main(args):
         mapnet.gen_net_from_xml()
         mapnet.gen_rou_from_xml()
         mapnet.generate_cfg(True, configs['mode'])
-        if configs['network']=='3x3grid':
-            configs['scale']=str(1.1)
-        elif configs['network']=='dunsan':
-            configs['scale']=str(0.7)
+        mapnet._generate_add_xml()
+        if configs['network'] == '3x3grid':
+            configs['scale'] = str(1)
+        if configs['network'] == '5x5grid':
+            configs['scale'] = str(1)
+        if configs['network'] == '5x5grid_v2':
+            configs['scale'] = str(1.5)
+        if configs['network'] == 'dunsan':
+            configs['scale'] = str(1)
+        if configs['network'] == 'dunsan_v2':
+            configs['scale'] = str(0.8)
+        print("Scale:",configs['scale'])
 
     # check the environment
     if 'SUMO_HOME' in os.environ:
@@ -270,6 +248,7 @@ def main(args):
     # check the mode
     if configs['mode'] == 'train':
         # init train setting
+        configs['update_type'] = flags.update_type
         sumoConfig = os.path.join(
             configs['current_path'], 'training_data', time_data, 'net_data', configs['file_name']+'_train.sumocfg')
         train(flags, time_data, configs, sumoConfig)

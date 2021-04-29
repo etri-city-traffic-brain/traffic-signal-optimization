@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<routes>
+    <flow from="n_0_l_to_n_0_0" to="n_4_0_to_n_0_r" id="n_0_l" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_0_r_to_n_4_0" to="n_0_0_to_n_0_l" id="n_0_r" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_0_u_to_n_0_0" to="n_0_4_to_n_0_d" id="n_0_u" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_0_d_to_n_0_4" to="n_0_0_to_n_0_u" id="n_0_d" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_1_l_to_n_0_1" to="n_4_1_to_n_1_r" id="n_1_l" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_1_r_to_n_4_1" to="n_0_1_to_n_1_l" id="n_1_r" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_1_u_to_n_1_0" to="n_1_4_to_n_1_d" id="n_1_u" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_1_d_to_n_1_4" to="n_1_0_to_n_1_u" id="n_1_d" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_2_l_to_n_0_2" to="n_4_2_to_n_2_r" id="n_2_l" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_2_r_to_n_4_2" to="n_0_2_to_n_2_l" id="n_2_r" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_2_u_to_n_2_0" to="n_2_4_to_n_2_d" id="n_2_u" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_2_d_to_n_2_4" to="n_2_0_to_n_2_u" id="n_2_d" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_3_l_to_n_0_3" to="n_4_3_to_n_3_r" id="n_3_l" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_3_r_to_n_4_3" to="n_0_3_to_n_3_l" id="n_3_r" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_3_u_to_n_3_0" to="n_3_4_to_n_3_d" id="n_3_u" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_3_d_to_n_3_4" to="n_3_0_to_n_3_u" id="n_3_d" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_4_l_to_n_0_4" to="n_4_4_to_n_4_r" id="n_4_l" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_4_r_to_n_4_4" to="n_0_4_to_n_4_l" id="n_4_r" begin="0" end="3600" probability="0.210" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_4_u_to_n_4_0" to="n_4_4_to_n_4_d" id="n_4_u" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    <flow from="n_4_d_to_n_4_4" to="n_4_0_to_n_4_u" id="n_4_d" begin="0" end="3600" probability="0.120" reroute="false" departPos="base" departLane="best"/>
+    </routes>
+    

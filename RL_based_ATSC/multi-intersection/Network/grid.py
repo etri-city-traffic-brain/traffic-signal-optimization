@@ -160,7 +160,7 @@ class GridNetwork(Network):
                                 self.configs['probability'] = '0.133'
                                 self.configs['vehsPerHour'] = '900'
                             else:
-                                self.configs['vehsPerHour'] = '2000'
+                                self.configs['vehsPerHour'] = '1600'
                                 self.configs['probability'] = '0.388'
                             via_string = str()
                             node_x_y = edge['id'][2]  # 끝에서 사용하는 기준 x나 y
@@ -187,8 +187,8 @@ class GridNetwork(Network):
                                 'id': edge['from'],
                                 'begin': str(self.configs['flow_start']),
                                 'end': str(self.configs['flow_end']),
-                                # 'probability': self.configs['probability'],
-                                'vehsPerHour': self.configs['vehsPerHour'],
+                                'probability': self.configs['probability'],
+                                # 'vehsPerHour': self.configs['vehsPerHour'],
                                 'reroute': 'false',
                                 # 'via': edge['id']+" "+via_string+" "+checkEdge['id'],
                                 'departPos': "base",
@@ -215,44 +215,44 @@ class GridNetwork(Network):
                 # 4행시
                 phase_set = [
                     {'duration': '37',  # 1
-                     'state': 'r{2}{1}gr{2}{3}rr{2}{1}gr{2}{3}r'.format(  # 위좌아래좌
+                     'state': 'r{2}{1}r{2}{3}r{2}{1}r{2}{3}'.format(  # 위좌아래좌
                          g*num_lanes, g, r*num_lanes, r),
                      },
                     {'duration': '3',
-                     'state': 'y'*(12+4*num_lanes),
+                     'state': 'y'*(8+4*num_lanes),
                      },
                     # {'duration': '3',
-                    #  'state': 'r'*(12+4*num_lanes),
+                    #  'state': 'r'*(8+4*num_lanes),
                     #  },
                     {'duration': '37',  # 2
-                     'state': 'G{0}{3}rr{2}{3}rG{0}{3}rr{2}{3}r'.format(  # 위직아래직
+                     'state': 'G{0}{3}r{2}{3}G{0}{3}r{2}{3}'.format(  # 위직아래직
                          g*num_lanes, g, r*num_lanes, r),  # current
                      },
                     {'duration': '3',
-                     'state': 'y'*(12+4*num_lanes),
+                     'state': 'y'*(8+4*num_lanes),
                      },
                     # {'duration': '3',
-                    #  'state': 'r'*(12+4*num_lanes),
+                    #  'state': 'r'*(8+4*num_lanes),
                     #  },
                     {'duration': '37',  # 1
-                     'state': 'r{2}{3}rr{2}{1}gr{2}{3}rr{2}{1}g'.format(  # 좌좌우좌
+                     'state': 'r{2}{3}r{2}{1}r{2}{3}r{2}{1}'.format(  # 좌좌우좌
                          g*num_lanes, g, r*num_lanes, r),
                      },
                     {'duration': '3',
-                     'state': 'y'*(12+4*num_lanes),
+                     'state': 'y'*(8+4*num_lanes),
                      },
                     # {'duration': '3',
-                    #  'state': 'r'*(12+4*num_lanes),
+                    #  'state': 'r'*(8+4*num_lanes),
                     #  },
                     {'duration': '37',  # 1
-                     'state': 'r{2}{3}rG{0}{3}rr{2}{3}rG{0}{3}g'.format(  # 좌직우직
+                     'state': 'r{2}{3}G{0}{3}r{2}{3}G{0}{3}'.format(  # 좌직우직
                          g*num_lanes, g, r*num_lanes, r),  # current
                      },
                     {'duration': '3',
-                     'state': 'y'*(12+4*num_lanes),
+                     'state': 'y'*(8+4*num_lanes),
                      },
                     # {'duration': '3',
-                    #  'state': 'r'*(12+4*num_lanes),
+                    #  'state': 'r'*(8+4*num_lanes),
                     #  },
                 ]
                 # 2행시
@@ -408,7 +408,8 @@ class GridNetwork(Network):
         NET_CONFIGS['phase_num_actions'] = {2: [[0, 0], [1, -1], [-1, 1]],
                                             3: [[0, 0, 0], [1, 0, -1], [1, -1, 0], [0, 1, -1], [-1, 0, 1], [0, -1, 1], [-1, 1, 0]],
                                             4: [[0, 0, 0, 0], [1, 0, 0, -1], [1, 0, -1, 0], [1, -1, 0, 0], [0, 1, 0, -1], [0, 1, -1, 0], [0, 0, 1, -1],
-                                                [1, 0, 0, -1], [1, 0, -1, 0], [1, 0, 0, -1], [0, 1, 0, -1], [0, 1, -1, 0], [0, 0, 1, -1], [1, 1, -1, -1], [1, -1, 1, -1], [-1, 1, 1, -1], [-1, -1, 1, 1], [-1, 1, -1, 1]]}
+                                                [1, 0, 0, -1], [1, 0, -1, 0], [0, 1, 0, -1], [0, 1, -1, 0], [0, 0, 1, -1], [1, 1, -1, -1], [1, -1, 1, -1], [-1, 1, 1, -1], [-1, -1, 1, 1], [-1, 1, -1, 1]],}
+
         NET_CONFIGS['rate_action_space'] = {2: len(NET_CONFIGS['phase_num_actions'][2]), 3: len(
             NET_CONFIGS['phase_num_actions'][3]), 4: len(NET_CONFIGS['phase_num_actions'][4])}
         # time_action_space
@@ -457,6 +458,7 @@ class GridNetwork(Network):
         NET_CONFIGS['tl_rl_list'] = list()
         NET_CONFIGS['offset'] = list()
         NET_CONFIGS['phase_index'] = list()
+        NET_CONFIGS['phase_type']=list() # Encoding Vector
 
         for key in traffic_info.keys():
             NET_CONFIGS['tl_period'].append(
@@ -470,6 +472,7 @@ class GridNetwork(Network):
             NET_CONFIGS['phase_index'].append(traffic_info[key]['phase_index'])
             NET_CONFIGS['time_action_space'].append(round((torch.min(torch.tensor(traffic_info[key]['max_phase'])-torch.tensor(
                 traffic_info[key]['common_phase']), torch.tensor(traffic_info[key]['common_phase'])-torch.tensor(traffic_info[key]['min_phase']))/2).mean().item()))
+            NET_CONFIGS['phase_type'].append([0,0])
 
         NET_CONFIGS['num_agent'] = len(NET_CONFIGS['tl_rl_list'])
         # max value 검출기
@@ -491,22 +494,22 @@ class GridNetwork(Network):
         r = 'r'
         y = 'y'
         phase_list = [
-            'r{2}{1}gr{2}{3}rr{2}{1}gr{2}{3}r'.format(  # 위좌아래좌
+            'r{2}{1}r{2}{3}r{2}{1}r{2}{3}'.format(  # 위좌아래좌
                 g*num_lanes, g, r*num_lanes, r),
-            '{}'.format(y*(12+4*num_lanes)),
-            '{}'.format(r*(12+4*num_lanes)),
-            'G{0}{3}rr{2}{3}rG{0}{3}rr{2}{3}r'.format(  # 위직아래직
+            '{}'.format(y*(8+4*num_lanes)),
+            '{}'.format(r*(8+4*num_lanes)),
+            'G{0}{3}r{2}{3}G{0}{3}r{2}{3}'.format(  # 위직아래직
                 g*num_lanes, g, r*num_lanes, r),  # current
-            '{}'.format(y*(12+4*num_lanes)),
-            '{}'.format(r*(12+4*num_lanes)),
-            'r{2}{3}rr{2}{1}gr{2}{3}rr{2}{1}g'.format(  # 좌좌우좌
+            '{}'.format(y*(8+4*num_lanes)),
+            '{}'.format(r*(8+4*num_lanes)),
+            'r{2}{3}r{2}{1}r{2}{3}r{2}{1}'.format(  # 좌좌우좌
                 g*num_lanes, g, r*num_lanes, r),
-            '{}'.format(y*(12+4*num_lanes)),
-            '{}'.format(r*(12+4*num_lanes)),
-            'r{2}{3}rG{0}{3}rr{2}{3}rG{0}{3}g'.format(  # 좌직우직
+            '{}'.format(y*(8+4*num_lanes)),
+            '{}'.format(r*(8+4*num_lanes)),
+            'r{2}{3}G{0}{3}r{2}{3}G{0}{3}'.format(  # 좌직우직
                 g*num_lanes, g, r*num_lanes, r),  # current
-            '{}'.format(y*(12+4*num_lanes)),
-            '{}'.format(r*(12+4*num_lanes)),
+            '{}'.format(y*(8+4*num_lanes)),
+            '{}'.format(r*(8+4*num_lanes)),
         ]
         return phase_list
 

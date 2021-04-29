@@ -20,27 +20,3 @@ def update_tensorboard(writer,epoch,env,agent,arrived_vehicles):
                         EXP_CONFIGS['max_steps']*epoch)  # 1 epoch마다
 
     writer.flush()
-
-
-interest_list = [
-    {
-        'id': 'u_1_1',
-        'inflow': 'n_1_0_to_n_1_1',
-        'outflow': 'n_1_1_to_n_1_2',
-    },
-    {
-        'id': 'r_1_1',
-        'inflow': 'n_2_1_to_n_1_1',
-        'outflow': 'n_1_1_to_n_0_1',
-    },
-    {
-        'id': 'd_1_1',
-        'inflow': 'n_1_2_to_n_1_1',
-        'outflow': 'n_1_1_to_n_1_0',
-    },
-    {
-        'id': 'l_1_1',
-        'inflow': 'n_0_1_to_n_1_1',
-        'outflow': 'n_1_1_to_n_2_1',
-    }
-]
