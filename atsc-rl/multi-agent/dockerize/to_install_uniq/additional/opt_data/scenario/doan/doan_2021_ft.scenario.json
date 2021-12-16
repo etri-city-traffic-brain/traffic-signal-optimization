@@ -1,0 +1,31 @@
+{
+  "scenario": {
+    "host": "127.0.0.1",
+    "port": "1337",
+    "interval": "1",
+
+
+    "time": {
+      "begin": 0,
+      "end": 7200
+    },
+    "input": {
+      "fileType": "SALT",
+      "node": "doan.nod.xml",
+      "link": "doan.edg.xml",
+      "connection": "doan.con.xml",
+      "trafficLightSystem": "doan_20210421.tss.xml",
+      "route": "dj_doan_kaist_2h.rou.xml"
+    },
+    "parameter": {
+      "minCellLength": 30,
+      "vehLength": 5
+    },
+    "output": {
+      "fileDir": "output/ft/",
+      "period": 10,
+      "level": "link",
+      "save": 1
+    }
+  }
+}
