@@ -1,0 +1,190 @@
+'''
+
+* Input dataset:
+- IMGN_DTCT_RAW_CLCT
+- CMRA_MNGM
+
+* Output:
+- TOD table
+- Traffic analysis according to each TOD period (Traffic: veh/30mins)
+
+* Example code: python coordination.py --input-dir ./input --output-dir ./output --bandwidth 20 --cycle 160
+
+'''
+
+from scipy.optimize import linprog
+from pulp import *
+import os
+import pandas as pd
+import argparse
+import matplotlib.pyplot as plt
+import numpy as np
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--input-dir', required = True, help = 'directory including inputs', type=str)
+parser.add_argument('--output-dir', required = True, help = 'directory to save outputs', type=str)
+parser.add_argument('--bandwidth', required = True, help = 'bandwidth of coordination (BT)', type=float) ##아규먼트 받기
+parser.add_argument('--free-vel', required = False, help = 'free flow speed of vehicle (FREE_VEL)', type=float)
+parser.add_argument('--upper', required = False, help = 'upper bound of signal cycle repetition (upperbound)', type=int, default = 5)
+args = parser.parse_args()
+
+pd.set_option('mode.use_inf_as_na', True)
+
+if __name__ == '__main__':
+    dirname = os.path.dirname(args.output_dir)
+
+    if os.path.dirname!='' and not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    def to_int(temp):
+        temp = temp.replace(',', '')
+        temp = int(temp)
+        return temp
+
+    #load data
+    coor_sig = pd.read_csv(args.input_dir + "/입력데이터2.csv")
+
+    coor_sig['SECT_DSTC'] = coor_sig['SECT_DSTC'].apply(to_int)
+    # coor_sig['ARING_TFVL'] = coor_sig['ARING_TFVL'].apply(to_int)
+    # coor_sig['BRING_TFVL'] = coor_sig['BRING_TFVL'].apply(to_int)
+
+    ixr_list = coor_sig['IXR_ID']
+    ixr_list = list(set(ixr_list))
+    temp = list(range(0, len(coor_sig), 6))
+    coor_sig_temp = coor_sig.loc[temp]
+    Variable_ea = coor_sig_temp.shape[0]
+    C = coor_sig_temp['CYCL'][0]
+    ######################################################################
+    coor_sig_temp['COOR_PHAS_UP'] = coor_sig_temp['ARING_PHAS']
+    coor_sig_temp['OTHR_PHAS_UP'] = coor_sig_temp['ARING_PHAS']
+    for i in range(0, Variable_ea):
+        ith_sig = coor_sig.iloc[i*6:(i+1)*6, :]
+        aa = 0
+        for j in range(0, 6):
+            aa = aa + ith_sig['ARING_PHAS'][j+i*6]*ith_sig['ARING_OPTN'][j+i*6]
+        coor_sig_temp['COOR_PHAS_UP'][i] = aa
+
+    coor_sig_temp['OTHR_PHAS_UP'] = C - coor_sig_temp['COOR_PHAS_UP']
+    ######################################################################
+
+    ######################################################################
+    coor_sig_temp['COOR_PHAS_DOWN'] = coor_sig_temp['BRING_PHAS']
+    coor_sig_temp['OTHR_PHAS_DOWN'] = coor_sig_temp['BRING_PHAS']
+    for i in range(0, Variable_ea):
+        ith_sig = coor_sig.iloc[i*6:(i+1)*6, :]
+        aa = 0
+        for j in range(0, 6):
+            aa = aa + ith_sig['BRING_PHAS'][j+i*6]*ith_sig['BRING_OPTN'][j+i*6]
+        coor_sig_temp['COOR_PHAS_DOWN'][i] = aa
+
+    coor_sig_temp['OTHR_PHAS_DOWN'] = C - coor_sig_temp['COOR_PHAS_DOWN']
+    ######################################################################
+
+    green_list_up = coor_sig_temp['COOR_PHAS_UP']
+    green_list_down = coor_sig_temp['COOR_PHAS_DOWN']
+    free_vel_list = coor_sig_temp['AVRG_SPEED_UP'][:-1]
+    free_vel_bar_list = coor_sig_temp['AVRG_SPEED_DOWN'][:-1]
+    distance_list = coor_sig_temp['SECT_DSTC'][1:]
+
+    green_list_up.reset_index(drop=True, inplace=True)
+    green_list_down.reset_index(drop=True, inplace=True)
+    free_vel_list.reset_index(drop=True, inplace=True)
+    free_vel_bar_list.reset_index(drop=True, inplace=True)
+    distance_list.reset_index(drop=True, inplace=True)
+
+    #optimization variables setting
+    BT = args.bandwidth
+    BT_bar = BT
+    k = 1
+    max_alpha = 50
+    min_alpha = 0
+    upperbound = args.upper
+    offset_list = []
+    for i in range(0, Variable_ea):
+        name = "Offset" + str(i)
+        temp = LpVariable(name, 0, C - 1, LpInteger)
+        offset_list.append(temp)
+
+    XT_list = []
+    for i in range(0, Variable_ea):
+        name = "XT" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        XT_list.append(temp)
+
+    XT_bar_list = []
+    for i in range(0, Variable_ea):
+        name = "XT_bar" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        XT_bar_list.append(temp)
+
+    YT_list = []
+    for i in range(0, Variable_ea):
+        name = "YT" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        YT_list.append(temp)
+
+    YT_bar_list = []
+    for i in range(0, Variable_ea):
+        name = "YT_bar" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        YT_bar_list.append(temp)
+
+    P_list = []
+    for i in range(0, Variable_ea):
+        name = "P" + str(i)
+        temp = LpVariable(name, 0, upperbound, LpInteger)
+        P_list.append(temp)
+
+    Q_list = []
+    for i in range(0, Variable_ea):
+        name = "Q" + str(i)
+        temp = LpVariable(name, 0, upperbound, LpInteger)
+        Q_list.append(temp)
+
+    alpha_list = []
+    for i in range(0, Variable_ea - 1):
+        name = "alpha" + str(i)
+        temp = LpVariable(name, min_alpha, max_alpha, LpContinuous)
+        alpha_list.append(temp)
+
+    alpha_bar_list = []
+    for i in range(0, Variable_ea - 1):
+        name = "alpha_bar" + str(i)
+        temp = LpVariable(name, min_alpha, max_alpha, LpContinuous)
+        alpha_bar_list.append(temp)
+
+    #objective function
+    prob = LpProblem("Signal_Coordination_Problem", LpMinimize)
+    prob += sum(alpha_list) + sum(alpha_bar_list), "Total_Additive_Time"
+
+    # constraints btw intersections
+    for i in range(0, Variable_ea - 1):
+        prob += XT_list[i + 1] == XT_list[i] + distance_list[i] / free_vel_list[i] + alpha_list[i]
+        prob += YT_list[i + 1] == YT_list[i] + distance_list[i] / free_vel_list[i] + alpha_list[i]
+        prob += XT_bar_list[i] == XT_bar_list[i + 1] + distance_list[i] / free_vel_bar_list[i] + alpha_bar_list[i]
+        prob += YT_bar_list[i] == YT_bar_list[i + 1] + distance_list[i] / free_vel_bar_list[i] + alpha_bar_list[i]
+
+    # constraints of intersection timing
+    for i in range(0, Variable_ea):
+        prob += offset_list[i] + C * P_list[i] <= XT_list[i]
+        prob += offset_list[i] + green_list_up[i] + C * P_list[i] >= XT_list[i]
+        prob += offset_list[i] + C * P_list[i] <= YT_list[i]
+        prob += offset_list[i] + green_list_up[i] + C * P_list[i] >= YT_list[i]
+        prob += offset_list[i] + C * Q_list[i] <= XT_bar_list[i]
+        prob += offset_list[i] + green_list_down[i] + C * Q_list[i] >= XT_bar_list[i]
+        prob += offset_list[i] + C * Q_list[i] <= YT_bar_list[i]
+        prob += offset_list[i] + green_list_down[i] + C * Q_list[i] >= YT_bar_list[i]
+        prob += YT_list[i] == XT_list[i] + BT
+        prob += YT_bar_list[i] == XT_bar_list[i] + BT_bar
+
+    # operate optimization
+    prob.writeLP("WhiskasModel.lp")
+    prob.solve()
+
+    # return result
+    offset = pd.DataFrame(index=range(0, Variable_ea), columns=['IXR_ID', 'OFFSET'])
+    for i in range(0, Variable_ea):
+        offset.IXR_ID[i] = ixr_list[i]
+        offset.OFFSET[i] = prob.variables()[i].value()
+
+    offset.to_csv(args.output_dir + '/result.csv', index=False, encoding='utf-8-sig')
