@@ -1,0 +1,379 @@
+'''
+
+* Input dataset:
+- IMGN_DTCT_RAW_CLCT
+- CMRA_MNGM
+
+* Output:
+- TOD table
+- Traffic analysis according to each TOD period (Traffic: veh/30mins)
+
+* Example code: python coordination.py --input-dir ./input --output-dir ./output --bandwidth 20 --cycle 160
+
+'''
+
+from scipy.optimize import linprog
+from pulp import *
+import os
+import pandas as pd
+import argparse
+import matplotlib.pyplot as plt
+import numpy as np
+import cx_Oracle
+#######################한글 깨짐 방지 폰트 불러오기############################
+#from matplotlib import font_manager, rc
+#font_path = "C:/Windows/Fonts/MALGUN.TTF"
+#fnt = font_manager.FontProperties(fname=font_path).get_name()
+#rc('font', family=fnt)
+###########################################################################
+#cx_Oracle.init_oracle_client(lib_dir=r"D:\Oracle\product\10.1.0\Client_2\instantclient")
+LOCATION = r"C:\Users\itcs\PycharmProjects\pythonProject\instantclient-basic-windows.x64-19.11.0.0.0dbru\instantclient_19_11"
+os.environ["PATH"] = LOCATION+";"+os.environ["PATH"]
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--input-dir', required = True, help = 'directory including inputs', type=str)
+parser.add_argument('--output-dir', required = True, help = 'directory to save outputs', type=str)
+# parser.add_argument('--bandwidth', required = True, help = 'bandwidth of coordination (BT)', type=float)
+parser.add_argument('--free-vel', required = False, help = 'free flow speed of vehicle (FREE_VEL)', type=float)
+parser.add_argument('--upper', required = False, help = 'upper bound of signal cycle repetition (upperbound)', type=int, default = 5)
+args = parser.parse_args()
+
+pd.set_option('mode.use_inf_as_na', True)
+
+def InConverter(value):
+    return int(value)  # or whatever is needed to convert from numpy.int64 to an integer
+
+def InputTypeHandler(cursor, value, num_elements):
+    if isinstance(value, np.int64):
+        return cursor.var(int, arraysize=num_elements, inconverter=InConverter)
+
+def Inputcsv_Road(input_dir):
+    data_range = pd.read_csv(input_dir + "/inputData.csv")
+    global CLCT_DT
+    global ANLY_DT
+
+    for ixr, row in data_range.iterrows():
+        ANLY_DT = str(row['ANLY_DT'])
+        CLCT_DT = str(row['CLCT_DT'])
+
+    print("ANLY_DT : "+ANLY_DT + " CLCT_DT : " + CLCT_DT)
+
+def db_insert(offset):
+
+    dsn = cx_Oracle.makedsn(host = '10.20.1.22', port = 1521, service_name = 'bsutis')
+    db = cx_Oracle.connect('bsmart','QWER1234asdf',dsn)
+    cursor = db.cursor()
+    cursor.inputtypehandler = InputTypeHandler  # numpy int64 error
+
+    #insert (1) signal result
+    rows = [tuple(x) for x in offset.to_records(index=False)]
+    cursor.executemany("INSERT INTO ITFC_VAL_RSLT_INFR(ANLY_DT, CLCT_DT, ORD, IXR_ID, ITFC_VAL) VALUES(:1,:2,:3,:4,:5)", rows)
+    db.commit()
+
+    db.close()
+
+    print("DB 입력을 완료하였습니다.")
+
+def data_Road():
+
+    dsn = cx_Oracle.makedsn(host = '10.20.1.22', port = 1521, service_name = 'bsutis')
+    db = cx_Oracle.connect('bsmart','QWER1234asdf',dsn)
+    cursor = db.cursor()
+    cursor.inputtypehandler = InputTypeHandler  # numpy int64 error
+
+    # raw_data
+
+    cursor.execute("SELECT ANLY_DT, CLCT_DT, ORD, IXR_ID, PHASNMBR, SECT_DSTC, CYCL, ITFC_VAL, ARING_PHAS, BRING_PHAS, " 
+                   "ARING_OPTN, BRING_OPTN, ARING_CRFL, BRING_CRFL, ARING_TFVL, BRING_TFVL, AVRG_SPEED_UP, AVRG_SPEED_DOWN "           
+                   "FROM ITFC_PHAS_INFR "                  
+                   "WHERE ANLY_DT = :pANLY_DT "      
+                   "ORDER BY ORD, PHASNMBR",
+                   pANLY_DT = ANLY_DT)
+
+    raw_data = pd.DataFrame(cursor.fetchall(), columns=["ANLY_DT", "CLCT_DT", "ORD", "IXR_ID", "PHASNMBR", "SECT_DSTC", "CYCL", "ITFC_VAL", "ARING_PHAS", "BRING_PHAS",
+                   "ARING_OPTN", "BRING_OPTN", "ARING_CRFL", "BRING_CRFL", "ARING_TFVL", "BRING_TFVL", "AVRG_SPEED_UP", "AVRG_SPEED_DOWN"])
+    print("ITFC_PHAS_INFR 로딩 완료")
+    print(raw_data)
+    cursor.close()
+    db.close()
+
+    return raw_data
+
+def data_process():
+    # oracle data
+    Inputcsv_Road(args.input_dir)
+
+    #coor_sig = data_Road()         #DB로 할때 평소 주석처리
+    coor_sig = pd.read_csv(args.input_dir + "/입력데이터_210829.csv")
+
+    temp = list(range(0, len(coor_sig), 6))
+    coor_sig_temp = coor_sig.loc[temp]
+    ixr_list = coor_sig_temp['IXR_ID']
+    Variable_ea = coor_sig_temp.shape[0]
+    C = coor_sig_temp['CYCL'][0]
+
+    ######################################################################
+    coor_sig_temp['COOR_PHAS_UP'] = coor_sig_temp['ARING_PHAS']
+    coor_sig_temp['OTHR_PHAS_UP'] = coor_sig_temp['ARING_PHAS']
+    for i in range(0, Variable_ea):
+        ith_sig = coor_sig.iloc[i * 6:(i + 1) * 6, :]
+        aa = 0
+        for j in range(0, 6):
+            aa = aa + ith_sig['ARING_PHAS'][j + i * 6] * ith_sig['ARING_OPTN'][j + i * 6]
+        coor_sig_temp['COOR_PHAS_UP'][i] = aa
+
+    coor_sig_temp['OTHR_PHAS_UP'] = C - coor_sig_temp['COOR_PHAS_UP']
+    ######################################################################
+
+    ######################################################################
+    coor_sig_temp['COOR_PHAS_DOWN'] = coor_sig_temp['BRING_PHAS']
+    coor_sig_temp['OTHR_PHAS_DOWN'] = coor_sig_temp['BRING_PHAS']
+    for i in range(0, Variable_ea):
+        ith_sig = coor_sig.iloc[i * 6:(i + 1) * 6, :]
+        aa = 0
+        for j in range(0, 6):
+            aa = aa + ith_sig['BRING_PHAS'][j + i * 6] * ith_sig['BRING_OPTN'][j + i * 6]
+        coor_sig_temp['COOR_PHAS_DOWN'][i] = aa
+
+    coor_sig_temp['OTHR_PHAS_DOWN'] = C - coor_sig_temp['COOR_PHAS_DOWN']
+    ######################################################################
+    green_list_up = coor_sig_temp['COOR_PHAS_UP']
+    green_list_down = coor_sig_temp['COOR_PHAS_DOWN']
+    free_vel_list = coor_sig_temp['AVRG_SPEED_UP'][:-1]
+    free_vel_bar_list = coor_sig_temp['AVRG_SPEED_DOWN'][:-1]
+    distance_list = coor_sig_temp['SECT_DSTC'][1:]
+
+    ixr_list.reset_index(drop=True, inplace=True)
+    green_list_up.reset_index(drop=True, inplace=True)
+    green_list_down.reset_index(drop=True, inplace=True)
+    free_vel_list.reset_index(drop=True, inplace=True)
+    free_vel_bar_list.reset_index(drop=True, inplace=True)
+    distance_list.reset_index(drop=True, inplace=True)
+
+    return ixr_list, green_list_up, green_list_down, free_vel_list, free_vel_bar_list, distance_list, Variable_ea, C, coor_sig_temp
+
+
+def optimize(ixr_list, green_list_up, green_list_down, free_vel_list, free_vel_bar_list, distance_list, Variable_ea, C,
+             coor_sig_temp):
+    # optimization variables setting
+#    BT = args.bandwidth
+#    BT_bar = BT
+    k = 1
+#    max_alpha = 50
+#    min_alpha = 0
+    upperbound = 5
+    offset_list = []
+    for i in range(0, Variable_ea):
+        name = "Offset" + str(i)
+        temp = LpVariable(name, 0, C - 1, LpInteger)
+        offset_list.append(temp)
+
+    XT_list = []
+    for i in range(0, Variable_ea):
+        name = "XT" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        XT_list.append(temp)
+
+    XT_bar_list = []
+    for i in range(0, Variable_ea):
+        name = "XT_bar" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        XT_bar_list.append(temp)
+
+    YT_list = []
+    for i in range(0, Variable_ea):
+        name = "YT" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        YT_list.append(temp)
+
+    YT_bar_list = []
+    for i in range(0, Variable_ea):
+        name = "YT_bar" + str(i)
+        temp = LpVariable(name, 0, None, LpContinuous)
+        YT_bar_list.append(temp)
+
+    P_list = []
+    for i in range(0, Variable_ea):
+        name = "P" + str(i)
+        temp = LpVariable(name, 0, upperbound, LpInteger)
+        P_list.append(temp)
+
+    Q_list = []
+    for i in range(0, Variable_ea):
+        name = "Q" + str(i)
+        temp = LpVariable(name, 0, upperbound, LpInteger)
+        Q_list.append(temp)
+
+#    alpha_list = []
+#    for i in range(0, Variable_ea - 1):
+#        name = "alpha" + str(i)
+#        temp = LpVariable(name, min_alpha, max_alpha, LpContinuous)
+#        alpha_list.append(temp)
+
+#    alpha_bar_list = []
+#    for i in range(0, Variable_ea - 1):
+#        name = "alpha_bar" + str(i)
+#        temp = LpVariable(name, min_alpha, max_alpha, LpContinuous)
+#        alpha_bar_list.append(temp)
+
+    BT = LpVariable("BT", 0, C, LpContinuous)
+    BT_bar = LpVariable("BT_bar", 0, C, LpContinuous)
+
+    # objective function
+    prob = LpProblem("Signal_Coordination_Problem", LpMinimize)
+    prob += -BT, "Bandwidth"
+
+    # constraints btw intersections
+    for i in range(0, Variable_ea - 1):
+        prob += XT_list[i + 1] == XT_list[i] + distance_list[i] / free_vel_list[i] * 18 / 5
+        prob += YT_list[i + 1] == YT_list[i] + distance_list[i] / free_vel_list[i] * 18 / 5
+        prob += XT_bar_list[i] == XT_bar_list[i + 1] + distance_list[i] / free_vel_bar_list[i] * 18 / 5
+        prob += YT_bar_list[i] == YT_bar_list[i + 1] + distance_list[i] / free_vel_bar_list[i] * 18 / 5
+
+
+    # constraints of intersection timing
+    for i in range(0, Variable_ea):
+        prob += offset_list[i] + C * P_list[i] <= XT_list[i]
+        prob += offset_list[i] + green_list_up[i] + C * P_list[i] >= XT_list[i]
+        prob += offset_list[i] + C * P_list[i] <= YT_list[i]
+        prob += offset_list[i] + green_list_up[i] + C * P_list[i] >= YT_list[i]
+        prob += offset_list[i] + C * Q_list[i] <= XT_bar_list[i]
+        prob += offset_list[i] + green_list_down[i] + C * Q_list[i] >= XT_bar_list[i]
+        prob += offset_list[i] + C * Q_list[i] <= YT_bar_list[i]
+        prob += offset_list[i] + green_list_down[i] + C * Q_list[i] >= YT_bar_list[i]
+        prob += YT_list[i] == XT_list[i] + BT
+        prob += YT_bar_list[i] == XT_bar_list[i] + BT_bar
+
+    prob += XT_list[0] == 0
+    prob += XT_bar_list[Variable_ea - 1] <= C
+
+    prob += BT == BT_bar
+
+    # operate optimization
+    prob.writeLP("WhiskasModel.lp")
+    prob.solve()
+
+    # return result
+    offset = pd.DataFrame(index=range(0, Variable_ea), columns=['ANLY_DT', 'CLCT_DT', 'ORD', 'IXR_ID', 'OFFSET', 'CRITICAL'])
+    for i in range(0, Variable_ea):
+        offset.ANLY_DT[i] = coor_sig_temp['ANLY_DT'][i * 6]
+        offset.CLCT_DT[i] = coor_sig_temp['CLCT_DT'][i * 6]
+        offset.ORD[i] = coor_sig_temp['ORD'][i * 6]
+        offset.IXR_ID[i] = ixr_list[i]
+        offset.OFFSET[i] = prob.variables()[i+2].value()
+        offset.CRITICAL[i] = 0
+
+    offset1 = pd.merge(offset, coor_sig_temp.loc[:,
+                               ['IXR_ID','IXR_NM', 'SECT_DSTC', 'COOR_PHAS_UP', 'OTHR_PHAS_UP', 'COOR_PHAS_DOWN',
+                                'OTHR_PHAS_DOWN']])
+
+    for i in range(0, Variable_ea):
+        offset_temp = prob.variables()[2 + i].value()
+        P_temp = prob.variables()[Variable_ea + 2 + i].value()
+        Q_temp = prob.variables()[2 * Variable_ea + 2 + i].value()
+        XT_temp = prob.variables()[3 * Variable_ea + 2 + i].value()
+        XT_bar_temp = prob.variables()[4 * Variable_ea + 2 + i].value()
+        YT_temp = prob.variables()[5 * Variable_ea + 2 + i].value()
+        YT_bar_temp = prob.variables()[6 * Variable_ea + 2 + i].value()
+        G_up = offset1['COOR_PHAS_UP'][i]
+        G_down = offset1['COOR_PHAS_DOWN'][i]
+        case1 = ((C * Q_temp + offset_temp + G_down) - YT_bar_temp <= 1) and (XT_temp - (C * P_temp + offset_temp) <= 1)
+        case2 = ((C * P_temp + offset_temp + G_up) - YT_temp <= 1) and (XT_bar_temp - (C * Q_temp + offset_temp) <= 1)
+        case3 = (XT_bar_temp - (C * Q_temp + offset_temp) <= 1) and ((C * P_temp + offset_temp + G_up) - YT_temp <= 1)
+        case4 = (XT_temp - (C * P_temp + offset_temp) <= 1) and ((C * Q_temp + offset_temp + G_down) - YT_bar_temp <= 1)
+        if case1 or case2 or case3 or case4:
+            offset['CRITICAL'][i] = 1
+
+    offset1['CRITICAL'] = offset['CRITICAL']
+
+    offset.to_csv(args.output_dir + '/result.csv', index=False, encoding='utf-8-sig')
+
+    # 결과값 db_insert
+    # db_insert(offset) #DB로 할때 평소 주석처리
+    return prob, offset1
+
+def draw_sig(i, cyc_iter):
+    dist = sum(offset1['SECT_DSTC'][0:i+1])
+    sep = 3
+    if offset1['OFFSET'][i] == 0:
+        # start with green signal
+        for j in range(cyc_iter):
+            plt.plot([dist-sep, dist-sep], [C*j, C*j + offset1['COOR_PHAS_UP'][i]-1], 'g')
+            plt.plot([dist-sep, dist-sep], [C*j + offset1['COOR_PHAS_UP'][i], C*(j+1)-1], 'r')
+            plt.plot([dist+sep, dist+sep], [C*j, C*j + offset1['COOR_PHAS_DOWN'][i]-1], 'g')
+            plt.plot([dist+sep, dist+sep], [C*j + offset1['COOR_PHAS_DOWN'][i], C*(j+1)-1], 'r')
+    elif offset1['OFFSET'][i] != 0:
+        # start with red signal
+        plt.plot([dist-sep, dist-sep], [0, offset1['OFFSET'][i] - 1], 'r')
+        plt.plot([dist+sep, dist+sep], [0, offset1['OFFSET'][i] - 1], 'r')
+        for j in range(cyc_iter):
+            plt.plot([dist-sep, dist-sep], [C*j + offset1['OFFSET'][i], C*j + offset1['OFFSET'][i] + offset1['COOR_PHAS_UP'][i]-1], 'g')
+            plt.plot([dist-sep, dist-sep], [C*j + offset1['OFFSET'][i] + offset1['COOR_PHAS_UP'][i], C*(j+1)-1 + offset1['OFFSET'][i]], 'r')
+            plt.plot([dist+sep, dist+sep], [C*j + offset1['OFFSET'][i], C*j + offset1['OFFSET'][i] + offset1['COOR_PHAS_DOWN'][i]-1], 'g')
+            plt.plot([dist+sep, dist+sep], [C*j + offset1['OFFSET'][i] + offset1['COOR_PHAS_DOWN'][i], C*(j+1)-1 + offset1['OFFSET'][i]], 'r')
+    else:
+        print('error')
+
+    #if offset1['CRITICAL'][i]:
+        #plt.scatter(dist, 150, s=300, c='r')
+
+def draw_trj_up():
+    for i in range(Variable_ea - 1):
+        plt.plot([sum(offset1['SECT_DSTC'][0:i+1]), sum(offset1['SECT_DSTC'][0:i+2])], [prob.variables()[3*Variable_ea+i+2].value(), prob.variables()[3*Variable_ea+i+3].value()], 'k')
+        plt.plot([sum(offset1['SECT_DSTC'][0:i+1]), sum(offset1['SECT_DSTC'][0:i+2])], [prob.variables()[5*Variable_ea+i+2].value(), prob.variables()[5*Variable_ea+i+3].value()], 'k')
+
+def draw_trj_down():
+    for i in range(Variable_ea - 1):
+        plt.plot([sum(offset1['SECT_DSTC'][0:i+1]), sum(offset1['SECT_DSTC'][0:i+2])], [prob.variables()[4*Variable_ea+i+2].value(), prob.variables()[4*Variable_ea+i+3].value()], color = 'k', linestyle = '--')
+        plt.plot([sum(offset1['SECT_DSTC'][0:i+1]), sum(offset1['SECT_DSTC'][0:i+2])], [prob.variables()[6*Variable_ea+i+2].value(), prob.variables()[6*Variable_ea+i+3].value()], color = 'k', linestyle = '--')
+
+def insert_text(font):
+    plt.text(-20*font, -4*font, 'Intersection:', fontsize = font)
+    plt.text(-20*font, -5.5*font, 'Offset:', fontsize = font)
+    plt.text(-20*font, -7*font, 'Green_Up:', fontsize = font)
+    plt.text(-20*font, -8.5*font, 'Green_Down:', fontsize = font)
+    plt.text(-20*font, -10*font, 'Distance:', fontsize = font)
+    for i in range(Variable_ea):
+#        plt.text(sum(offset1['SECT_DSTC'][0:i + 1]), -4 * font, offset1['IXR_NM'][i], fontsize=font)
+        if offset1['CRITICAL'][i]:
+            plt.text(sum(offset1['SECT_DSTC'][0:i + 1]), -4 * font, offset1['IXR_ID'][i], fontsize=font*1.2, color = 'r')
+        else:
+            plt.text(sum(offset1['SECT_DSTC'][0:i + 1]), -4 * font, offset1['IXR_ID'][i], fontsize=font)
+        plt.text(sum(offset1['SECT_DSTC'][0:i+1]), -5.5*font, offset1['OFFSET'][i], fontsize = font)
+        plt.text(sum(offset1['SECT_DSTC'][0:i+1]), -7*font, offset1['COOR_PHAS_UP'][i], fontsize = font)
+        plt.text(sum(offset1['SECT_DSTC'][0:i+1]), -8.5*font, offset1['COOR_PHAS_DOWN'][i], fontsize = font)
+        plt.text(sum(offset1['SECT_DSTC'][0:i+1]), -10*font, sum(offset1['SECT_DSTC'][0:i+1]), fontsize = font)
+
+def draw_pic():
+    cyc_iter = 5
+    font = 12
+    fig = plt.figure(figsize=(20,12)) ## 캔버스 생성
+    fig.set_facecolor('white') ## 캔버스 색상 설정
+    plt.rcParams["font.family"] = 'Malgun Gothic'  # 나눔고딕 폰트 적용
+    ax = fig.add_subplot() ## 그림 뼈대(프레임) 생성
+    for i in range(Variable_ea):
+        draw_sig(i, cyc_iter)
+
+    draw_trj_up()
+    draw_trj_down()
+    insert_text(font)
+    plt.ylim(0, C*cyc_iter)
+    plt.title("Coordination Plot", fontsize=font * 1.2)
+    plt.ylabel("Time")
+
+    SaveName = "/"+ANLY_DT+".png"
+    plt.savefig(args.output_dir + SaveName, index=False, encoding='utf-8-sig')
+
+
+if __name__ == '__main__':
+    dirname = os.path.dirname(args.output_dir)
+
+    if os.path.dirname!='' and not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    # oracle data
+    Inputcsv_Road(args.input_dir)
+    ixr_list, green_list_up, green_list_down, free_vel_list, free_vel_bar_list, distance_list, Variable_ea, C, coor_sig_temp = data_process()
+    prob, offset1 = optimize(ixr_list, green_list_up, green_list_down, free_vel_list, free_vel_bar_list, distance_list,
+                             Variable_ea, C, coor_sig_temp)
+    draw_pic()
