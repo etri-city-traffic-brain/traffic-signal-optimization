@@ -1,4 +1,4 @@
-# SALT-RL
+# ATSC-RL(Multi-Agent)
 
 ### Create the folders
 - model/
