@@ -6,7 +6,7 @@
 
 
 ## 인공지능 기반의 적응형 교통 신호 제어 모델 개발
-- RL_based_ATSC 참조
+- atsc-rl(**A**daptive **T**raffic **S**ignal **C**ontrol with **R**einforcement **L**earning) 참조
 
 ## 최적 설계 기반 교통 신호 제어 알고리즘 개발
 - axis_optimization 참조
