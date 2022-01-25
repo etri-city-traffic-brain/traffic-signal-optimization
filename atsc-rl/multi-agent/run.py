@@ -13,7 +13,7 @@ import keras.backend as K
 
 from config import TRAIN_CONFIG
 
-IS_DOCKERIZE = True
+IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 if IS_DOCKERIZE:
     from env.salt_PennStateAction import SALT_doan_multi_PSA, getScenarioRelatedBeginEndTime
@@ -50,8 +50,18 @@ if IS_DOCKERIZE:
 else:
     parser.add_argument('--targetTL', type=str, default="SA 101,SA 104,SA 107,SA 111",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wt_SBV',
                     help='pn - passed num, wt - wating time, wq - waiting q length')
+
+parser.add_argument('--state', choices=['v', 'd', 'vd'], default='vd',
+                    help='v - volume, d - density, vd - volume + density')
+
+parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
+                    help='')
+parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
+                    help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
+                         'pss - phase-set selection, o - offset')
 
 if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
@@ -63,8 +73,11 @@ problem_var = ""
 # problem_var = "netsize{}".format(TRAIN_CONFIG['network_size'])
 # problem_var = "tau{}".format(args.tau)
 # problem_var = "gamma{}".format(args.gamma)
-problem_var += "_rf_{}".format(args.reward_func)
-problem_var += "_yp0_actionT_{}".format(args.action_t)
+# problem_var += "_yp0_actionT_{}".format(args.action_t)
+problem_var += "_method_{}".format(args.method)
+problem_var += "_state_{}".format(args.state)
+problem_var += "_reward_{}".format(args.reward_func)
+problem_var += "_action_{}".format(args.action)
 
 if IS_DOCKERIZE:
     io_home = args.io_home

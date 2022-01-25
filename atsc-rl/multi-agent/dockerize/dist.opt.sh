@@ -8,7 +8,7 @@
 #
 #    sholud check the location of binaries to dockerize
 
-DEFAULT_VERSION="v0.1a.20211028" # "v0.0a"   # "v2.1a.0622"
+DEFAULT_VERSION="v0.1a.20220125" # "v0.0a"   # "v2.1a.0622"
 VERSION=${1:-$DEFAULT_VERSION}
 
 DEFAULT_DOCKERFILE="Dockerfile.opt"

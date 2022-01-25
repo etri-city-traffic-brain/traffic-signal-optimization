@@ -6,7 +6,9 @@ import time
 
 from policy.ddqn import DDQN
 
-IS_DOCKERIZE = True
+from config import TRAIN_CONFIG
+
+IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 if IS_DOCKERIZE:
     from env.salt_PennStateAction import SALT_doan_multi_PSA_test, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime

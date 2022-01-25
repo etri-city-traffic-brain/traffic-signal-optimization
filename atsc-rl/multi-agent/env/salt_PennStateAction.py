@@ -25,7 +25,9 @@ reward_weight = 1
 addTime = 1
 control_cycle = 3
 
-IS_DOCKERIZE = True
+from config import TRAIN_CONFIG
+
+IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 if IS_DOCKERIZE:
     import json
@@ -262,7 +264,10 @@ class SALT_doan_multi_PSA(gym.Env):
                     # print(_lane_id, libsalt.lane.getLength(_lane_id))
             self.target_tl_obj[target]['in_lane_list_1'] = _lane_list_1
             self.target_tl_obj[target]['in_lane_list'] = _lane_list
-            self.target_tl_obj[target]['state_space'] = len(_lane_list) + 1
+            if self.args.state == 'vd':
+                self.target_tl_obj[target]['state_space'] = len(_lane_list)*2 + 1
+            else:
+                self.target_tl_obj[target]['state_space'] = len(_lane_list) + 1
             _lane_len.append(len(_lane_list))
         self.max_lane_length = np.max(_lane_len)
         print(self.target_tl_obj)
@@ -398,8 +403,6 @@ class SALT_doan_multi_PSA(gym.Env):
                     self.lane_passed[i] = np.append(self.lane_passed[i], libsalt.link.getCurrentAverageWaitingTimeBaseVehicle(l, self.simulationSteps)/1000 * reward_weight)
                 self.rewards[i] = -np.sum(self.lane_passed[i])
 
-
-
             self.lane_passed[i] = []
 
 
@@ -455,16 +458,32 @@ class SALT_doan_multi_PSA(gym.Env):
         #print("tl_s {}".format(tl_s))
 
         for link in link_list_0:
-            densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
+            if self.args.state=='d':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
+            if self.args.state=='v':
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
+            if self.args.state=='vd':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
             # passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
         for link in link_list_1:
-            densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
-            # passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            if self.args.state=='d':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+            if self.args.state=='v':
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            if self.args.state=='vd':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
 
         tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tsid))
         #print(lightMatrix)
-        # obs = np.append(densityMatrix, passedMatrix)
-        obs = np.append(densityMatrix, tlMatrix)
+        if self.args.state == 'd':
+            obs = np.append(densityMatrix, tlMatrix)
+        if self.args.state == 'v':
+            obs = np.append(passedMatrix, tlMatrix)
+        if self.args.state == 'vd':
+            obs = np.append(densityMatrix, passedMatrix)
+            obs = np.append(obs, tlMatrix)
 
         # print(densityMatrix)
         # print(passedMatrix)
@@ -699,7 +718,10 @@ class SALT_doan_multi_PSA_test(gym.Env):
                     # print(_lane_id, libsalt.lane.getLength(_lane_id))
             self.target_tl_obj[target]['in_lane_list_1'] = _lane_list_1
             self.target_tl_obj[target]['in_lane_list'] = _lane_list
-            self.target_tl_obj[target]['state_space'] = len(_lane_list) + 1
+            if self.args.state == 'vd':
+                self.target_tl_obj[target]['state_space'] = len(_lane_list)*2 + 1
+            else:
+                self.target_tl_obj[target]['state_space'] = len(_lane_list) + 1
             _lane_len.append(len(_lane_list))
         self.max_lane_length = np.max(_lane_len)
         print(self.target_tl_obj)
@@ -919,12 +941,8 @@ class SALT_doan_multi_PSA_test(gym.Env):
         return observations
 
     def get_state(self, tsid):
-        # densityMatrix = np.zeros(self.max_lane_length)
-        # passedMatrix = np.zeros(self.max_lane_length)
-        # vnumsMatrix = np.zeros(self.max_lane_length)
         densityMatrix = []
         passedMatrix = []
-
         tlMatrix = []
 
         link_list = self.target_tl_obj[tsid]['in_lane_list']
@@ -935,16 +953,33 @@ class SALT_doan_multi_PSA_test(gym.Env):
         #print("tl_s {}".format(tl_s))
 
         for link in link_list_0:
-            densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
+            if self.args.state=='d':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
+            if self.args.state=='v':
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
+            if self.args.state=='vd':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
             # passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
         for link in link_list_1:
-            densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
-            # passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            if self.args.state=='d':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+            if self.args.state=='v':
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            if self.args.state=='vd':
+                densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+                passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
 
         tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tsid))
         #print(lightMatrix)
-        # obs = np.append(densityMatrix, passedMatrix)
-        obs = np.append(densityMatrix, tlMatrix)
+        if self.args.state == 'd':
+            obs = np.append(densityMatrix, tlMatrix)
+        if self.args.state == 'v':
+            obs = np.append(passedMatrix, tlMatrix)
+        if self.args.state == 'vd':
+            obs = np.append(densityMatrix, passedMatrix)
+            obs = np.append(obs, tlMatrix)
+
         # print(densityMatrix)
         # print(passedMatrix)
 
