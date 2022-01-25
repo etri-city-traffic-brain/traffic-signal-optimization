@@ -58,7 +58,7 @@ parser.add_argument('--state', choices=['v', 'd', 'vd'], default='vd',
 
 parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
                     help='')
-parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
+parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='kc',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
                          'pss - phase-set selection, o - offset')
 
@@ -144,7 +144,6 @@ def run_ddqn():
                  errors=None,
                  newline=None,
                  closefd=True, opener=None)
-
 
     f.write('epoch,reward,40ep_reward\n')
     f.close()
@@ -281,7 +280,7 @@ def run_sappo():
     import tensorflow.compat.v1 as tf
     tf.disable_eager_execution()
 
-    args.problem = "PPO_SALT_doan_SAPPO_offset_" + problem_var
+    args.problem = "SAPPO_NoConstraints_" + problem_var
     env = SALT_SAPPO_noConst(args)
 
     trials = args.epoch
