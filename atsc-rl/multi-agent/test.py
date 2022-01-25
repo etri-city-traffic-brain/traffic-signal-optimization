@@ -12,8 +12,10 @@ IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 if IS_DOCKERIZE:
     from env.salt_PennStateAction import SALT_doan_multi_PSA_test, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
+    from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
 else:
     from env.salt_PennStateAction import SALT_doan_multi_PSA_test
+    from env.sappo_noConst import SALT_SAPPO_noConst
 
 from config import TRAIN_CONFIG
 
@@ -455,6 +457,118 @@ def ddqn_test(args, trial, problem_var):
 
             trial_len = end_time - start_time
 
+    else:
+        start_time = args.testStartTime
+        trial_len = args.testEndTime - args.testStartTime
+
+    if IS_DOCKERIZE:
+        if args.result_comp:
+            print("Start fixed time scenario for the result compare")
+            ft_simulate(args)
+            print("End fixed time scenario")
+    else:
+        if args.resultComp:
+            print("Start fixed time scenario for the result compare")
+            # ft_simulate(args, trial, problem_var)
+            ft_simulate(args)
+            print("End fixed time scenario")
+
+    problem = "SALT_doan_multi_PSA_test"
+    env = SALT_doan_multi_PSA_test(args)
+
+    agent_num = env.agent_num
+    action_mask = env.action_mask
+
+    # updateTargetNetwork = 1000
+    dqn_agent = []
+    state_space_arr = []
+    for i in range(agent_num):
+        target_tl = list(env.target_tl_obj.keys())[i]
+        state_space = env.target_tl_obj[target_tl]['state_space']
+        state_space_arr.append(state_space)
+        action_space = env.target_tl_obj[target_tl]['action_space']
+        dqn_agent.append(DDQN(args=args, env=env, state_space=state_space, action_space=action_space, epsilon=0, epsilon_min=0))
+
+        if IS_DOCKERIZE:
+            print("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
+            dqn_agent[i].load_model("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
+        else:
+            print("model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(problem_var, i, model_num))
+            dqn_agent[i].load_model("model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(problem_var, i, model_num))
+
+    # To store reward history of each episode
+    ep_reward_list = []
+    # To store average reward history of last few episodes
+    avg_reward_list = []
+    steps = []
+
+    actions = [0] * agent_num
+    cur_state = env.reset()
+    episodic_reward = 0
+    start = time.time()
+    for step in range(trial_len):
+
+        for i in range(agent_num):
+            actions[i] = dqn_agent[i].act(cur_state[i])
+
+        new_state, reward, done, _ = env.step(actions)
+
+        for i in range(agent_num):
+            new_state[i] = new_state[i]
+            # dqn_agent[i].remember(cur_state[i], actions[i], reward[i], new_state[i], done)
+            #
+            # dqn_agent[i].replay()  # internally iterates default (prediction) model
+            # dqn_agent[i].target_train()  # iterates target model
+
+            cur_state[i] = new_state[i]
+            episodic_reward += reward[i]
+
+        if done:
+            break
+    print("step {}".format(step))
+    ep_reward_list.append(episodic_reward)
+# Mean of last 40 episodes
+    avg_reward = np.mean(ep_reward_list[-40:])
+    print("Avg Reward is ==> {}".format(avg_reward))
+    print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
+    avg_reward_list.append(avg_reward)
+
+    if IS_DOCKERIZE:
+        if args.result_comp:
+            ## add time 3, state weight 0.0, model 1000, action v2
+            ft_output = pd.read_csv("{}/output/ft/-PeriodicOutput.csv".format(args.io_home))
+            rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
+
+            result_comp(args, ft_output, rl_output, model_num)
+    else:
+        if args.resultComp:
+            ## add time 3, state weight 0.0, model 1000, action v2
+            ft_output = pd.read_csv("output/ft/-PeriodicOutput.csv")
+            rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
+
+            result_comp(args, ft_output, rl_output, model_num)
+
+    return avg_reward
+
+def sappo_test(args, trial, problem_var):
+    model_num = trial
+
+    if IS_DOCKERIZE:
+        salt_scenario = args.scenario_file_path
+    else:
+        salt_scenario = 'data/envs/salt/doan/doan_2021_ft.scenario.json'
+
+
+    if IS_DOCKERIZE:
+        if 0:
+            start_time = args.start_time
+            trial_len = args.end_time - args.start_time
+        else:
+            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+            start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+            end_time = args.end_time if args.end_time < scenario_end else scenario_end
+
+            trial_len = end_time - start_time
     else:
         start_time = args.testStartTime
         trial_len = args.testEndTime - args.testStartTime

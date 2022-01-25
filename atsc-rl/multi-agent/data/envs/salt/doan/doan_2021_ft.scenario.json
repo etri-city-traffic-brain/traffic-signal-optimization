@@ -18,7 +18,7 @@
     },
     "output": {
       "fileDir": "output/ft/",
-      "period": 10,
+      "period": 15,
       "level": "link",
       "save": 1
     }
