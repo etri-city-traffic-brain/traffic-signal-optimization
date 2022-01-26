@@ -50,11 +50,11 @@ else:
     parser.add_argument('--targetTL', type=str, default="SA 101,SA 104,SA 107,SA 111",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
-parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wt_SBV',
+parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
                     help='pn - passed num, wt - wating time, wq - waiting q length')
 
-parser.add_argument('--state', choices=['v', 'd', 'vd'], default='vd',
-                    help='v - volume, d - density, vd - volume + density')
+parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vd',
+                    help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
 parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
                     help='')
@@ -77,14 +77,13 @@ parser.add_argument('--ppoEpoch', type=int, default=10)
 parser.add_argument('--ppo_eps', type=float, default=0.1)
 parser.add_argument('--_lambda', type=float, default=0.9)
 parser.add_argument('--lr', type=float, default=0.001)
-parser.add_argument('--cp', type=float, default=0.1, help='action change penalty')
+parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
 
 args = parser.parse_args()
 
 problem_var = ""
-# problem_var = "netsize{}".format(TRAIN_CONFIG['network_size'])
 # problem_var = "tau{}".format(args.tau)
 # problem_var = "gamma{}".format(args.gamma)
 # problem_var += "_yp0_actionT_{}".format(args.action_t)
@@ -92,6 +91,7 @@ problem_var += "_method_{}".format(args.method)
 problem_var += "_state_{}".format(args.state)
 problem_var += "_reward_{}".format(args.reward_func)
 problem_var += "_action_{}".format(args.action)
+problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 
 if IS_DOCKERIZE:
     io_home = args.io_home

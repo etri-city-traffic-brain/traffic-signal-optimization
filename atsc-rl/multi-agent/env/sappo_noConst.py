@@ -361,6 +361,7 @@ class SALT_SAPPO_noConst(gym.Env):
         obs = []
         densityMatrix = []
         passedMatrix = []
+        vddMatrix = []
         tlMatrix = []
 
         for tlid in self.sa_obj[said]['tlid_list']:
@@ -380,7 +381,8 @@ class SALT_SAPPO_noConst(gym.Env):
                 if self.args.state == 'vd':
                     densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
                     passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
-                # passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
+                if self.args.state == 'vdd':
+                    vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon))
             for link in link_list_1:
                 if self.args.state == 'd':
                     densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
@@ -389,6 +391,8 @@ class SALT_SAPPO_noConst(gym.Env):
                 if self.args.state == 'vd':
                     densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
                     passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+                if self.args.state == 'vdd':
+                    vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon) * self.state_weight)
 
             tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid))
             #print(lightMatrix)
@@ -400,6 +404,8 @@ class SALT_SAPPO_noConst(gym.Env):
             if self.args.state == 'vd':
                 obs = np.append(densityMatrix, passedMatrix)
                 obs = np.append(obs, tlMatrix)
+            if self.args.state == 'vdd':
+                obs = np.append(vddMatrix, tlMatrix)
         # print(obs)
 
         # print(densityMatrix)
