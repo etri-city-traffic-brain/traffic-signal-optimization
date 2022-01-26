@@ -18,13 +18,15 @@ IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 if IS_DOCKERIZE:
     from env.salt_PennStateAction import SALT_doan_multi_PSA, getScenarioRelatedBeginEndTime
     from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedBeginEndTime
+    from env.sappo_offset import SALT_SAPPO_offset, getScenarioRelatedBeginEndTime
 else:
     from env.salt_PennStateAction import SALT_doan_multi_PSA
     from env.sappo_noConst import SALT_SAPPO_noConst
+    from env.sappo_offset import SALT_SAPPO_offset
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='0')
+parser.add_argument('--model-num', type=str, default='260')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -42,6 +44,7 @@ else:
 parser.add_argument('--epoch', type=int, default=3000)
 parser.add_argument('--model-save-period', type=int, default=20)
 parser.add_argument('--logprint', type=bool, default=False)
+parser.add_argument('--printOut', type=bool, default=True, help='print result each step')
 
 if IS_DOCKERIZE:
     parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
@@ -58,7 +61,7 @@ parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vd',
 
 parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
                     help='')
-parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='kc',
+parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
                          'pss - phase-set selection, o - offset')
 
@@ -66,7 +69,7 @@ if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
-parser.add_argument('--gamma', type=float, default=0.1)
+parser.add_argument('--gamma', type=float, default=0.9)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
 
@@ -280,8 +283,12 @@ def run_sappo():
     import tensorflow.compat.v1 as tf
     tf.disable_eager_execution()
 
-    args.problem = "SAPPO_NoConstraints_" + problem_var
-    env = SALT_SAPPO_noConst(args)
+    if args.action=='kc':
+        args.problem = "SAPPO_NoConstraints_" + problem_var
+        env = SALT_SAPPO_noConst(args)
+    if args.action=='offset':
+        args.problem = "SAPPO_offset_" + problem_var
+        env = SALT_SAPPO_offset(args)
 
     trials = args.epoch
     if IS_DOCKERIZE:
@@ -392,6 +399,8 @@ def run_sappo():
         adv = []
         target = []
 
+        sa_cycle = []
+
         for target_sa in env.sa_obj:
             actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             logits.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
@@ -409,6 +418,7 @@ def run_sappo():
             next_values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             adv.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             target.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            sa_cycle = np.append(sa_cycle, env.sa_obj[target_sa]['cycle_list'][0])
 
         cur_state = env.reset()
         episodic_reward = 0
@@ -425,7 +435,10 @@ def run_sappo():
                 discrete_action = []
                 for di in range(len(actions[i])):
                     # discrete_action.append(np.digitize(actions[i][di], bins=env.sa_obj[target_sa]['duration_bins_list'][di]))
-                    discrete_action.append(0 if actions[i][di] < args.actionp else 1)
+                    if args.action=='kc':
+                        discrete_action.append(0 if actions[i][di] < args.actionp else 1)
+                    if args.action=='offset':
+                        discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
 
                 discrete_actions.append(discrete_action)
             new_state, reward, done, _ = env.step(discrete_actions)

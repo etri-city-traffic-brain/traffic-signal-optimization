@@ -358,11 +358,7 @@ def result_comp(args, ft_output, rl_output, model_num):
 
     total_output = pd.concat([total_output, individual_output])
 
-    if IS_DOCKERIZE:
-        total_output.to_csv("{}/output/test/total_compare_output_model_num_{}.csv".format(args.io_home, model_num), encoding='utf-8-sig', index=False)
-    else:
-        total_output.to_csv("output/test/total_compare_output_model_num_{}.csv".format(model_num),
-                            encoding='utf-8-sig', index=False)
+    total_output = total_output.sort_values(by=["SA"], ascending=True)
 
     return total_output
 
@@ -585,15 +581,15 @@ def sappo_test(args, trial, problem_var):
             ft_simulate(args)
             print("End fixed time scenario")
 
-    problem = "SALT_doan_multi_PSA_test"
-    env = SALT_doan_multi_PSA_test(args)
+    env = SALT_SAPPO_noConst(args)
 
     agent_num = env.agent_num
     action_mask = env.action_mask
 
     # updateTargetNetwork = 1000
-    dqn_agent = []
+    sappo_agent = []
     state_space_arr = []
+
     for i in range(agent_num):
         target_tl = list(env.target_tl_obj.keys())[i]
         state_space = env.target_tl_obj[target_tl]['state_space']
@@ -603,7 +599,10 @@ def sappo_test(args, trial, problem_var):
 
         if IS_DOCKERIZE:
             print("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
-            dqn_agent[i].load_model("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
+            fn = "{}/model/ppo/SAPPO-{}-trial".format(io_home, problem_var)
+
+            dqn_agent[i].load_model("{}/model/ppo/SAPPO-{}-{}.h5".format(args.io_home, problem_var, i, model_num))
+            fn = "model/ppo/SAPPO-{}-trial-{}".format(problem_var, model_num)
         else:
             print("model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(problem_var, i, model_num))
             dqn_agent[i].load_model("model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(problem_var, i, model_num))
@@ -659,6 +658,12 @@ def sappo_test(args, trial, problem_var):
             rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
 
             result_comp(args, ft_output, rl_output, model_num)
+
+    if IS_DOCKERIZE:
+        total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
+    else:
+        total_output.to_csv("output/test/{}_{}.csv".format(problem_var, model_num),
+                            encoding='utf-8-sig', index=False)
 
     return avg_reward
 
