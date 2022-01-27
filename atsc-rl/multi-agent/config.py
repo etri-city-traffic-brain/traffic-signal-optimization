@@ -7,5 +7,6 @@ TRAIN_CONFIG = {
     'lr_update_decay': 0.9,
     'batch_size': 32,
     'replay_size': 2000,
-    'network_size': [16,32,64,128,64,32,16]
+    # 'network_size': [16,32,64,128,64,32,16] # for keep or change
+    'network_size': [128,256,512,1024,512,256,128] # for keep or change
 }

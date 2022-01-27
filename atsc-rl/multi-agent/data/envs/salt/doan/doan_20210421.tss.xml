@@ -787,7 +787,7 @@
       </trafficSignal>
       <trafficSignal nodeID="cluster_553803564_553803566_553803579_553803580_553803581_553803582_553803597_553803598_553803599_553803600_553803601_553803602" version="2" crossNo="1538" crossName="도안12단지네거리" date="2018-06-07" signalGroup="SA 104">
         <schedule offset="115" id="2">
-          <phase state="rrrgrrrGGgrrrrrrrG" duration="31" minDur="28" maxDur="50"/>
+          <phase state="rrrgrrrGGgrrrrrrrG" duration="28" minDur="28" maxDur="50"/>
           <phase state="rrrgrrryygrrrrrrry" duration="3"/>
           <phase state="rrrgGGGrrgrrrGGGrr" duration="69" minDur="25" maxDur="110"/>
           <phase state="rrrgyyyrrgrrryyyrr" duration="3"/>

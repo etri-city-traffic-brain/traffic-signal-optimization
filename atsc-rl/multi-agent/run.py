@@ -69,17 +69,17 @@ if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
-parser.add_argument('--gamma', type=float, default=0.9)
+parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
 
 ### PPO args
 parser.add_argument('--tpi', type=int, default=1, help="train policy iteration")
 parser.add_argument('--tvi', type=int, default=1, help="train value iteration")
-parser.add_argument('--ppoEpoch', type=int, default=10)
+parser.add_argument('--ppoEpoch', type=int, default=4)
 parser.add_argument('--ppo_eps', type=float, default=0.1)
-parser.add_argument('--_lambda', type=float, default=0.9)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--_lambda', type=float, default=0.95)
+parser.add_argument('--lr', type=float, default=0.0001)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
