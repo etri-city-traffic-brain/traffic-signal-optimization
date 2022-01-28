@@ -25,7 +25,7 @@ else:
     from env.sappo_offset import SALT_SAPPO_offset
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='test')
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
 parser.add_argument('--model-num', type=str, default='440')
 
 if IS_DOCKERIZE:
@@ -56,7 +56,7 @@ else:
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
                     help='pn - passed num, wt - wating time, wq - waiting q length')
 
-parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='d',
+parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
 parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
@@ -77,7 +77,7 @@ parser.add_argument('--action-t', type=int, default=12)
 parser.add_argument('--tpi', type=int, default=1, help="train policy iteration")
 parser.add_argument('--tvi', type=int, default=1, help="train value iteration")
 parser.add_argument('--ppoEpoch', type=int, default=4)
-parser.add_argument('--ppo_eps', type=float, default=0.1)
+parser.add_argument('--ppo_eps', type=float, default=0.01)
 parser.add_argument('--_lambda', type=float, default=0.95)
 parser.add_argument('--lr', type=float, default=0.0001)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
@@ -367,7 +367,7 @@ def run_sappo():
         agent_reward1_summary.append(tf.summary.scalar('train_agent_reward/agent_{}'.format(list(env.sa_obj.keys())[i]), agent_reward1[i]))  # summary to write to TensorBoard
         agent_reward40_summary.append(tf.summary.scalar('train_agent_reward_40ep_mean/agent_{}'.format(list(env.sa_obj.keys())[i]), agent_reward40[i]))  # summary to write to TensorBoard
 
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=5)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
@@ -524,10 +524,10 @@ def run_sappo():
             for i in range(agent_num):
                 if IS_DOCKERIZE:
                     fn = "{}/model/ppo/SAPPO-{}-trial".format(io_home, problem_var)
-                    saver.save(sess, fn, global_step=trial, max_to_keep=5)
+                    saver.save(sess, fn, global_step=trial)
                 else:
                     fn = "model/ppo/SAPPO-{}-trial".format(problem_var)
-                    saver.save(sess, fn, global_step=trial, max_to_keep=5)
+                    saver.save(sess, fn, global_step=trial)
 
 
 if __name__ == "__main__":
