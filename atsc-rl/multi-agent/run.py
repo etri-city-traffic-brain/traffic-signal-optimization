@@ -524,11 +524,10 @@ def run_sappo():
             for i in range(agent_num):
                 if IS_DOCKERIZE:
                     fn = "{}/model/ppo/SAPPO-{}-trial".format(io_home, problem_var)
-                    saver.save(sess, fn, global_step=trial)
+                    saver.save(sess, fn, global_step=trial, max_to_keep=5)
                 else:
                     fn = "model/ppo/SAPPO-{}-trial".format(problem_var)
-                    saver.save(sess, fn, global_step=trial)
-
+                    saver.save(sess, fn, global_step=trial, max_to_keep=5)
 
 
 if __name__ == "__main__":
