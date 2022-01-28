@@ -52,7 +52,7 @@ class Critic:
 
 
 class PPOAgent:
-    def __init__(self, args, state_space, action_space, action_min, action_max, agentID, fn):
+    def __init__(self, args, state_space, action_space, action_min, action_max, agentID):
         self.state_space = state_space
         self.action_space = action_space
 
@@ -63,7 +63,6 @@ class PPOAgent:
         self.gamma = args.gamma
 
         self.mode = args.mode
-        self.fn = fn
         self.agentID = agentID
 
         self.actor = Actor("Actor_{}".format(agentID), self.state_space, self.action_space.shape[0], action_min, action_max)
@@ -118,15 +117,3 @@ class PPOAgent:
         if normalize:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
         return gaes, target
-
-    def save_model(self, fn, step):
-        tf.train.export_meta_graph(filename=fn, collection_list=["Actor_".format(self.agentID)])
-
-    def save_critic(self, fn):
-        self.critic.save(fn)
-
-    def load_model(self, fn):
-        tf.reset_default_graph()
-        self.saver = tf.train.import_meta_graph(fn + ".meta")
-        self.saver.restore(self.sess, fn)
-        print(fn, self.actor)

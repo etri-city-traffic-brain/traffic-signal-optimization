@@ -25,8 +25,8 @@ else:
     from env.sappo_offset import SALT_SAPPO_offset
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='260')
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='test')
+parser.add_argument('--model-num', type=str, default='440')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -56,7 +56,7 @@ else:
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
                     help='pn - passed num, wt - wating time, wq - waiting q length')
 
-parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vd',
+parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='d',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
 parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
@@ -358,7 +358,7 @@ def run_sappo():
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
         print(f"{target_sa}, state space {state_space} action space {action_space}, action min {action_min}, action max {action_max}")
-        sappo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i, fn=''))
+        sappo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
         ep_agent_reward_list.append([])
         agent_crossName.append(env.sa_obj[target_sa]['crossName_list'])
 
