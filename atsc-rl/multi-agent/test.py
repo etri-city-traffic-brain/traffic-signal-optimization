@@ -15,8 +15,9 @@ if IS_DOCKERIZE:
     from env.salt_PennStateAction import SALT_doan_multi_PSA_test, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
     from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
 else:
-    from env.salt_PennStateAction import SALT_doan_multi_PSA_test
+    from env.salt_PennStateAction import SALT_doan_multi_PSA
     from env.sappo_noConst import SALT_SAPPO_noConst
+    from env.sappo_offset import SALT_SAPPO_offset
 
 from config import TRAIN_CONFIG
 
@@ -52,7 +53,7 @@ def result_comp(args, ft_output, rl_output, model_num):
 
         tree = parse(tss_file_path)
     else:
-        tree = parse(os.getcwd() + 'data/envs/salt/doan/doan(without dan).tss.xml')
+        tree = parse(os.getcwd() + '/data/envs/salt/doan/doan(without dan).tss.xml')
 
 
     root = tree.getroot()
@@ -197,7 +198,12 @@ def result_comp(args, ft_output, rl_output, model_num):
     total_output = pd.DataFrame()
 
     for tl in target_tl_obj:
-        individual_output = pd.DataFrame({'name': [target_tl_obj[tl]['crossName']]})
+        if "SA " not in target_tl_obj[tl]['signalGroup']:
+            target_tl_obj[tl]['signalGroup'] = 'SA ' + target_tl_obj[tl]['signalGroup']
+
+        individual_output = pd.DataFrame(
+            {'name': [target_tl_obj[tl]['crossName']], 'SA': [target_tl_obj[tl]['signalGroup']]})
+
         in_edge_list = []
         in_edge_list_0 = []
         in_edge_list = np.append(in_edge_list, target_tl_obj[tl]['in_edge_list'])
@@ -384,7 +390,7 @@ def ft_simulate(args):
         start_time = args.testStartTime
         trial_len = args.testEndTime - args.testStartTime
 
-    env = SALT_doan_multi_PSA_test(args)
+    env = SALT_doan_multi_PSA(args)
 
     for target_tl in list(env.target_tl_obj.keys()):
         env.target_tl_obj[target_tl]['crossName']
@@ -584,7 +590,12 @@ def sappo_test(args, trial, problem_var):
             ft_simulate(args)
             print("End fixed time scenario")
 
-    env = SALT_SAPPO_noConst(args)
+    # ft_simulate(args)
+
+    if args.action == 'kc':
+        env = SALT_SAPPO_noConst(args)
+    elif args.action == 'offset':
+        env = SALT_SAPPO_offset(args)
 
     agent_num = env.agent_num
 
@@ -660,7 +671,7 @@ def sappo_test(args, trial, problem_var):
                     discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
             discrete_actions.append(discrete_action)
 
-        new_state, reward, done, _, simStep = env.step(discrete_actions)
+        new_state, reward, done, _ = env.step(discrete_actions)
 
         for i in range(agent_num):
             if t % int(sa_cycle[i] * args.controlcycle) == 0:
@@ -685,12 +696,12 @@ def sappo_test(args, trial, problem_var):
             ft_output = pd.read_csv("{}/output/ft/-PeriodicOutput.csv".format(args.io_home))
             rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
     else:
-        if args.resultComp:
+        # if args.resultComp:
             ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("output/ft/-PeriodicOutput.csv")
-            rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
+        ft_output = pd.read_csv("output/ft/-PeriodicOutput.csv")
+        rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
 
-    to = result_comp(ft_output, rl_output, model_num)
+    total_output = result_comp(args, ft_output, rl_output, model_num)
 
     if IS_DOCKERIZE:
         total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)

@@ -19,7 +19,6 @@ import libsalt
 state_weight = 1
 reward_weight = 1
 addTime = 1
-control_cycle = 3
 
 sim_period = 60
 
@@ -149,7 +148,7 @@ class SALT_SAPPO_offset(gym.Env):
 
         self.agent_num = len(self.sa_obj)
 
-        self.control_cycle = control_cycle
+        self.control_cycle = args.controlcycle
 
         print('target tl obj {}'.format(self.target_tl_obj))
         print('target tl id list {}'.format(self.target_tl_id_list))
@@ -599,7 +598,7 @@ class SALT_doan_multi_PSA_test(gym.Env):
         self.agent_num = len(self.target_tl_id_list)
 
         self.action_mask = np.zeros(self.agent_num)
-        self.control_cycle = control_cycle
+        self.control_cycle = args.controlcycle
 
 
         print('target tl obj {}'.format(self.target_tl_obj))

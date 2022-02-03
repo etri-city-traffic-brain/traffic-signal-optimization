@@ -82,6 +82,7 @@ class SALT_doan_multi_PSA(gym.Env):
         self.reward_func = args.reward_func
         self.actionT = args.action_t
         self.logprint = args.logprint
+        self.args = args
 
         if IS_DOCKERIZE:
             scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
@@ -448,6 +449,7 @@ class SALT_doan_multi_PSA(gym.Env):
     def get_state(self, tsid):
         densityMatrix = []
         passedMatrix = []
+        vddMatrix = []
         tlMatrix = []
 
         link_list = self.target_tl_obj[tsid]['in_lane_list']
@@ -466,6 +468,8 @@ class SALT_doan_multi_PSA(gym.Env):
                 densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
                 passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
             # passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
+            if self.args.state == 'vdd':
+                vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon))
         for link in link_list_1:
             if self.args.state=='d':
                 densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
@@ -474,6 +478,8 @@ class SALT_doan_multi_PSA(gym.Env):
             if self.args.state=='vd':
                 densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
                 passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            if self.args.state == 'vdd':
+                vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon) * self.state_weight)
 
         tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tsid))
         #print(lightMatrix)
@@ -484,6 +490,8 @@ class SALT_doan_multi_PSA(gym.Env):
         if self.args.state == 'vd':
             obs = np.append(densityMatrix, passedMatrix)
             obs = np.append(obs, tlMatrix)
+        if self.args.state == 'vdd':
+            obs = np.append(vddMatrix, tlMatrix)
 
         # print(densityMatrix)
         # print(passedMatrix)

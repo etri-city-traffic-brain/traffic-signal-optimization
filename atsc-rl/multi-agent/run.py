@@ -26,7 +26,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='test')
-parser.add_argument('--model-num', type=str, default='2980')
+parser.add_argument('--model-num', type=str, default='120')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -56,7 +56,7 @@ else:
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
                     help='pn - passed num, wt - wating time, wq - waiting q length')
 
-parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='d',
+parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
 parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
@@ -83,6 +83,7 @@ parser.add_argument('--lr', type=float, default=0.0001)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
+parser.add_argument('--controlcycle', type=int, default=5)
 
 args = parser.parse_args()
 
