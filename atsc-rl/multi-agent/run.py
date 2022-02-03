@@ -25,8 +25,8 @@ else:
     from env.sappo_offset import SALT_SAPPO_offset
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='440')
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='test')
+parser.add_argument('--model-num', type=str, default='2980')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -56,7 +56,7 @@ else:
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
                     help='pn - passed num, wt - wating time, wq - waiting q length')
 
-parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vd',
+parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='d',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
 parser.add_argument('--method', choices=['sappo', 'ddqn'], default='sappo',
@@ -134,9 +134,9 @@ def run_ddqn():
     time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
 
     if IS_DOCKERIZE:
-        train_summary_writer = tf.summary.create_file_writer('{}/logs/{}/{}'.format(io_home, problem, time_data))
+        train_summary_writer = tf.summary.create_file_writer('{}/logs/DDQN/{}/{}'.format(io_home, problem, time_data))
     else:
-        train_summary_writer = tf.summary.create_file_writer('logs/{}/{}'.format(problem, time_data))
+        train_summary_writer = tf.summary.create_file_writer('logs/DDQN/{}/{}'.format(problem, time_data))
 
     if IS_DOCKERIZE:
         f = open(fn_train_epoch_total_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
@@ -516,18 +516,17 @@ def run_sappo():
             f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
             f.close()
 
-        if trial % 20 == 0:
-            fn = "model/ppo/SAPPO-{}-trial".format(problem_var)
-            saver.save(sess, fn, global_step=trial)
+        # if trial % 20 == 0:
+        #     fn = "model/ppo/SAPPO-{}-trial".format(problem_var)
+        #     saver.save(sess, fn, global_step=trial)
 
         if trial % args.model_save_period == 0:
-            for i in range(agent_num):
-                if IS_DOCKERIZE:
-                    fn = "{}/model/ppo/SAPPO-{}-trial".format(io_home, problem_var)
-                    saver.save(sess, fn, global_step=trial)
-                else:
-                    fn = "model/ppo/SAPPO-{}-trial".format(problem_var)
-                    saver.save(sess, fn, global_step=trial)
+            if IS_DOCKERIZE:
+                fn = "{}/model/sappo/SAPPO-{}-trial".format(io_home, problem_var)
+                saver.save(sess, fn, global_step=trial)
+            else:
+                fn = "model/sappo/SAPPO-{}-trial".format(problem_var)
+                saver.save(sess, fn, global_step=trial)
 
 
 if __name__ == "__main__":

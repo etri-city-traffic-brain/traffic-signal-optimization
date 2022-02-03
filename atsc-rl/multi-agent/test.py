@@ -608,12 +608,12 @@ def sappo_test(args, trial, problem_var):
         sappo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
 
     if IS_DOCKERIZE:
-        fn = "{}/model/ppo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
+        fn = "{}/model/sappo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
     else:
-        fn = "model/ppo/SAPPO-{}-trial-{}".format(problem_var, model_num)
+        fn = "model/sappo/SAPPO-{}-trial-{}".format(problem_var, model_num)
 
     sess = tf.Session()
-
+    print("fn", fn)
     saver = tf.train.Saver()
     saver.restore(sess, fn)
 
