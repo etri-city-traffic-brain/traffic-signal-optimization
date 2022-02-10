@@ -18,6 +18,8 @@ else:
     from env.salt_PennStateAction import SALT_doan_multi_PSA
     from env.sappo_noConst import SALT_SAPPO_noConst
     from env.sappo_offset import SALT_SAPPO_offset
+    from env.sappo_offset_single import SALT_SAPPO_offset_single
+
 
 from config import TRAIN_CONFIG
 
@@ -64,10 +66,7 @@ def result_comp(args, ft_output, rl_output, model_num):
     phase_numbers = []
     i = 0
 
-    if IS_DOCKERIZE:
-        targetList_input = args.target_TL.split(',')
-    else:
-        targetList_input = args.targetTL.split(',')
+    targetList_input = args.target_TL.split(',')
 
     targetList_input2 = []
 
@@ -596,6 +595,9 @@ def sappo_test(args, trial, problem_var):
         env = SALT_SAPPO_noConst(args)
     elif args.action == 'offset':
         env = SALT_SAPPO_offset(args)
+
+    if len(args.target_TL.split(",")) == 1:
+        env = SALT_SAPPO_offset_single(args)
 
     agent_num = env.agent_num
 

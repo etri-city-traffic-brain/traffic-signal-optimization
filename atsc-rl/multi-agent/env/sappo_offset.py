@@ -152,9 +152,7 @@ class SALT_SAPPO_offset(gym.Env):
         print('target tl id list {}'.format(self.target_tl_id_list))
         print('number of target tl {}'.format(len(self.target_tl_id_list)))
 
-        self.max_lane_length = np.max(_lane_len)
         print(self.target_tl_obj)
-        print(np.max(_lane_len))
         self.observations = []
         self.lane_passed = []
 
@@ -698,7 +696,6 @@ class SALT_doan_multi_PSA_test(gym.Env):
             else:
                 self.target_tl_obj[target]['state_space'] = len(_lane_list) + 1
             _lane_len.append(len(_lane_list))
-        self.max_lane_length = np.max(_lane_len)
         print(self.target_tl_obj)
         print(np.max(_lane_len))
         self._observation = []

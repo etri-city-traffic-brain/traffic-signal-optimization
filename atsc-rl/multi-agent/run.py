@@ -54,7 +54,7 @@ if IS_DOCKERIZE:
 else:
     # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
     #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--target-TL', type=str, default="SA 101",
+    parser.add_argument('--target-TL', type=str, default="SA 28",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
@@ -101,7 +101,8 @@ problem_var += "_reward_{}".format(args.reward_func)
 problem_var += "_action_{}".format(args.action)
 problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 problem_var += "_gamma_{}".format(args.gamma)
-problem_var += "_SANUM_{}".format(len(args.target_TL.split(",")))
+if len(args.target_TL.split(","))==1:
+    problem_var += "_{}".format(args.target_TL.split(",")[0])
 
 if IS_DOCKERIZE:
     io_home = args.io_home

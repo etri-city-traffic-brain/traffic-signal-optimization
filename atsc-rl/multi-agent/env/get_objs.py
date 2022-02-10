@@ -62,8 +62,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             phase_numbers.append(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
             i += 1
 
-    max_phase_length = int(np.max(phase_numbers))
-
 
     if IS_DOCKERIZE:
         tree = parse(edge_file_path)
@@ -107,9 +105,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         target_tl_obj[n]['in_edge_list_1'] = near_tl_obj[n]['in_edge_list_1']
         _edge_len.append(len(near_tl_obj[n]['in_edge_list']))
 
-    max_edge_length = int(np.max(_edge_len))
     print(target_tl_obj)
-    print(max_edge_length)
 
     done = False
 
