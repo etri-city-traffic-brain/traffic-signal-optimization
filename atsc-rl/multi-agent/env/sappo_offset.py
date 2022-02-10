@@ -20,7 +20,7 @@ state_weight = 1
 reward_weight = 1
 addTime = 1
 
-sim_period = 60
+sim_period = 30
 
 from config import TRAIN_CONFIG
 
@@ -131,10 +131,8 @@ class SALT_SAPPO_offset(gym.Env):
         self.phase_numbers = []
         i=0
 
-        if IS_DOCKERIZE:
-            self.targetList_input = args.target_TL.split(',')
-        else:
-            self.targetList_input = args.targetTL.split(',')
+        self.targetList_input = args.target_TL.split(',')
+
         self.targetList_input2 = []
 
         for tl_i in self.targetList_input:
@@ -196,7 +194,7 @@ class SALT_SAPPO_offset(gym.Env):
 
         sa_i = 0
         for sa in self.sa_obj:
-            if self.simulationSteps % (self.sa_obj[sa]['cycle_list'][0]*self.control_cycle) == 0:
+            if self.simulationSteps % (self.sa_obj[sa]['cycle_list'][0]*self.control_cycle) == 0 and self.simulationSteps>300:
                 tlid_list = self.sa_obj[sa]['tlid_list']
                 # print(tlid_list)
                 tlid_i = 0
@@ -551,10 +549,8 @@ class SALT_doan_multi_PSA_test(gym.Env):
         self.target_tl_obj = {}
         self.phase_numbers = []
         i=0
-        if IS_DOCKERIZE:
-            self.targetList_input = args.target_TL.split(',')
-        else:
-            self.targetList_input = args.targetTL.split(',')
+
+        self.targetList_input = args.target_TL.split(',')
 
         self.targetList_input2 = []
 

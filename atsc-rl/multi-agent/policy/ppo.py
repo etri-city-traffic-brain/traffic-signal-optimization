@@ -66,6 +66,7 @@ class PPOAgent:
         self.agentID = agentID
 
         self.actor = Actor("Actor_{}".format(agentID), self.state_space, self.action_space.shape[0], action_min, action_max)
+        self.actor_target = Actor("Actor_target_{}".format(agentID), self.state_space, self.action_space.shape[0], action_min, action_max)
         self.critic = Critic("Critic_{}".format(agentID), self.state_space)
 
         self.adv = tf.placeholder(tf.float32, [None])
@@ -117,3 +118,12 @@ class PPOAgent:
         if normalize:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
         return gaes, target
+
+    def _compute_int_reward(self, next_state):
+        mse = tf.keras.losses.MeanSquaredError()
+
+        # target = rnd_target_net(next_state)
+        # prediction = rnd_predictor_net(next_state)
+        #
+        # return mse(y_true, y_pred).numpy()
+        return 0

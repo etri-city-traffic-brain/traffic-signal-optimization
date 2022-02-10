@@ -19,13 +19,15 @@ if IS_DOCKERIZE:
     from env.salt_PennStateAction import SALT_doan_multi_PSA, getScenarioRelatedBeginEndTime
     from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedBeginEndTime
     from env.sappo_offset import SALT_SAPPO_offset, getScenarioRelatedBeginEndTime
+    from env.sappo_offset_single import SALT_SAPPO_offset_single, getScenarioRelatedBeginEndTime
 else:
     from env.salt_PennStateAction import SALT_doan_multi_PSA
     from env.sappo_noConst import SALT_SAPPO_noConst
     from env.sappo_offset import SALT_SAPPO_offset
+    from env.sappo_offset_single import SALT_SAPPO_offset_single
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='test')
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
 parser.add_argument('--model-num', type=str, default='120')
 
 if IS_DOCKERIZE:
@@ -50,7 +52,9 @@ if IS_DOCKERIZE:
     parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
                         help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
 else:
-    parser.add_argument('--targetTL', type=str, default="SA 101,SA 104,SA 107,SA 111",
+    # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
+    #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+    parser.add_argument('--target-TL', type=str, default="SA 101",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
@@ -69,7 +73,7 @@ if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
-parser.add_argument('--gamma', type=float, default=0.99)
+parser.add_argument('--gamma', type=float, default=0.999)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
 
@@ -96,6 +100,8 @@ problem_var += "_state_{}".format(args.state)
 problem_var += "_reward_{}".format(args.reward_func)
 problem_var += "_action_{}".format(args.action)
 problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
+problem_var += "_gamma_{}".format(args.gamma)
+problem_var += "_SANUM_{}".format(len(args.target_TL.split(",")))
 
 if IS_DOCKERIZE:
     io_home = args.io_home
@@ -291,6 +297,10 @@ def run_sappo():
         args.problem = "SAPPO_offset_" + problem_var
         env = SALT_SAPPO_offset(args)
 
+    if len(args.target_TL.split(","))==1:
+        args.problem = "SAPPO_offset_single_" + problem_var
+        env = SALT_SAPPO_offset_single(args)
+
     trials = args.epoch
     if IS_DOCKERIZE:
         # trial_len = args.end_time - args.start_time
@@ -444,19 +454,37 @@ def run_sappo():
                 discrete_actions.append(discrete_action)
             new_state, reward, done, _ = env.step(discrete_actions)
 
-            for i in range(agent_num):
-                states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
-                values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
-                logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                dones[i] = np.r_[dones[i], done] if t else [done]
-                rewards[i] = np.r_[rewards[i], reward[i]] if t else [reward[i]]
+            if len(args.target_TL.split(",")) == 1:
+                for i in range(agent_num):
+                    states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
+                    actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
+                    values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
+                    logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
+                    dones[i] = np.r_[dones[i], done] if t else [done]
+                    int_reward = sappo_agent[i]._compute_int_reward(new_state[i])
+                    rewards[i] = np.r_[rewards[i], reward[i] + int_reward] if t else [reward[i]]
 
-                # Update the observation
-                cur_state[i] = new_state[i]
+                    # Update the observation
+                    cur_state[i] = new_state[i]
 
-                episodic_reward += reward[i]
-                episodic_agent_reward[i] += reward[i]
+                    episodic_reward += reward[i]
+                    episodic_agent_reward[i] += reward[i]
+            else:
+                if t % int(sa_cycle[i] * args.controlcycle) == 0:
+                    for i in range(agent_num):
+                        states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
+                        actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
+                        values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
+                        logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
+                        dones[i] = np.r_[dones[i], done] if t else [done]
+                        int_reward = sappo_agent[i]._compute_int_reward(new_state[i])
+                        rewards[i] = np.r_[rewards[i], reward[i] + int_reward] if t else [reward[i]]
+
+                        # Update the observation
+                        cur_state[i] = new_state[i]
+
+                        episodic_reward += reward[i]
+                        episodic_agent_reward[i] += reward[i]
 
             if done:
                 break
