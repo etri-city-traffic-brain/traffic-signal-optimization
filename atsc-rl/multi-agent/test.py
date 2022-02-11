@@ -55,7 +55,7 @@ def result_comp(args, ft_output, rl_output, model_num):
 
         tree = parse(tss_file_path)
     else:
-        tree = parse(os.getcwd() + '/data/envs/salt/doan/doan(without dan).tss.xml')
+        tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
 
 
     root = tree.getroot()
@@ -106,8 +106,6 @@ def result_comp(args, ft_output, rl_output, model_num):
             phase_numbers.append(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
             i += 1
 
-    max_phase_length = int(np.max(phase_numbers))
-
     target_tl_id_list = list(target_tl_obj.keys())
     agent_num = len(target_tl_id_list)
 
@@ -115,8 +113,8 @@ def result_comp(args, ft_output, rl_output, model_num):
         salt_scenario = scenario_file_path
         tree = parse(edge_file_path)
     else:
-        salt_scenario = 'data/envs/salt/doan/doan_2021.scenario.json'
-        tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20210401.edg.xml')
+        salt_scenario = 'data/envs/salt/doan/doan_20211207.scenario.json'
+        tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
 
     root = tree.getroot()
 
@@ -153,8 +151,6 @@ def result_comp(args, ft_output, rl_output, model_num):
         target_tl_obj[n]['in_edge_list_1'] = near_tl_obj[n]['in_edge_list_1']
         _edge_len.append(len(near_tl_obj[n]['in_edge_list']))
 
-    max_edge_length = int(np.max(_edge_len))
-
     startStep = 0
 
     done = False
@@ -184,16 +180,14 @@ def result_comp(args, ft_output, rl_output, model_num):
         target_tl_obj[target]['in_lane_list'] = _lane_list
         target_tl_obj[target]['state_space'] = len(_lane_list)
         _lane_len.append(len(_lane_list))
-    max_lane_length = np.max(_lane_len)
     # print(target_tl_obj)
-    # print(np.max(_lane_len))
 
     libsalt.close()
 
     simulationSteps = 0
 
     print("\nstate_weight {} addtime {} model_num {}".format(state_weight, addTime, model_num))
-
+    print("target_tl_obj", target_tl_obj)
     total_output = pd.DataFrame()
 
     for tl in target_tl_obj:
@@ -373,7 +367,7 @@ def ft_simulate(args):
     if IS_DOCKERIZE:
         salt_scenario = args.scenario_file_path
     else:
-        salt_scenario = 'data/envs/salt/doan/doan_2021_ft.scenario.json'
+        salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
 
     if IS_DOCKERIZE:
         if 0:
@@ -560,7 +554,7 @@ def sappo_test(args, trial, problem_var):
     if IS_DOCKERIZE:
         salt_scenario = args.scenario_file_path
     else:
-        salt_scenario = 'data/envs/salt/doan/doan_2021_ft.scenario.json'
+        salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
 
 
     if IS_DOCKERIZE:

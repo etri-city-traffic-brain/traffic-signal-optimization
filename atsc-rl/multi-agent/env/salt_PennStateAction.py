@@ -121,13 +121,13 @@ class SALT_doan_multi_PSA(gym.Env):
             if 0:
                 _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
             else:
-                edge_file_path = "magic/doan_20210401.edg.xml"
-                tss_file_path = "magic/doan(without dan).tss.xml"
+                edge_file_path = "magic/doan_20211207.edg.xml"
+                tss_file_path = "magic/doan_20211207.tss.xml"
             tree = parse(tss_file_path)
         else:
             # self.salt_scenario = self.dest_dir + 'doan_2021_actionT{}.scenario.json'.format(self.actionT)
-            self.salt_scenario = self.dest_dir + 'doan_2021.scenario.json'
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan(without dan).tss.xml')
+            self.salt_scenario = self.dest_dir + 'doan_20211207.scenario.json'
+            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
 
         root = tree.getroot()
 
@@ -137,10 +137,7 @@ class SALT_doan_multi_PSA(gym.Env):
         self.phase_numbers = []
         i=0
 
-        if IS_DOCKERIZE:
-            self.targetList_input = args.target_TL.split(',')
-        else:
-            self.targetList_input = args.targetTL.split(',')
+        self.targetList_input = args.target_TL.split(',')
         self.targetList_input2 = []
 
         for tl_i in self.targetList_input:

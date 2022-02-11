@@ -212,6 +212,7 @@ class SALT_SAPPO_offset_single(gym.Env):
                         phase_arr = np.append(phase_arr, np.ones(currDur[i]) * i)
 
                     self.phase_arr[sa_i].append(np.roll(phase_arr, actions[sa_i][tlid_i]))
+                    # self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i]))
 
                     remain = self.sa_obj[sa]['remain_list'][tlid_i]
                     # action_list = self.sa_obj[sa]['action_list_list'][tlid_i]
@@ -260,8 +261,11 @@ class SALT_SAPPO_offset_single(gym.Env):
                         self.simulationSteps = libsalt.getCurrentStep()
 
                         if self.simulationSteps % self.sim_period == 0:
+                        # if self.simulationSteps % (sa_cycle * self.control_cycle) == 0:
                             link_list_0 = self.sa_obj[sa]['in_edge_list_0']
                             link_list_1 = self.sa_obj[sa]['in_edge_list_1']
+                            lane_list_0 = self.sa_obj[sa]['in_lane_list_0']
+                            lane_list_1 = self.sa_obj[sa]['in_lane_list_1']
 
                             if self.reward_func == 'pn':
                                 for l in link_list_0:
@@ -280,7 +284,8 @@ class SALT_SAPPO_offset_single(gym.Env):
                                 #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT * reward_weight)
                             if self.reward_func in ['wq', 'wq_median', 'wq_min', 'wq_max']:
                                 for l in link_list_0:
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l))
+                                    # print("sum([l in x for x in lane_list_0])", sum([l in x for x in lane_list_0]))
+                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * sum([l in x for x in lane_list_0]))
                                 # for l in link_list_1:
                                 #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * reward_weight)
                             if self.reward_func == 'wt_SBV':
@@ -311,11 +316,11 @@ class SALT_SAPPO_offset_single(gym.Env):
                     if self.reward_func == 'pn':
                         self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
                     if self.reward_func == 'wt':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_max':
                         self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
                     if self.reward_func == 'wq':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func == 'wq_median':
                         if len(self.lane_passed[sa_i])==0:
                             self.rewards[sa_i] = 0
@@ -333,7 +338,7 @@ class SALT_SAPPO_offset_single(gym.Env):
                         else:
                             self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_SBV':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_SBV_max':
                         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_ABV':
@@ -459,10 +464,15 @@ class SALT_SAPPO_offset_single(gym.Env):
                 obs = np.append(vddMatrix, tlMatrix)
         # print(obs)
 
+        obs = obs + np.finfo(float).eps
+        # print(obs)
+
+        obs = obs/np.max(obs)
+        # print(obs)
         # print(densityMatrix)
         # print(passedMatrix)
         # print(f"get_state obs {obs} obslen {len(obs)}")
-
+        # print(obs)
         return obs
 
 

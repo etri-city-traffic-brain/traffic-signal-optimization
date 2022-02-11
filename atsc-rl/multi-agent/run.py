@@ -28,7 +28,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='120')
+parser.add_argument('--model-num', type=str, default='2080')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -57,8 +57,8 @@ else:
     parser.add_argument('--target-TL', type=str, default="SA 28",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
-parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wt_SBV', 'wt_SBV_max', 'wt_ABV'], default='wq',
-                    help='pn - passed num, wt - wating time, wq - waiting q length')
+parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt'], default='wq',
+                    help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time')
 
 parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
