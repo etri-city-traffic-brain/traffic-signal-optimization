@@ -707,6 +707,167 @@ def sappo_test(args, trial, problem_var):
 
     return avg_reward
 
+def ppornd_test(args, trial, problem_var):
+    import tensorflow.compat.v1 as tf
+    tf.disable_eager_execution()
+    model_num = trial
+
+    if IS_DOCKERIZE:
+        salt_scenario = args.scenario_file_path
+    else:
+        salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
+
+
+    if IS_DOCKERIZE:
+        if 0:
+            start_time = args.start_time
+            trial_len = args.end_time - args.start_time
+        else:
+            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+            start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+            end_time = args.end_time if args.end_time < scenario_end else scenario_end
+
+            trial_len = end_time - start_time
+    else:
+        start_time = args.testStartTime
+        trial_len = args.testEndTime - args.testStartTime
+
+    if IS_DOCKERIZE:
+        if args.result_comp:
+            print("Start fixed time scenario for the result compare")
+            ft_simulate(args)
+            print("End fixed time scenario")
+    else:
+        if args.resultComp:
+            print("Start fixed time scenario for the result compare")
+            # ft_simulate(args, trial, problem_var)
+            ft_simulate(args)
+            print("End fixed time scenario")
+
+    # ft_simulate(args)
+
+    if args.action == 'kc':
+        env = SALT_SAPPO_noConst(args)
+    elif args.action == 'offset':
+        env = SALT_SAPPO_offset(args)
+
+    if len(args.target_TL.split(",")) == 1:
+        env = SALT_SAPPO_offset_single(args)
+
+    agent_num = env.agent_num
+
+    # updateTargetNetwork = 1000
+    sappo_agent = []
+    state_space_arr = []
+    ep_agent_reward_list = []
+    agent_crossName = []
+
+    total_reward = tf.Variable(0, dtype=tf.float32)
+    total_reward_summary = tf.summary.scalar('train/reward', total_reward)
+
+    for i in range(agent_num):
+        target_sa = list(env.sa_obj.keys())[i]
+        state_space = env.sa_obj[target_sa]['state_space']
+        state_space_arr.append(state_space)
+        action_space = env.sa_obj[target_sa]['action_space']
+        action_min = env.sa_obj[target_sa]['action_min']
+        action_max = env.sa_obj[target_sa]['action_max']
+        print(f"{target_sa}, action space {action_space}, action min {action_min}, action max {action_max}")
+        sappo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
+
+    if IS_DOCKERIZE:
+        fn = "{}/model/sappo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
+    else:
+        fn = "model/sappo/SAPPO-{}-trial-{}".format(problem_var, model_num)
+
+    sess = tf.Session()
+    print("fn", fn)
+    saver = tf.train.Saver()
+    saver.restore(sess, fn)
+
+    # To store reward history of each episode
+    ep_reward_list = []
+    # To store average reward history of last few episodes
+    avg_reward_list = []
+    steps = []
+
+    actions = [0] * agent_num
+    cur_state = env.reset()
+    episodic_reward = 0
+    start = time.time()
+
+    actions = []
+    logits = []
+    value_t = []
+    logprobability_t = []
+    sa_cycle = []
+
+    for target_sa in env.sa_obj:
+        actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        logits.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        value_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        logprobability_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        sa_cycle = np.append(sa_cycle, env.sa_obj[target_sa]['cycle_list'][0])
+
+    for t in range(trial_len):
+
+        discrete_actions = []
+        for i in range(agent_num):
+            actions[i], value_t[i], logprobability_t[i] = sappo_agent[i].get_action([cur_state[i]], sess)
+            # print("cur_state[i]", np.round(cur_state[i],2))
+            # print("actions[i]", actions[i])
+            actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+
+            target_sa = list(env.sa_obj.keys())[i]
+            discrete_action = []
+            for di in range(len(actions[i])):
+                # discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, int(env.sa_obj[target_sa]['cycle_list'][di]/15))) - 1)
+                if args.action=='kc':
+                    discrete_action.append(0 if actions[i][di] < args.actionp else 1)
+                if args.action=='offset':
+                    discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+            discrete_actions.append(discrete_action)
+
+        new_state, reward, done, _ = env.step(discrete_actions)
+
+        for i in range(agent_num):
+            if t % int(sa_cycle[i] * args.controlcycle) == 0:
+                cur_state[i] = new_state[i]
+
+                episodic_reward += reward[i]
+
+        if done:
+            break
+
+    ep_reward_list.append(episodic_reward)
+
+    # Mean of last 40 episodes
+    avg_reward = np.mean(ep_reward_list[-40:])
+    print("Avg Reward is ==> {}".format(avg_reward))
+    print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
+    avg_reward_list.append(avg_reward)
+
+    if IS_DOCKERIZE:
+        if args.result_comp:
+            ## add time 3, state weight 0.0, model 1000, action v2
+            ft_output = pd.read_csv("{}/output/ft/-PeriodicOutput.csv".format(args.io_home))
+            rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
+    else:
+        # if args.resultComp:
+            ## add time 3, state weight 0.0, model 1000, action v2
+        ft_output = pd.read_csv("output/ft/-PeriodicOutput.csv")
+        rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
+
+    total_output = result_comp(args, ft_output, rl_output, model_num)
+
+    if IS_DOCKERIZE:
+        total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
+    else:
+        total_output.to_csv("output/test/{}_{}.csv".format(problem_var, model_num),
+                            encoding='utf-8-sig', index=False)
+
+    return avg_reward
+
 if __name__ == "__main__":
     # ft_simulate()
     ddqn_test(20)

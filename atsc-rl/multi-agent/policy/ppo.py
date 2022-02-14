@@ -66,20 +66,22 @@ class PPOAgent:
         self.agentID = agentID
 
         self.actor = Actor("Actor_{}".format(agentID), self.state_space, self.action_space.shape[0], action_min, action_max)
-        self.actor_target = Actor("Actor_target_{}".format(agentID), self.state_space, self.action_space.shape[0], action_min, action_max)
         self.critic = Critic("Critic_{}".format(agentID), self.state_space)
+        self.critic_int = Critic("Critic_int{}".format(agentID), self.state_space)
 
         self.adv = tf.placeholder(tf.float32, [None])
         self.ret = tf.placeholder(tf.float32, [None])
+        self.ret_int = tf.placeholder(tf.float32, [None])
         self.logp_old = tf.placeholder(tf.float32, [None])
 
         self.ratio = tf.exp(self.actor.logp - self.logp_old)
         self.min_adv = tf.where(self.adv > 0, (1.0 + self.ppo_eps) * self.adv, (1.0 - self.ppo_eps) * self.adv)
         self.pi_loss = -tf.reduce_mean(tf.minimum(self.ratio * self.adv, self.min_adv))
         self.v_loss = tf.reduce_mean((self.ret - self.critic.v) ** 2)
+        self.v_int_loss = tf.reduce_mean((self.ret_int - self.critic_int.v) ** 2)
 
         self.train_actor = tf.train.AdamOptimizer(self.learning_rate).minimize(self.pi_loss)
-        self.train_critic = tf.train.AdamOptimizer(self.learning_rate).minimize(self.v_loss)
+        self.train_critic = tf.train.AdamOptimizer(self.learning_rate).minimize(self.v_loss + self.v_int_loss)
 
         self.approx_kl = tf.reduce_mean(self.logp_old - self.actor.logp)
         self.approx_ent = tf.reduce_mean(-self.actor.logp)
@@ -119,11 +121,9 @@ class PPOAgent:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
         return gaes, target
 
-    def _compute_int_reward(self, next_state):
-        mse = tf.keras.losses.MeanSquaredError()
+    def compute_intrinsic_reward(self, next_state):
+        target_next_feature = self.rnd.target(next_state)
+        predict_next_feature = self.rnd.predictor(next_state)
+        intrinsic_reward = (target_next_feature - predict_next_feature).pow(2).sum(1) / 2
 
-        # target = rnd_target_net(next_state)
-        # prediction = rnd_predictor_net(next_state)
-        #
-        # return mse(y_true, y_pred).numpy()
-        return 0
+        return intrinsic_reward.data.cpu().numpy()
