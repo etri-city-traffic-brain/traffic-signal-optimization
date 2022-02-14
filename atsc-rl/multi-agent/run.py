@@ -75,6 +75,7 @@ if IS_DOCKERIZE:
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
 parser.add_argument('--gamma', type=float, default=0.999)
+parser.add_argument('--gamma-i', type=float, default=0.99)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
 
@@ -102,6 +103,8 @@ problem_var += "_reward_{}".format(args.reward_func)
 problem_var += "_action_{}".format(args.action)
 problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 problem_var += "_gamma_{}".format(args.gamma)
+if args.method=='ppornd':
+    problem_var += "_gammai_{}".format(args.gamma_i)
 if len(args.target_TL.split(","))==1:
     problem_var += "_{}".format(args.target_TL.split(",")[0])
 
@@ -582,14 +585,14 @@ def run_ppornd():
         return buf
 
     if args.action=='kc':
-        args.problem = "SAPPO_NoConstraints_" + problem_var
+        args.problem = "PPORND_NoConstraints_" + problem_var
         env = SALT_SAPPO_noConst(args)
     if args.action=='offset':
-        args.problem = "SAPPO_offset_" + problem_var
+        args.problem = "PPORND_offset_" + problem_var
         env = SALT_SAPPO_offset(args)
 
     if len(args.target_TL.split(","))==1:
-        args.problem = "SAPPO_offset_single_" + problem_var
+        args.problem = "PPORND_offset_single_" + problem_var
         env = SALT_SAPPO_offset_single(args)
 
     trials = args.epoch
@@ -810,10 +813,10 @@ def run_ppornd():
         train_summary_writer.add_summary(sess.run(total_reward_summary), trial)  # add summary
 
         for i in range(agent_num):
-            next_states[i] = running_stats_fun(running_stats_s_, next_states[i], ppornd_agent[i].s_CLIP, True)
+            next_states[i] = running_stats_fun(running_stats_s_, next_states[i], ppornd_agent[i].s_CLIP, False)
             buffer_r_i = ppornd_agent[i].intrinsic_r(next_states[i], sess)
             # Batch normalize running extrinsic r
-            # rewards = running_stats_fun(running_stats_r, rewards, ppornd_agent[i].r_CLIP, True)
+            rewards[i] = running_stats_fun(running_stats_r, rewards[i], ppornd_agent[i].r_CLIP, False)
             # Batch normalize running intrinsic r_i
             buffer_r_i = running_stats_fun(running_stats_r_i, buffer_r_i, ppornd_agent[i].r_CLIP, False)
 
@@ -822,7 +825,7 @@ def run_ppornd():
                                                       np.vstack(dones[i]),
                                                       np.vstack(buffer_Vs[i]),
                                                       v_s_,
-                                                      ppornd_agent[i].GAMMA,
+                                                      args.gamma,
                                                       ppornd_agent[i].lamda)
 
             v_s_i = ppornd_agent[i].get_v_i([cur_state[i]], sess)
@@ -830,7 +833,7 @@ def run_ppornd():
                                                           np.vstack(dones[i]),
                                                           np.vstack(buffer_V_is[i]),
                                                           v_s_i,
-                                                          ppornd_agent[i].GAMMA_i,
+                                                          args.gamma_i,
                                                           ppornd_agent[i].lamda)
 
             bs, bs_, ba, br, br_i, b_adv = np.vstack(states[i]), np.vstack(next_states[i]), np.vstack(actionss[i]), tdlamret, tdlamret_i, np.vstack(adv + adv_i)  # sum advantages
@@ -885,10 +888,10 @@ def run_ppornd():
 
         if trial % args.model_save_period == 0:
             if IS_DOCKERIZE:
-                fn = "{}/model/sappo/SAPPO-{}-trial".format(io_home, problem_var)
+                fn = "{}/model/ppornd/PPORND-{}-trial".format(io_home, problem_var)
                 saver.save(sess, fn, global_step=trial)
             else:
-                fn = "model/sappo/SAPPO-{}-trial".format(problem_var)
+                fn = "model/ppornd/PPORND-{}-trial".format(problem_var)
                 saver.save(sess, fn, global_step=trial)
 
 

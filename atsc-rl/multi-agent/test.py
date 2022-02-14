@@ -6,6 +6,7 @@ import time
 
 from policy.ddqn import DDQN
 from policy.ppo import PPOAgent
+from policy.ppo_rnd import PPORNDAgent
 
 from config import TRAIN_CONFIG
 
@@ -596,7 +597,7 @@ def sappo_test(args, trial, problem_var):
     agent_num = env.agent_num
 
     # updateTargetNetwork = 1000
-    sappo_agent = []
+    ppornd_agent = []
     state_space_arr = []
     ep_agent_reward_list = []
     agent_crossName = []
@@ -612,7 +613,7 @@ def sappo_test(args, trial, problem_var):
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
         print(f"{target_sa}, action space {action_space}, action min {action_min}, action max {action_max}")
-        sappo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
+        ppornd_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
 
     if IS_DOCKERIZE:
         fn = "{}/model/sappo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
@@ -652,7 +653,7 @@ def sappo_test(args, trial, problem_var):
 
         discrete_actions = []
         for i in range(agent_num):
-            actions[i], value_t[i], logprobability_t[i] = sappo_agent[i].get_action([cur_state[i]], sess)
+            actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
             # print("cur_state[i]", np.round(cur_state[i],2))
             # print("actions[i]", actions[i])
             actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
@@ -757,7 +758,7 @@ def ppornd_test(args, trial, problem_var):
     agent_num = env.agent_num
 
     # updateTargetNetwork = 1000
-    sappo_agent = []
+    ppornd_agent = []
     state_space_arr = []
     ep_agent_reward_list = []
     agent_crossName = []
@@ -773,12 +774,12 @@ def ppornd_test(args, trial, problem_var):
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
         print(f"{target_sa}, action space {action_space}, action min {action_min}, action max {action_max}")
-        sappo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
+        ppornd_agent.append(PPORNDAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
 
     if IS_DOCKERIZE:
-        fn = "{}/model/sappo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
+        fn = "{}/model/ppornd/PPORND-{}-trial-{}".format(args.io_home, problem_var, model_num)
     else:
-        fn = "model/sappo/SAPPO-{}-trial-{}".format(problem_var, model_num)
+        fn = "model/ppornd/PPORND-{}-trial-{}".format(problem_var, model_num)
 
     sess = tf.Session()
     print("fn", fn)
@@ -813,10 +814,9 @@ def ppornd_test(args, trial, problem_var):
 
         discrete_actions = []
         for i in range(agent_num):
-            actions[i], value_t[i], logprobability_t[i] = sappo_agent[i].get_action([cur_state[i]], sess)
+            actions[i] = ppornd_agent[i].choose_action([cur_state[i]], sess)
             # print("cur_state[i]", np.round(cur_state[i],2))
             # print("actions[i]", actions[i])
-            actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
 
             target_sa = list(env.sa_obj.keys())[i]
             discrete_action = []
