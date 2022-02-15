@@ -58,7 +58,7 @@ class PPORNDAgent(object):
         self.ext_r_coeff = 2  # extrinsic reward coefficient
         self.c_loss_coeff = 0.5  # coefficient for total critic loss
 
-        self.encode_features = 512
+        self.encode_features = 64
         self.ENTROPY_BETA = 0.001
 
         self.s_CLIP = 10  # clip for state buffer
@@ -83,7 +83,8 @@ class PPORNDAgent(object):
             for i in range(len(TRAIN_CONFIG['rnd_network_size'])):
                 if i != 0:
                     inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
-            self.target_out = tf.layers.dense(inp, self.encode_features, kernel_initializer = r_w, name='target_out', trainable=False)
+            # self.target_out = tf.layers.dense(inp, self.encode_features, kernel_initializer = r_w, name='target_out', trainable=False)
+            self.target_out = tf.layers.dense(inp, self.encode_features, name='target_out', trainable=False)
         # predictor network
           with tf.variable_scope('predictor'):
             #p_w = tf.zeros_initializer()
@@ -95,7 +96,8 @@ class PPORNDAgent(object):
             for i in range(len(TRAIN_CONFIG['rnd_network_size'])):
                 if i != 0:
                     inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
-            self.predictor_out = tf.layers.dense(inp, self.encode_features, kernel_initializer = p_w, name='predictor_out', trainable=True)
+            # self.predictor_out = tf.layers.dense(inp, self.encode_features, kernel_initializer = p_w, name='predictor_out', trainable=True)
+            self.predictor_out = tf.layers.dense(inp, self.encode_features, name='predictor_out', trainable=True)
             # self.predictor_loss is also the intrinsic reward
             self.predictor_loss = tf.reduce_sum(tf.square(self.target_out - self.predictor_out), axis=1)
 
@@ -113,7 +115,8 @@ class PPORNDAgent(object):
                 for i in range(len(TRAIN_CONFIG['network_size'])):
                     if i != 0:
                         inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
-                self.v = tf.layers.dense(inp, 1, kernel_initializer = c_w, name='val', trainable=True)
+                # self.v = tf.layers.dense(inp, 1, kernel_initializer = c_w, name='val', trainable=True)
+                self.v = tf.layers.dense(inp, 1, name='val', trainable=True)
                 self.tfdc_r = tf.placeholder(tf.float32, [None, 1], 'discounted_r')
                 self.advantage = self.tfdc_r - self.v
                 self.closs = tf.reduce_mean(tf.square(self.advantage))
@@ -127,7 +130,8 @@ class PPORNDAgent(object):
                     if i != 0:
                         inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
-                self.v_i = tf.layers.dense(inp, 1, kernel_initializer = c_w, name='val_i', trainable=True)
+                # self.v_i = tf.layers.dense(inp, 1, kernel_initializer = c_w, name='val_i', trainable=True)
+                self.v_i = tf.layers.dense(inp, 1, name='val_i', trainable=True)
                 self.tfdc_r_i = tf.placeholder(tf.float32, [None, 1], 'discounted_r_i')
                 self.advantage_i = self.tfdc_r_i - self.v_i
                 self.closs_i = tf.reduce_mean(tf.square(self.advantage_i))
@@ -188,8 +192,10 @@ class PPORNDAgent(object):
                 if i!=0:
                     inp_sigma = tf.layers.dense(inp_sigma, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
-            mu = tf.layers.dense(inp_mu, self.action_space, tf.nn.tanh, kernel_initializer=a_w, name='mu', trainable=trainable)
-            sigma = tf.layers.dense(inp_sigma, self.action_space, tf.nn.softplus, kernel_initializer=a_w, name='sigma', trainable=trainable) + 1e-4
+            # mu = tf.layers.dense(inp_mu, self.action_space, tf.nn.tanh, kernel_initializer=a_w, name='mu', trainable=trainable)
+            mu = tf.layers.dense(inp_mu, self.action_space, tf.nn.tanh, name='mu', trainable=trainable)
+            # sigma = tf.layers.dense(inp_sigma, self.action_space, tf.nn.softplus, kernel_initializer=a_w, name='sigma', trainable=trainable) + 1e-4
+            sigma = tf.layers.dense(inp_sigma, self.action_space, tf.nn.softplus, name='sigma', trainable=trainable) + 1e-4
 
             norm_dist = tf.distributions.Normal(loc=mu, scale=sigma)
         params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name)
