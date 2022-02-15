@@ -773,6 +773,8 @@ def run_ppornd():
                     buffer_V_is[i] = np.r_[buffer_V_is[i], v_i] if t else [v_i]
                     next_states[i] = np.r_[next_states[i], [new_state[i]]] if t else [new_state[i]]
                     # Update the observation
+                    # print("cur_state[i]", cur_state[i])
+                    # print("new_state[i]", new_state[i])
                     cur_state[i] = new_state[i]
 
                     episodic_reward += reward[i]
@@ -797,7 +799,8 @@ def run_ppornd():
 
             if done:
                 break
-
+        print("buffer_Vs", buffer_Vs)
+        print("buffer_V_is", buffer_V_is)
         ep_reward_list.append(episodic_reward)
 
         # Mean of last 40 episodes
@@ -811,10 +814,13 @@ def run_ppornd():
         train_summary_writer.add_summary(sess.run(total_reward_summary), trial)  # add summary
 
         for i in range(agent_num):
-            next_states[i] = running_stats_fun(running_stats_s_, next_states[i], ppornd_agent[i].s_CLIP, False)
+            # print("before states[i]", states[i])
+            # states[i] = running_stats_fun(running_stats_s, states[i], ppornd_agent[i].s_CLIP, False)
+            # print("after states[i]", states[i])
+            # next_states[i] = running_stats_fun(running_stats_s_, next_states[i], ppornd_agent[i].s_CLIP, False)
             buffer_r_i = ppornd_agent[i].intrinsic_r(next_states[i], sess)
             # Batch normalize running extrinsic r
-            rewards[i] = running_stats_fun(running_stats_r, rewards[i], ppornd_agent[i].r_CLIP, False)
+            # rewards[i] = running_stats_fun(running_stats_r, rewards[i], ppornd_agent[i].r_CLIP, False)
             # Batch normalize running intrinsic r_i
             buffer_r_i = running_stats_fun(running_stats_r_i, buffer_r_i, ppornd_agent[i].r_CLIP, False)
 
@@ -835,6 +841,12 @@ def run_ppornd():
                                                           ppornd_agent[i].lamda)
 
             bs, bs_, ba, br, br_i, b_adv = np.vstack(states[i]), np.vstack(next_states[i]), np.vstack(actionss[i]), tdlamret, tdlamret_i, np.vstack(adv + adv_i)  # sum advantages
+            # print("bs",bs)
+            # print("bs_",bs_)
+            # print("ba",ba)
+            # print("br",br)
+            # print("br_i",br_i)
+            # print("b_adv",b_adv)
             ppornd_agent[i].update(bs, bs_, ba, br, br_i, b_adv, sess)
 
             # v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]

@@ -464,9 +464,9 @@ class SALT_SAPPO_offset_single(gym.Env):
                 obs = np.append(vddMatrix, tlMatrix)
         # print(obs)
 
+        # if self.args.method=='sappo':
         obs = obs + np.finfo(float).eps
         # print(obs)
-
         obs = obs/np.max(obs)
         # print(obs)
         # print(densityMatrix)

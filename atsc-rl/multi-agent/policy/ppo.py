@@ -105,7 +105,7 @@ class PPOAgent:
         if self.mode=='test':
             action, v, logp_pi = sess.run([self.actor.mu, self.critic.v, self.actor.logp_pi],
                                                feed_dict={self.actor.state: state, self.critic.state: state})
-            print(state, action)
+            # print(state, action)
 
         return action, v, logp_pi
 

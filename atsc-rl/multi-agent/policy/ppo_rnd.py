@@ -179,13 +179,17 @@ class PPORNDAgent(object):
             # mu = tf.layers.dense(hidden_layer, self.action_space, tf.nn.tanh, kernel_initializer = a_w, name='mu', trainable=trainable)
             # sigma = tf.layers.dense(hidden_layer, self.action_space, tf.nn.softplus, kernel_initializer = a_w, name='sigma', trainable=trainable) + 1e-4
 
-            inp = tf.layers.dense(self.s, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+            inp_mu = tf.layers.dense(self.s, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
             for i in range(len(TRAIN_CONFIG['network_size'])):
                 if i!=0:
-                    inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+                    inp_mu = tf.layers.dense(inp_mu, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+            inp_sigma = tf.layers.dense(self.s, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+            for i in range(len(TRAIN_CONFIG['network_size'])):
+                if i!=0:
+                    inp_sigma = tf.layers.dense(inp_sigma, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
-            mu = tf.layers.dense(inp, self.action_space, tf.nn.tanh, kernel_initializer=a_w, name='mu', trainable=trainable)
-            sigma = tf.layers.dense(inp, self.action_space, tf.nn.softplus, kernel_initializer=a_w, name='sigma', trainable=trainable) + 1e-4
+            mu = tf.layers.dense(inp_mu, self.action_space, tf.nn.tanh, kernel_initializer=a_w, name='mu', trainable=trainable)
+            sigma = tf.layers.dense(inp_sigma, self.action_space, tf.nn.softplus, kernel_initializer=a_w, name='sigma', trainable=trainable) + 1e-4
 
             norm_dist = tf.distributions.Normal(loc=mu, scale=sigma)
         params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name)
