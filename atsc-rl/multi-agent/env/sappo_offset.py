@@ -209,7 +209,7 @@ class SALT_SAPPO_offset(gym.Env):
                     for i in range(len(currDur)):
                         phase_arr = np.append(phase_arr, np.ones(currDur[i]) * i)
 
-                    self.phase_arr[sa_i].append(np.roll(phase_arr, actions[sa_i][tlid_i]))
+                    self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + actions[sa_i][tlid_i]))
 
                     remain = self.sa_obj[sa]['remain_list'][tlid_i]
                     # action_list = self.sa_obj[sa]['action_list_list'][tlid_i]
@@ -256,7 +256,7 @@ class SALT_SAPPO_offset(gym.Env):
                         else:
                             self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_SBV':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_SBV_max':
                         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_ABV':

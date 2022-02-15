@@ -211,7 +211,7 @@ class SALT_SAPPO_offset_single(gym.Env):
                     for i in range(len(currDur)):
                         phase_arr = np.append(phase_arr, np.ones(currDur[i]) * i)
 
-                    self.phase_arr[sa_i].append(np.roll(phase_arr, actions[sa_i][tlid_i]))
+                    self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + actions[sa_i][tlid_i]))
                     # self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i]))
 
                     remain = self.sa_obj[sa]['remain_list'][tlid_i]

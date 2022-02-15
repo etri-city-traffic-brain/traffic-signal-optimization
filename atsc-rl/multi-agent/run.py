@@ -74,8 +74,8 @@ if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
-parser.add_argument('--gamma', type=float, default=0.1)
-parser.add_argument('--gamma-i', type=float, default=0.1)
+parser.add_argument('--gamma', type=float, default=0.11)
+parser.add_argument('--gamma-i', type=float, default=0.11)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
 
@@ -103,6 +103,8 @@ problem_var += "_reward_{}".format(args.reward_func)
 problem_var += "_action_{}".format(args.action)
 problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 problem_var += "_gamma_{}".format(args.gamma)
+problem_var += "_lr_{}".format(args.lr)
+problem_var += "_cc_{}".format(args.controlcycle)
 if args.method=='ppornd':
     problem_var += "_gammai_{}".format(args.gamma_i)
     problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])
@@ -820,7 +822,7 @@ def run_ppornd():
             # next_states[i] = running_stats_fun(running_stats_s_, next_states[i], ppornd_agent[i].s_CLIP, False)
             buffer_r_i = ppornd_agent[i].intrinsic_r(next_states[i], sess)
             # Batch normalize running extrinsic r
-            # rewards[i] = running_stats_fun(running_stats_r, rewards[i], ppornd_agent[i].r_CLIP, False)
+            rewards[i] = running_stats_fun(running_stats_r, rewards[i], ppornd_agent[i].r_CLIP, False)
             # Batch normalize running intrinsic r_i
             buffer_r_i = running_stats_fun(running_stats_r_i, buffer_r_i, ppornd_agent[i].r_CLIP, False)
 
