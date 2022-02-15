@@ -671,10 +671,9 @@ def sappo_test(args, trial, problem_var):
         new_state, reward, done, _ = env.step(discrete_actions)
 
         for i in range(agent_num):
-            if t % int(sa_cycle[i] * args.controlcycle) == 0:
-                cur_state[i] = new_state[i]
-
-                episodic_reward += reward[i]
+            # if t % int(sa_cycle[i] * args.controlcycle) == 0:
+            cur_state[i] = new_state[i]
+            episodic_reward += reward[i]
 
         if done:
             break
@@ -815,6 +814,7 @@ def ppornd_test(args, trial, problem_var):
         discrete_actions = []
         for i in range(agent_num):
             actions[i] = ppornd_agent[i].choose_action([cur_state[i]], sess)
+            # print("[cur_state[i]]", [cur_state[i]])
             # print("cur_state[i]", np.round(cur_state[i],2))
             # print("actions[i]", actions[i])
 
@@ -831,10 +831,8 @@ def ppornd_test(args, trial, problem_var):
         new_state, reward, done, _ = env.step(discrete_actions)
 
         for i in range(agent_num):
-            if t % int(sa_cycle[i] * args.controlcycle) == 0:
-                cur_state[i] = new_state[i]
-
-                episodic_reward += reward[i]
+            cur_state[i] = new_state[i]
+            episodic_reward += reward[i]
 
         if done:
             break

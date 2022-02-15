@@ -2,6 +2,8 @@
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()
 
+from config import TRAIN_CONFIG
+
 import numpy as np
 import matplotlib.pyplot as plt
 import gym
@@ -56,7 +58,7 @@ class PPORNDAgent(object):
         self.ext_r_coeff = 2  # extrinsic reward coefficient
         self.c_loss_coeff = 0.5  # coefficient for total critic loss
 
-        self.encode_features = 10000
+        self.encode_features = 512
         self.ENTROPY_BETA = 0.001
 
         self.s_CLIP = 10  # clip for state buffer
@@ -69,24 +71,31 @@ class PPORNDAgent(object):
         self.lamda = 0.95
 
         self.args = args
-
         # RND
         with tf.variable_scope('RND'):
           with tf.variable_scope('target'):
             r_w = tf.random_normal_initializer()
             # Fixed target network encodes state to features
             # Network randomly initialized once but never trained, params remain fixed, trainable=False
-            self.target_out = tf.layers.dense(self.s_, self.encode_features, kernel_initializer = r_w, name='target_out', trainable=False)
-            #hidden_layer = tf.layers.dense(self.s_, num_hidden, tf.nn.relu, kernel_initializer = r_w, name='t_hidden', trainable=False)
-            #self.target_out = tf.layers.dense(hidden_layer, encode_features, kernel_initializer = r_w, name='target_out', trainable=False)
+            # self.target_out = tf.layers.dense(self.s_, self.encode_features, kernel_initializer = r_w, name='target_out', trainable=False)
+            # hidden_layer = tf.layers.dense(self.s_, num_hidden, tf.nn.relu, kernel_initializer = r_w, name='t_hidden', trainable=False)
+            inp = tf.layers.dense(self.s_, TRAIN_CONFIG['rnd_network_size'][0], tf.nn.relu)
+            for i in range(len(TRAIN_CONFIG['rnd_network_size'])):
+                if i != 0:
+                    inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+            self.target_out = tf.layers.dense(inp, self.encode_features, kernel_initializer = r_w, name='target_out', trainable=False)
         # predictor network
           with tf.variable_scope('predictor'):
             #p_w = tf.zeros_initializer()
             p_w = tf.random_normal_initializer()
             #p_w = tf.glorot_uniform_initializer(seed=tf_operation_level_seed+1)
-            self.predictor_out = tf.layers.dense(self.s_, self.encode_features, kernel_initializer = p_w, name='predictor_out', trainable=True)
-            #hidden_layer = tf.layers.dense(self.s_, num_hidden, tf.nn.relu, kernel_initializer = p_w, name='p_hidden', trainable=True)
-            #self.predictor_out = tf.layers.dense(hidden_layer, encode_features, kernel_initializer = p_w, name='predictor_out', trainable=True)
+            # self.predictor_out = tf.layers.dense(self.s_, self.encode_features, kernel_initializer = p_w, name='predictor_out', trainable=True)
+            # hidden_layer = tf.layers.dense(self.s_, num_hidden, tf.nn.relu, kernel_initializer = p_w, name='p_hidden', trainable=True)
+            inp = tf.layers.dense(self.s_, TRAIN_CONFIG['rnd_network_size'][0], tf.nn.relu)
+            for i in range(len(TRAIN_CONFIG['rnd_network_size'])):
+                if i != 0:
+                    inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+            self.predictor_out = tf.layers.dense(inp, self.encode_features, kernel_initializer = p_w, name='predictor_out', trainable=True)
             # self.predictor_loss is also the intrinsic reward
             self.predictor_loss = tf.reduce_sum(tf.square(self.target_out - self.predictor_out), axis=1)
 
@@ -98,17 +107,27 @@ class PPORNDAgent(object):
             #c_w = tf.glorot_uniform_initializer(seed=tf_operation_level_seed+2)
             with tf.variable_scope('critic_extrinsic'):
                 # critic network for extrinsic reward
-                self.v = tf.layers.dense(self.s, 1, kernel_initializer = c_w, name='val', trainable=True)
-                #hidden_layer = tf.layers.dense(self.s, num_hidden, tf.nn.relu, kernel_initializer = c_w, name='c_e_hidden', trainable=True)
-                #self.v = tf.layers.dense(hidden_layer, 1, kernel_initializer = c_w, name='val', trainable=True)
+                # self.v = tf.layers.dense(self.s, 1, kernel_initializer = c_w, name='val', trainable=True)
+                # hidden_layer = tf.layers.dense(self.s, num_hidden, tf.nn.relu, kernel_initializer = c_w, name='c_e_hidden', trainable=True)
+                inp = tf.layers.dense(self.s, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+                for i in range(len(TRAIN_CONFIG['network_size'])):
+                    if i != 0:
+                        inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+                self.v = tf.layers.dense(inp, 1, kernel_initializer = c_w, name='val', trainable=True)
                 self.tfdc_r = tf.placeholder(tf.float32, [None, 1], 'discounted_r')
                 self.advantage = self.tfdc_r - self.v
                 self.closs = tf.reduce_mean(tf.square(self.advantage))
             with tf.variable_scope('critic_intrinsic'):
                 # critic network for intrinsic reward
-                self.v_i = tf.layers.dense(self.s, 1, kernel_initializer = c_w, name='val_i', trainable=True)
-                #hidden_layer = tf.layers.dense(self.s, num_hidden, tf.nn.relu, kernel_initializer = c_w, name='c_i_hidden', trainable=True)
-                #self.v_i = tf.layers.dense(hidden_layer, 1, kernel_initializer = c_w, name='val_i', trainable=True)
+                # self.v_i = tf.layers.dense(self.s, 1, kernel_initializer = c_w, name='val_i', trainable=True)
+                # hidden_layer = tf.layers.dense(self.s, num_hidden, tf.nn.relu, kernel_initializer = c_w, name='c_i_hidden', trainable=True)
+
+                inp = tf.layers.dense(self.s, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+                for i in range(len(TRAIN_CONFIG['network_size'])):
+                    if i != 0:
+                        inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+
+                self.v_i = tf.layers.dense(inp, 1, kernel_initializer = c_w, name='val_i', trainable=True)
                 self.tfdc_r_i = tf.placeholder(tf.float32, [None, 1], 'discounted_r_i')
                 self.advantage_i = self.tfdc_r_i - self.v_i
                 self.closs_i = tf.reduce_mean(tf.square(self.advantage_i))
@@ -117,10 +136,13 @@ class PPORNDAgent(object):
 
           # actor
           with tf.variable_scope('actor'):
-            pi, pi_params = self._build_anet('pi', trainable=True)
-            oldpi, oldpi_params = self._build_anet('oldpi', trainable=False) # trainable=False
+            pi, pi_params, mu = self._build_anet('pi', trainable=True)
+            oldpi, oldpi_params, old_mu = self._build_anet('oldpi', trainable=False) # trainable=False
             with tf.variable_scope('sample_action'):
-              self.sample_op = tf.squeeze(pi.sample(1), axis=0) # choosing action
+                if self.args.mode == 'train':
+                    self.sample_op = tf.squeeze(pi.sample(1), axis=0) # choosing action
+                elif self.args.mode == 'test':
+                    self.sample_op = tf.squeeze(mu, axis=0) # choosing action
             with tf.variable_scope('update_oldpi'):
               self.update_oldpi_op = [oldp.assign(p) for p, oldp in zip(pi_params, oldpi_params)]
             with tf.variable_scope('surrogate_actor_loss'):
@@ -151,17 +173,31 @@ class PPORNDAgent(object):
             #a_w = tf.zeros_initializer()
             #a_w = tf.random_normal_initializer(seed=tf_operation_level_seed+3) # can't use random for actor, produces nan action
             a_w = tf.glorot_uniform_initializer()
-            mu = tf.layers.dense(self.s, self.action_space, tf.nn.tanh, kernel_initializer = a_w, name='mu', trainable=trainable)
-            sigma = tf.layers.dense(self.s, self.action_space, tf.nn.softplus, kernel_initializer = a_w, name='sigma', trainable=trainable) + 1e-4
-            #hidden_layer = tf.layers.dense(self.s, num_hidden, tf.nn.relu, kernel_initializer = a_w, name='a_hidden', trainable=trainable)
-            #mu = tf.layers.dense(hidden_layer, A_DIM, tf.nn.tanh, kernel_initializer = a_w, name='mu', trainable=trainable)
-            #sigma = tf.layers.dense(hidden_layer, A_DIM, tf.nn.softplus, kernel_initializer = a_w, name='sigma', trainable=trainable) + 1e-4
+            # mu = tf.layers.dense(self.s, self.action_space, tf.nn.tanh, kernel_initializer = a_w, name='mu', trainable=trainable)
+            # sigma = tf.layers.dense(self.s, self.action_space, tf.nn.softplus, kernel_initializer = a_w, name='sigma', trainable=trainable) + 1e-4
+            # hidden_layer = tf.layers.dense(self.s, 1024, tf.nn.relu, kernel_initializer = a_w, name='a_hidden', trainable=trainable)
+            # mu = tf.layers.dense(hidden_layer, self.action_space, tf.nn.tanh, kernel_initializer = a_w, name='mu', trainable=trainable)
+            # sigma = tf.layers.dense(hidden_layer, self.action_space, tf.nn.softplus, kernel_initializer = a_w, name='sigma', trainable=trainable) + 1e-4
+
+            inp = tf.layers.dense(self.s, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+            for i in range(len(TRAIN_CONFIG['network_size'])):
+                if i!=0:
+                    inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+
+            mu = tf.layers.dense(inp, self.action_space, tf.nn.tanh, kernel_initializer=a_w, name='mu', trainable=trainable)
+            sigma = tf.layers.dense(inp, self.action_space, tf.nn.softplus, kernel_initializer=a_w, name='sigma', trainable=trainable) + 1e-4
+
             norm_dist = tf.distributions.Normal(loc=mu, scale=sigma)
         params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=name)
-        return norm_dist, params
+        return norm_dist, params, mu
 
     def choose_action(self, s, sess):
-        a = sess.run(self.sample_op, {self.s: s})[0]
+        if self.args.mode == 'train':
+            a = sess.run(self.sample_op, {self.s: s})[0]
+            # print(s, a)
+        elif self.args.mode == 'test':
+            a = sess.run(self.sample_op, {self.s: s})
+            # print(s, a)
         return np.clip(a, -1, 1)
 
     def get_v(self, s, sess):

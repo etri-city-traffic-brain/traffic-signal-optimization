@@ -29,7 +29,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='2080')
+parser.add_argument('--model-num', type=str, default='2980')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -74,8 +74,8 @@ if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
-parser.add_argument('--gamma', type=float, default=0.999)
-parser.add_argument('--gamma-i', type=float, default=0.99)
+parser.add_argument('--gamma', type=float, default=0.1)
+parser.add_argument('--gamma-i', type=float, default=0.1)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
 
@@ -105,6 +105,7 @@ problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 problem_var += "_gamma_{}".format(args.gamma)
 if args.method=='ppornd':
     problem_var += "_gammai_{}".format(args.gamma_i)
+    problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])
 if len(args.target_TL.split(","))==1:
     problem_var += "_{}".format(args.target_TL.split(",")[0])
 
@@ -466,8 +467,7 @@ def run_sappo():
                     values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
                     logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
                     dones[i] = np.r_[dones[i], done] if t else [done]
-                    int_reward = ppornd_agent[i]._compute_int_reward(new_state[i])
-                    rewards[i] = np.r_[rewards[i], reward[i] + int_reward] if t else [reward[i]]
+                    rewards[i] = np.r_[rewards[i], reward[i]] if t else [reward[i]]
 
                     # Update the observation
                     cur_state[i] = new_state[i]
@@ -482,8 +482,7 @@ def run_sappo():
                         values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
                         logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
                         dones[i] = np.r_[dones[i], done] if t else [done]
-                        int_reward = ppornd_agent[i]._compute_int_reward(new_state[i])
-                        rewards[i] = np.r_[rewards[i], reward[i] + int_reward] if t else [reward[i]]
+                        rewards[i] = np.r_[rewards[i], reward[i]] if t else [reward[i]]
 
                         # Update the observation
                         cur_state[i] = new_state[i]
@@ -784,7 +783,6 @@ def run_ppornd():
                         states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
                         actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
                         dones[i] = np.r_[dones[i], done] if t else [done]
-                        int_reward = ppornd_agent[i]._compute_int_reward(new_state[i])
                         rewards[i] = np.r_[rewards[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
                         v = ppornd_agent[i].get_v([cur_state[i]], sess)
                         buffer_Vs[i] = np.r_[buffer_Vs[i], v] if t else [v]

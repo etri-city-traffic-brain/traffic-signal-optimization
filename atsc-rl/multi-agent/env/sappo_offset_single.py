@@ -231,7 +231,6 @@ class SALT_SAPPO_offset_single(gym.Env):
                     tlid_i += 1
                 # print(self.phase_arr)
 
-                self.observations[sa_i] = self.get_state(sa)
 
                 # print(self.phase_arr)
                 sa_i = 0
@@ -309,6 +308,7 @@ class SALT_SAPPO_offset_single(gym.Env):
                                     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / (len(link_list_0) * self.sim_period))
                                 # for l in link_list_1:
                                 #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
+                    self.observations[sa_i] = self.get_state(sa)
                     sa_i += 1
 
                 sa_i = 0

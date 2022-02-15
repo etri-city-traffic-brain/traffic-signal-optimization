@@ -67,7 +67,6 @@ class PPOAgent:
 
         self.actor = Actor("Actor_{}".format(agentID), self.state_space, self.action_space.shape[0], action_min, action_max)
         self.critic = Critic("Critic_{}".format(agentID), self.state_space)
-        self.critic_int = Critic("Critic_int{}".format(agentID), self.state_space)
 
         self.adv = tf.placeholder(tf.float32, [None])
         self.ret = tf.placeholder(tf.float32, [None])
@@ -78,10 +77,9 @@ class PPOAgent:
         self.min_adv = tf.where(self.adv > 0, (1.0 + self.ppo_eps) * self.adv, (1.0 - self.ppo_eps) * self.adv)
         self.pi_loss = -tf.reduce_mean(tf.minimum(self.ratio * self.adv, self.min_adv))
         self.v_loss = tf.reduce_mean((self.ret - self.critic.v) ** 2)
-        self.v_int_loss = tf.reduce_mean((self.ret_int - self.critic_int.v) ** 2)
 
         self.train_actor = tf.train.AdamOptimizer(self.learning_rate).minimize(self.pi_loss)
-        self.train_critic = tf.train.AdamOptimizer(self.learning_rate).minimize(self.v_loss + self.v_int_loss)
+        self.train_critic = tf.train.AdamOptimizer(self.learning_rate).minimize(self.v_loss)
 
         self.approx_kl = tf.reduce_mean(self.logp_old - self.actor.logp)
         self.approx_ent = tf.reduce_mean(-self.actor.logp)
@@ -107,6 +105,7 @@ class PPOAgent:
         if self.mode=='test':
             action, v, logp_pi = sess.run([self.actor.mu, self.critic.v, self.actor.logp_pi],
                                                feed_dict={self.actor.state: state, self.critic.state: state})
+            print(state, action)
 
         return action, v, logp_pi
 
