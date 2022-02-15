@@ -78,6 +78,7 @@ parser.add_argument('--gamma', type=float, default=0.11)
 parser.add_argument('--gamma-i', type=float, default=0.11)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
+parser.add_argument('--offsetrange', type=int, default=5, help="offset side range")
 
 ### PPO args
 parser.add_argument('--tpi', type=int, default=1, help="train policy iteration")
@@ -108,6 +109,7 @@ problem_var += "_cc_{}".format(args.controlcycle)
 if args.method=='ppornd':
     problem_var += "_gammai_{}".format(args.gamma_i)
     problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])
+    problem_var += "_offsetrange_{}".format(args.offsetrange)
 if len(args.target_TL.split(","))==1:
     problem_var += "_{}".format(args.target_TL.split(",")[0])
 
@@ -755,7 +757,8 @@ def run_ppornd():
                     if args.action=='kc':
                         discrete_action.append(0 if actions[i][di] < args.actionp else 1)
                     if args.action=='offset':
-                        discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                        # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                        discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
 
                 discrete_actions.append(discrete_action)
 
