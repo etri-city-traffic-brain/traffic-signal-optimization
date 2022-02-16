@@ -11,6 +11,7 @@ data/envs/salt/data/*
 
 ### large files ###
 data/envs/salt/doan/dj_doan_mon_20210709_12th.rou.xml
+data/envs/salt/dj_all/*
 
 
 ### pycache ###
