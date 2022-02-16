@@ -665,7 +665,8 @@ def sappo_test(args, trial, problem_var):
                 if args.action=='kc':
                     discrete_action.append(0 if actions[i][di] < args.actionp else 1)
                 if args.action=='offset':
-                    discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                    # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                    discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
             discrete_actions.append(discrete_action)
 
         new_state, reward, done, _ = env.step(discrete_actions)
@@ -825,7 +826,8 @@ def ppornd_test(args, trial, problem_var):
                 if args.action=='kc':
                     discrete_action.append(0 if actions[i][di] < args.actionp else 1)
                 if args.action=='offset':
-                    discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                    # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                    discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
             discrete_actions.append(discrete_action)
 
         new_state, reward, done, _ = env.step(discrete_actions)

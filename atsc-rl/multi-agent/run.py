@@ -106,10 +106,11 @@ problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 problem_var += "_gamma_{}".format(args.gamma)
 problem_var += "_lr_{}".format(args.lr)
 problem_var += "_cc_{}".format(args.controlcycle)
+problem_var += "_offsetrange_{}".format(args.offsetrange)
+
 if args.method=='ppornd':
     problem_var += "_gammai_{}".format(args.gamma_i)
     problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])
-    problem_var += "_offsetrange_{}".format(args.offsetrange)
 if len(args.target_TL.split(","))==1:
     problem_var += "_{}".format(args.target_TL.split(",")[0])
 
@@ -459,7 +460,8 @@ def run_sappo():
                     if args.action=='kc':
                         discrete_action.append(0 if actions[i][di] < args.actionp else 1)
                     if args.action=='offset':
-                        discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                        # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
+                        discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
 
                 discrete_actions.append(discrete_action)
             new_state, reward, done, _ = env.step(discrete_actions)
