@@ -69,10 +69,13 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd'], default='pp
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
                          'pss - phase-set selection, o - offset')
+parser.add_argument('--map', choices=['dj', 'doan'], default='dj',
+                    help='dj - Daejeon all region, doan - doan 111 tss')
 
 if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
+
 
 parser.add_argument('--gamma', type=float, default=0.11)
 parser.add_argument('--gamma-i', type=float, default=0.11)
@@ -94,10 +97,17 @@ parser.add_argument('--controlcycle', type=int, default=5)
 
 args = parser.parse_args()
 
+if args.map == 'dj':
+    args.trainStartTime = 25200
+    args.trainEndTime = 32400
+    args.testStartTime = 25200
+    args.testEndTime = 32400
+
 problem_var = ""
 # problem_var = "tau{}".format(args.tau)
 # problem_var = "gamma{}".format(args.gamma)
 # problem_var += "_yp0_actionT_{}".format(args.action_t)
+problem_var += "_map_{}".format(args.map)
 problem_var += "_method_{}".format(args.method)
 problem_var += "_state_{}".format(args.state)
 problem_var += "_reward_{}".format(args.reward_func)
