@@ -83,7 +83,7 @@ parser.add_argument('--gamma', type=float, default=0.11)
 parser.add_argument('--gamma-i', type=float, default=0.11)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
-parser.add_argument('--offsetrange', type=int, default=5, help="offset side range")
+parser.add_argument('--offsetrange', type=int, default=1, help="offset side range")
 
 ### PPO args
 parser.add_argument('--tpi', type=int, default=1, help="train policy iteration")
@@ -1093,13 +1093,13 @@ def run_ppoea():
                         discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
 
                 discrete_actions.append(discrete_action)
-            new_state, reward, done, _ = env.step(discrete_actions)
-            print(f"RUN REWARD : {reward}")
+            new_state, reward, done, _, virtual_actions = env.step(discrete_actions)
+            # print(f"RUN ACTION : {actions} VIRTUAL ACTION : {virtual_actions} REWARD : {reward}")
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
                     states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                    actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
+                    actionss[i] = np.r_[actionss[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
                     values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
                     logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
                     dones[i] = np.r_[dones[i], done] if t else [done]
@@ -1114,7 +1114,7 @@ def run_ppoea():
                 if t % int(sa_cycle[i] * args.controlcycle) == 0:
                     for i in range(agent_num):
                         states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                        actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
+                        actionss[i] = np.r_[actionss[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
                         values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
                         logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
                         dones[i] = np.r_[dones[i], done] if t else [done]
