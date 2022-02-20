@@ -139,9 +139,9 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         target_tl_obj[target]['in_lane_list_1'] = _lane_list_1
         target_tl_obj[target]['in_lane_list'] = _lane_list
         if args.state == 'vd':
-            target_tl_obj[target]['state_space'] = len(_lane_list) * 2 + 1
+            target_tl_obj[target]['state_space'] = len(_lane_list_0) * 2 + 1
         else:
-            target_tl_obj[target]['state_space'] = len(_lane_list) + 1
+            target_tl_obj[target]['state_space'] = len(_lane_list_0) + 1
         _lane_len.append(len(_lane_list))
 
     libsalt.close()

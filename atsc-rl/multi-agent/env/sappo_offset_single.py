@@ -212,171 +212,134 @@ class SALT_SAPPO_offset_single(gym.Env):
         for sa in self.sa_obj:
             if self.simulationSteps % (self.sa_obj[sa]['cycle_list'][0]*self.control_cycle) == 0:
                 tlid_list = self.sa_obj[sa]['tlid_list']
-                # print(tlid_list)
-                tlid_i = 0
+                sa_cycle = self.sa_obj[sa]['cycle_list'][0]
+
                 _phase_sum = []
                 _phase_list = []
                 self.phase_arr[sa_i] = []
-                for tlid in tlid_list:
-                    green_idx = self.sa_obj[sa]['green_idx_list'][tlid_i][0]
-                    minDur = self.sa_obj[sa]['minDur_list'][tlid_i]
-                    maxDur = self.sa_obj[sa]['maxDur_list'][tlid_i]
+                for tlid_i in range(len(tlid_list)):
+                    tlid = tlid_list[tlid_i]
                     currDur = self.sa_obj[sa]['duration_list'][tlid_i]
-
                     phase_arr = []
                     for i in range(len(currDur)):
                         phase_arr = np.append(phase_arr, np.ones(currDur[i]) * i)
-
                     self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + actions[sa_i][tlid_i]))
-                    # self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i]))
-
-                    remain = self.sa_obj[sa]['remain_list'][tlid_i]
-                    # action_list = self.sa_obj[sa]['action_list_list'][tlid_i]
-                    # action = action_list[actions[sa_i][tlid_i]]
-                    # action = action_list[0]
-                    # print(action)
-                    penalty = 0
-
-                    scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-                    # libsalt.trafficsignal.setTLSPhaseVector(self.simulationSteps + int(actions[sa_i][tlid_i]*10), tlid, scheduleID, mpv)
                     __phase_sum = np.sum([x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector])
                     _phase_sum.append(__phase_sum)
                     __phase_list = [x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector if x[0] > 5]
                     _phase_list.append(__phase_list)
 
-                    tlid_i += 1
-                # print(self.phase_arr)
+                for _ in range(sa_cycle * self.control_cycle):
+                    for tlid_i in range(len(tlid_list)):
+                        tlid = tlid_list[tlid_i]
+                        t_phase = int(self.phase_arr[sa_i][tlid_i][self.simulationSteps % sa_cycle])
+                        # print(sa, tlid, t_phase)
+                        scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
+                        current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
+                        # print(currentStep, tlid, scheduleID, t_phase)
+                        libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, t_phase)
+                    libsalt.simulationStep()
+                    self.simulationSteps = libsalt.getCurrentStep()
+                    currentStep = self.simulationSteps
 
+                    if self.simulationSteps % self.sim_period == 0:
+                    # if self.simulationSteps % (sa_cycle * self.control_cycle) == 0:
+                        link_list_0 = self.sa_obj[sa]['in_edge_list_0']
+                        link_list_1 = self.sa_obj[sa]['in_edge_list_1']
+                        lane_list_0 = self.sa_obj[sa]['in_lane_list_0']
+                        lane_list_1 = self.sa_obj[sa]['in_lane_list_1']
 
-                # print(self.phase_arr)
-                sa_i = 0
+                        if self.reward_func == 'pn':
+                            for l in link_list_0:
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumPassed(l))
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumPassed(l) * reward_weight)
+                        if self.reward_func == 'wt':
+                            for l in link_list_0:
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT)
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT * reward_weight)
+                        if self.reward_func == 'wt_max':
+                            for l in link_list_0:
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT)
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT * reward_weight)
+                        if self.reward_func in ['wq', 'wq_median', 'wq_min', 'wq_max']:
+                            for l in link_list_0:
+                                # print("sum([l in x for x in lane_list_0])", sum([l in x for x in lane_list_0]))
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * sum([l in x for x in lane_list_0]))
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * reward_weight)
+                        if self.reward_func == 'wt_SBV':
+                            for l in link_list_0:
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000)
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000 * reward_weight)
+                        if self.reward_func == 'wt_SBV_max':
+                            for l in link_list_0:
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000)
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000 * reward_weight)
+                        if self.reward_func == 'wt_ABV':
+                            for l in link_list_0:
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentAverageWaitingTimeBaseVehicle(l, self.simulationSteps) / 1000)
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentAverageWaitingTimeBaseVehicle(l, self.simulationSteps) / 1000 * reward_weight)
+                        if self.reward_func == 'tt':
+                            for l in link_list_0:
+                                # self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l))
+                                self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / (len(link_list_0) * self.sim_period))
+                            # for l in link_list_1:
+                            #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
+                self.observations[sa_i] = self.get_state(sa)
 
-                self.simulationSteps = libsalt.getCurrentStep()
-
-                currentStep = self.simulationSteps
-
-                for sa in self.sa_obj:
-                    tlid_list = self.sa_obj[sa]['tlid_list']
-                    # print(tlid_list)
-                    sa_cycle = self.sa_obj[sa]['cycle_list'][0]
-                    # print(self.phase_arr[sa_i])
-                    for _ in range(sa_cycle * self.control_cycle):
-                        tlid_i = 0
-                        for tlid in tlid_list:
-                            # print(tlid, self.phase_arr[sa_i][tlid_i])
-                            # print(sa_i, tlid_i)
-                            t_phase = int(self.phase_arr[sa_i][tlid_i][self.simulationSteps % sa_cycle])
-                            # print(sa, tlid, t_phase)
-                            scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-                            current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
-                            # print(currentStep, tlid, scheduleID, t_phase)
-                            libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, t_phase)
-                            tlid_i += 1
-                        libsalt.simulationStep()
-                        self.simulationSteps = libsalt.getCurrentStep()
-                        currentStep = self.simulationSteps
-
-                        if self.simulationSteps % self.sim_period == 0:
-                        # if self.simulationSteps % (sa_cycle * self.control_cycle) == 0:
-                            link_list_0 = self.sa_obj[sa]['in_edge_list_0']
-                            link_list_1 = self.sa_obj[sa]['in_edge_list_1']
-                            lane_list_0 = self.sa_obj[sa]['in_lane_list_0']
-                            lane_list_1 = self.sa_obj[sa]['in_lane_list_1']
-
-                            if self.reward_func == 'pn':
-                                for l in link_list_0:
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumPassed(l))
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumPassed(l) * reward_weight)
-                            if self.reward_func == 'wt':
-                                for l in link_list_0:
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT)
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT * reward_weight)
-                            if self.reward_func == 'wt_max':
-                                for l in link_list_0:
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT)
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT * reward_weight)
-                            if self.reward_func in ['wq', 'wq_median', 'wq_min', 'wq_max']:
-                                for l in link_list_0:
-                                    # print("sum([l in x for x in lane_list_0])", sum([l in x for x in lane_list_0]))
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * sum([l in x for x in lane_list_0]))
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * reward_weight)
-                            if self.reward_func == 'wt_SBV':
-                                for l in link_list_0:
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000)
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000 * reward_weight)
-                            if self.reward_func == 'wt_SBV_max':
-                                for l in link_list_0:
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000)
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, self.simulationSteps) / 1000 * reward_weight)
-                            if self.reward_func == 'wt_ABV':
-                                for l in link_list_0:
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentAverageWaitingTimeBaseVehicle(l, self.simulationSteps) / 1000)
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getCurrentAverageWaitingTimeBaseVehicle(l, self.simulationSteps) / 1000 * reward_weight)
-                            if self.reward_func == 'tt':
-                                for l in link_list_0:
-                                    # self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l))
-                                    self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / (len(link_list_0) * self.sim_period))
-                                # for l in link_list_1:
-                                #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
-                    self.observations[sa_i] = self.get_state(sa)
-                    sa_i += 1
-
-                sa_i = 0
-                if self.simulationSteps > 0:
-                    if self.reward_func == 'pn':
-                        self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
-                    if self.reward_func == 'wt':
-                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                    if self.reward_func == 'wt_max':
-                        self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
-                    if self.reward_func == 'wq':
-                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                    if self.reward_func == 'wq_median':
-                        if len(self.lane_passed[sa_i])==0:
-                            self.rewards[sa_i] = 0
-                        else:
-                            self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
-                            if np.isnan(np.nanmedian(self.lane_passed[sa_i])):
-                                self.rewards[sa_i] = 0
-                            else:
-                                self.rewards[sa_i] = -np.nanmedian(self.lane_passed[sa_i])
-                    if self.reward_func == 'wq_min':
-                        self.rewards[sa_i] = -np.min(self.lane_passed[sa_i])
-                    if self.reward_func == 'wq_max':
-                        if len(self.lane_passed[sa_i])==0:
-                            self.rewards[sa_i] = 0
-                        else:
-                            self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
-                    if self.reward_func == 'wt_SBV':
-                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                    if self.reward_func == 'wt_SBV_max':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
-                    if self.reward_func == 'wt_ABV':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
-                    if self.reward_func == 'tt':
-                        # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
-                        # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
-                        # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
-                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                    self.lane_passed[sa_i] = []
-                else:
-                    self.rewards[sa_i] = 0
-                    # self.rewards[sa_i] += penalty
-                    # self.lane_passed[sa_i] = []
-                    # self.action_mask[sa_i] = 0
+                # if self.simulationSteps > 0:
+                #     if self.reward_func == 'pn':
+                #         self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wt':
+                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wt_max':
+                #         self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wq':
+                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wq_median':
+                #         if len(self.lane_passed[sa_i])==0:
+                #             self.rewards[sa_i] = 0
+                #         else:
+                #             self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
+                #             if np.isnan(np.nanmedian(self.lane_passed[sa_i])):
+                #                 self.rewards[sa_i] = 0
+                #             else:
+                #                 self.rewards[sa_i] = -np.nanmedian(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wq_min':
+                #         self.rewards[sa_i] = -np.min(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wq_max':
+                #         if len(self.lane_passed[sa_i])==0:
+                #             self.rewards[sa_i] = 0
+                #         else:
+                #             self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wt_SBV':
+                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wt_SBV_max':
+                #         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                #     if self.reward_func == 'wt_ABV':
+                #         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                #     if self.reward_func == 'tt':
+                #         # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
+                #         # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
+                #         # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
+                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+                #     self.lane_passed[sa_i] = []
+                # else:
+                #     self.rewards[sa_i] = 0
+                #     # self.rewards[sa_i] += penalty
+                #     # self.lane_passed[sa_i] = []
+                #     # self.action_mask[sa_i] = 0
 
                 if self.printOut:
-                    print("step {} tl_name {} actions {} phase {} phase_sum {} rewards {}".format(self.simulationSteps,
+                    print("step {} tl_name {} actions {} rewards {}".format(self.simulationSteps,
                                                                                               self.sa_obj[sa]['crossName_list'],
                                                                                               np.round(actions[sa_i], 3),
-                                                                                              _phase_list, _phase_sum,
                                                                                               np.round(self.rewards[sa_i], 2)))
 
             sa_i += 1
@@ -385,6 +348,43 @@ class SALT_SAPPO_offset_single(gym.Env):
             self.done = True
             print("self.done step {}".format(self.simulationSteps))
             libsalt.close()
+            sa_i = 0
+            if self.reward_func == 'pn':
+                self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
+            if self.reward_func == 'wt':
+                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+            if self.reward_func == 'wt_max':
+                self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
+            if self.reward_func == 'wq':
+                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+            if self.reward_func == 'wq_median':
+                if len(self.lane_passed[sa_i]) == 0:
+                    self.rewards[sa_i] = 0
+                else:
+                    self.lane_passed[sa_i][self.lane_passed[sa_i] == 0] = np.nan
+                    if np.isnan(np.nanmedian(self.lane_passed[sa_i])):
+                        self.rewards[sa_i] = 0
+                    else:
+                        self.rewards[sa_i] = -np.nanmedian(self.lane_passed[sa_i])
+            if self.reward_func == 'wq_min':
+                self.rewards[sa_i] = -np.min(self.lane_passed[sa_i])
+            if self.reward_func == 'wq_max':
+                if len(self.lane_passed[sa_i]) == 0:
+                    self.rewards[sa_i] = 0
+                else:
+                    self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
+            if self.reward_func == 'wt_SBV':
+                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+            if self.reward_func == 'wt_SBV_max':
+                self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+            if self.reward_func == 'wt_ABV':
+                self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+            if self.reward_func == 'tt':
+                # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
+                # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
+                # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
+                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+            self.lane_passed[sa_i] = []
 
         info = {}
         # print(self.before_action, actions)
@@ -456,16 +456,16 @@ class SALT_SAPPO_offset_single(gym.Env):
                     passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
                 if self.args.state == 'vdd':
                     vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon))
-            for link in link_list_1:
-                if self.args.state == 'd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
-                if self.args.state == 'v':
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
-                if self.args.state == 'vd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
-                if self.args.state == 'vdd':
-                    vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon) * self.state_weight)
+            # for link in link_list_1:
+            #     if self.args.state == 'd':
+            #         densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+            #     if self.args.state == 'v':
+            #         passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            #     if self.args.state == 'vd':
+            #         densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+            #         passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            #     if self.args.state == 'vdd':
+            #         vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon) * self.state_weight)
 
             tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid))
             #print(lightMatrix)

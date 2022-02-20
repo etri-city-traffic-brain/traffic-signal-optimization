@@ -299,6 +299,7 @@ class SALT_SAPPO_offset_EA(gym.Env):
                 # for l in link_list_1:
                 #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
 
+
             if self.printOut:
                 print("step {} tl_name {} real_actions {} virtual_actions {} rewards {}".format(self.simulationSteps,
                                                                                           self.sa_obj[sa]['crossName_list'],
@@ -348,7 +349,9 @@ class SALT_SAPPO_offset_EA(gym.Env):
                     # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
                     # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
                     self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                sa_i +=1
+                self.lane_passed[sa_i] = []
+            sa_i += 1
+
 
         info = {}
         # print(self.before_action, actions)
@@ -428,16 +431,16 @@ class SALT_SAPPO_offset_EA(gym.Env):
                     passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
                 if self.args.state == 'vdd':
                     vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon))
-            for link in link_list_1:
-                if self.args.state == 'd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
-                if self.args.state == 'v':
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
-                if self.args.state == 'vd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
-                if self.args.state == 'vdd':
-                    vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon) * self.state_weight)
+            # for link in link_list_1:
+            #     if self.args.state == 'd':
+            #         densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+            #     if self.args.state == 'v':
+            #         passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            #     if self.args.state == 'vd':
+            #         densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link) * self.state_weight)
+            #         passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link) * self.state_weight)
+            #     if self.args.state == 'vdd':
+            #         vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link)/(libsalt.lane.getAverageDensity(link)+sys.float_info.epsilon) * self.state_weight)
 
             tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid))
             #print(lightMatrix)

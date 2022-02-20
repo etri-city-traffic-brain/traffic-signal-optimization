@@ -66,7 +66,7 @@ parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_me
 parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
-parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='ppoea',
+parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='ppornd',
                     help='')
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
@@ -83,7 +83,7 @@ parser.add_argument('--gamma', type=float, default=0.11)
 parser.add_argument('--gamma-i', type=float, default=0.11)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
-parser.add_argument('--offsetrange', type=int, default=1, help="offset side range")
+parser.add_argument('--offsetrange', type=int, default=5, help="offset side range")
 
 ### PPO args
 parser.add_argument('--tpi', type=int, default=1, help="train policy iteration")
@@ -123,6 +123,9 @@ problem_var += "_offsetrange_{}".format(args.offsetrange)
 if args.method=='ppornd':
     problem_var += "_gammai_{}".format(args.gamma_i)
     problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])
+if args.method=='ppoea':
+    problem_var += "_ppoEpoch_{}".format(args.ppoEpoch)
+    problem_var += "_ppoeps_{}".format(args.ppo_eps)
 if len(args.target_TL.split(","))==1:
     problem_var += "_{}".format(args.target_TL.split(",")[0])
 
@@ -1126,6 +1129,13 @@ def run_ppoea():
                         episodic_reward += reward[i]
                         episodic_agent_reward[i] += reward[i]
 
+                        v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
+                        values[i] = np.r_[values[i], v_t[i]]
+                        next_values[i] = np.copy(values[i][1:])
+                        values[i] = values[i][:-1]
+                        adv[i], target[i] = ppornd_agent[i].get_gaes(rewards[i], dones[i], values[i], next_values[i], True)
+                        ppornd_agent[i].update(states[i], actionss[i], target[i], adv[i], logp_ts[i], sess)
+
             if done:
                 break
 
@@ -1252,5 +1262,7 @@ if __name__ == "__main__":
             ddqn_test(args, args.model_num, problem_var)
         elif args.method == 'ppornd':
             ppornd_test(args, args.model_num, problem_var)
+        elif args.method == 'ppoea':
+            sappo_test(args, args.model_num, problem_var)
     elif args.mode == 'simulate':
         ft_simulate(args)
