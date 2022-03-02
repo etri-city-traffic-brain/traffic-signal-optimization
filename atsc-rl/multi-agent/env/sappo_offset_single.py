@@ -210,6 +210,9 @@ class SALT_SAPPO_offset_single(gym.Env):
 
         sa_i = 0
         for sa in self.sa_obj:
+            # print("self.simulationSteps", self.simulationSteps)
+            # print("self.sa_obj[sa]['cycle_list'][0]", self.sa_obj[sa]['cycle_list'][0])
+            # print("self.control_cycle", self.control_cycle)
             if self.simulationSteps % (self.sa_obj[sa]['cycle_list'][0]*self.control_cycle) == 0:
                 tlid_list = self.sa_obj[sa]['tlid_list']
                 sa_cycle = self.sa_obj[sa]['cycle_list'][0]
@@ -228,6 +231,7 @@ class SALT_SAPPO_offset_single(gym.Env):
                     _phase_sum.append(__phase_sum)
                     __phase_list = [x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector if x[0] > 5]
                     _phase_list.append(__phase_list)
+                # print("sa_cycle, self.control_cycle", sa_cycle, self.control_cycle)
 
                 for _ in range(sa_cycle * self.control_cycle):
                     for tlid_i in range(len(tlid_list)):
@@ -342,6 +346,10 @@ class SALT_SAPPO_offset_single(gym.Env):
                                                                                               self.sa_obj[sa]['crossName_list'],
                                                                                               np.round(actions[sa_i], 3),
                                                                                               np.round(self.rewards[sa_i], 2)))
+            else:
+                libsalt.simulationStep()
+                self.simulationSteps = libsalt.getCurrentStep()
+                currentStep = self.simulationSteps
 
             sa_i += 1
 

@@ -318,13 +318,16 @@ def run_sappo():
     tf.disable_eager_execution()
 
     if args.action=='kc':
+        print("SAPPO KEEP OR CHANGE")
         args.problem = "SAPPO_NoConstraints_" + problem_var
         env = SALT_SAPPO_noConst(args)
     if args.action=='offset':
         if len(args.target_TL.split(",")) == 1:
+            print("SAPPO OFFSET SINGLE")
             args.problem = "SAPPO_offset_single_" + problem_var
             env = SALT_SAPPO_offset_single(args)
         else:
+            print("SAPPO OFFSET")
             args.problem = "SAPPO_offset_" + problem_var
             env = SALT_SAPPO_offset(args)
 
@@ -484,7 +487,8 @@ def run_sappo():
                 discrete_actions.append(discrete_action)
             new_state, reward, done, _ = env.step(discrete_actions)
             # print(f"current state {cur_state} action {actions} reward {reward} new_state {new_state}")
-            print(f"current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
+            if (t + args.trainStartTime) % int(sa_cycle[i] * args.controlcycle) == 0:
+                print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
