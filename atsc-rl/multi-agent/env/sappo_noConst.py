@@ -11,7 +11,7 @@ import collections
 import math
 
 from config import TRAIN_CONFIG
-print(TRAIN_CONFIG)
+# print(TRAIN_CONFIG)
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import libsalt

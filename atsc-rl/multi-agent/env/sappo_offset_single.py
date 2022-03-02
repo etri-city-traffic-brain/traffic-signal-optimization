@@ -11,7 +11,7 @@ import collections
 import math
 
 from config import TRAIN_CONFIG
-print(TRAIN_CONFIG)
+# print(TRAIN_CONFIG)
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import libsalt
@@ -291,50 +291,51 @@ class SALT_SAPPO_offset_single(gym.Env):
                                 self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / (len(link_list_0) * self.sim_period))
                             # for l in link_list_1:
                             #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
-                self.observations[sa_i] = self.get_state(sa)
+                        self.observations[sa_i] += self.get_state(sa)
 
-                # if self.simulationSteps > 0:
-                #     if self.reward_func == 'pn':
-                #         self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wt':
-                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wt_max':
-                #         self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wq':
-                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wq_median':
-                #         if len(self.lane_passed[sa_i])==0:
-                #             self.rewards[sa_i] = 0
-                #         else:
-                #             self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
-                #             if np.isnan(np.nanmedian(self.lane_passed[sa_i])):
-                #                 self.rewards[sa_i] = 0
-                #             else:
-                #                 self.rewards[sa_i] = -np.nanmedian(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wq_min':
-                #         self.rewards[sa_i] = -np.min(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wq_max':
-                #         if len(self.lane_passed[sa_i])==0:
-                #             self.rewards[sa_i] = 0
-                #         else:
-                #             self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wt_SBV':
-                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wt_SBV_max':
-                #         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
-                #     if self.reward_func == 'wt_ABV':
-                #         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
-                #     if self.reward_func == 'tt':
-                #         # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
-                #         # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
-                #         # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
-                #         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                #     self.lane_passed[sa_i] = []
-                # else:
-                #     self.rewards[sa_i] = 0
-                #     # self.rewards[sa_i] += penalty
-                #     # self.lane_passed[sa_i] = []
-                #     # self.action_mask[sa_i] = 0
+                if self.simulationSteps > 0:
+                    if self.reward_func == 'pn':
+                        self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
+                    if self.reward_func == 'wt':
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+                    if self.reward_func == 'wt_max':
+                        self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
+                    if self.reward_func == 'wq':
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])/5000
+                    if self.reward_func == 'wq_median':
+                        if len(self.lane_passed[sa_i])==0:
+                            self.rewards[sa_i] = 0
+                        else:
+                            self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
+                            if np.isnan(np.nanmedian(self.lane_passed[sa_i])):
+                                self.rewards[sa_i] = 0
+                            else:
+                                self.rewards[sa_i] = -np.nanmedian(self.lane_passed[sa_i])
+                    if self.reward_func == 'wq_min':
+                        self.rewards[sa_i] = -np.min(self.lane_passed[sa_i])
+                    if self.reward_func == 'wq_max':
+                        if len(self.lane_passed[sa_i])==0:
+                            self.rewards[sa_i] = 0
+                        else:
+                            self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
+                    if self.reward_func == 'wt_SBV':
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+                    if self.reward_func == 'wt_SBV_max':
+                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                    if self.reward_func == 'wt_ABV':
+                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                    if self.reward_func == 'tt':
+                        # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
+                        # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
+                        # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
+                    self.lane_passed[sa_i] = []
+                    self.observations[sa_i] = self.get_state(sa)
+                else:
+                    self.rewards[sa_i] = 0
+                    # self.rewards[sa_i] += penalty
+                    # self.lane_passed[sa_i] = []
+                    # self.action_mask[sa_i] = 0
 
                 if self.printOut:
                     print("step {} tl_name {} actions {} rewards {}".format(self.simulationSteps,
@@ -349,42 +350,7 @@ class SALT_SAPPO_offset_single(gym.Env):
             print("self.done step {}".format(self.simulationSteps))
             libsalt.close()
             sa_i = 0
-            if self.reward_func == 'pn':
-                self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
-            if self.reward_func == 'wt':
-                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-            if self.reward_func == 'wt_max':
-                self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
-            if self.reward_func == 'wq':
-                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-            if self.reward_func == 'wq_median':
-                if len(self.lane_passed[sa_i]) == 0:
-                    self.rewards[sa_i] = 0
-                else:
-                    self.lane_passed[sa_i][self.lane_passed[sa_i] == 0] = np.nan
-                    if np.isnan(np.nanmedian(self.lane_passed[sa_i])):
-                        self.rewards[sa_i] = 0
-                    else:
-                        self.rewards[sa_i] = -np.nanmedian(self.lane_passed[sa_i])
-            if self.reward_func == 'wq_min':
-                self.rewards[sa_i] = -np.min(self.lane_passed[sa_i])
-            if self.reward_func == 'wq_max':
-                if len(self.lane_passed[sa_i]) == 0:
-                    self.rewards[sa_i] = 0
-                else:
-                    self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
-            if self.reward_func == 'wt_SBV':
-                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-            if self.reward_func == 'wt_SBV_max':
-                self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
-            if self.reward_func == 'wt_ABV':
-                self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
-            if self.reward_func == 'tt':
-                # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
-                # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
-                # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
-                self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-            self.lane_passed[sa_i] = []
+
 
         info = {}
         # print(self.before_action, actions)

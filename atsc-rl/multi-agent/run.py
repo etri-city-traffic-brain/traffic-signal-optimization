@@ -57,7 +57,7 @@ if IS_DOCKERIZE:
 else:
     # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
     #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--target-TL', type=str, default="SA 101",
+    parser.add_argument('--target-TL', type=str, default="SA 17",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt'], default='wq',
@@ -66,12 +66,12 @@ parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_me
 parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
-parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='ppornd',
+parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo',
                     help='')
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
                          'pss - phase-set selection, o - offset')
-parser.add_argument('--map', choices=['dj', 'doan'], default='doan',
+parser.add_argument('--map', choices=['dj', 'doan'], default='dj',
                     help='dj - Daejeon all region, doan - doan 111 tss')
 
 if IS_DOCKERIZE:
@@ -83,7 +83,7 @@ parser.add_argument('--gamma', type=float, default=0.11)
 parser.add_argument('--gamma-i', type=float, default=0.11)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
-parser.add_argument('--offsetrange', type=int, default=5, help="offset side range")
+parser.add_argument('--offsetrange', type=int, default=2, help="offset side range")
 
 ### PPO args
 parser.add_argument('--tpi', type=int, default=1, help="train policy iteration")
@@ -95,7 +95,7 @@ parser.add_argument('--lr', type=float, default=0.0001)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
-parser.add_argument('--controlcycle', type=int, default=5)
+parser.add_argument('--controlcycle', type=int, default=2)
 
 args = parser.parse_args()
 
@@ -321,12 +321,13 @@ def run_sappo():
         args.problem = "SAPPO_NoConstraints_" + problem_var
         env = SALT_SAPPO_noConst(args)
     if args.action=='offset':
-        args.problem = "SAPPO_offset_" + problem_var
-        env = SALT_SAPPO_offset(args)
+        if len(args.target_TL.split(",")) == 1:
+            args.problem = "SAPPO_offset_single_" + problem_var
+            env = SALT_SAPPO_offset_single(args)
+        else:
+            args.problem = "SAPPO_offset_" + problem_var
+            env = SALT_SAPPO_offset(args)
 
-    if len(args.target_TL.split(","))==1:
-        args.problem = "SAPPO_offset_single_" + problem_var
-        env = SALT_SAPPO_offset_single(args)
 
     trials = args.epoch
     if IS_DOCKERIZE:
@@ -482,6 +483,8 @@ def run_sappo():
 
                 discrete_actions.append(discrete_action)
             new_state, reward, done, _ = env.step(discrete_actions)
+            # print(f"current state {cur_state} action {actions} reward {reward} new_state {new_state}")
+            print(f"current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):

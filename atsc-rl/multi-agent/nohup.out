@@ -1,0 +1,137 @@
+Using TensorFlow backend.
+WARNING:tensorflow:From /home/pi/anaconda3/envs/py37cpu/lib/python3.7/site-packages/tensorflow_core/python/compat/v2_compat.py:65: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+scenarioFile: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/84f3cd6d-e4ad-4af3-b335-6ca207720b22/doan_2021.scenario.json
+[SALT Simulator 2.0] 
+--- Scenario File: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/84f3cd6d-e4ad-4af3-b335-6ca207720b22/doan_2021.scenario.json
+Loading Road Network ... done
+Loading Vehicle Demand ... done
+Loading Traffic Signal System ... done
+[Simulation Output (Periodic)] >> output/rl/-PeriodicOutput.csv 
+[Progress status] >> output/rl/progress.txt 
+--- Configuration Done ---
+[Simulation Info] 
+Input 
+	-Simulation Name: 
+	-Road Network: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/84f3cd6d-e4ad-4af3-b335-6ca207720b22/doan.nod.xml, /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/84f3cd6d-e4ad-4af3-b335-6ca207720b22/doan.edg.xml, /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/84f3cd6d-e4ad-4af3-b335-6ca207720b22/doan.con.xml
+	-Vehicle Demand: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/84f3cd6d-e4ad-4af3-b335-6ca207720b22/dj_doan_kaist_2h.rou.xml 
+	-Traffic Light System: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/84f3cd6d-e4ad-4af3-b335-6ca207720b22/doan_20210421.tss.xml
+	-Time Range: 0~7200
+Output 
+	-Output Per Period: output/rl/-PeriodicOutput.csv
+
+[Simulation Start]
+[Jump currentStep from 0 to 25200]
+[Simulation End]
+Elapsed Time: 0 seconds
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{}
+init []
+init []
+init []
+init []
+init []
+target tl obj {}
+target tl id list []
+number of target tl 0
+{}
+before action []
+{'563101007': {'crossName': '리베라네거리', 'signalGroup': 'SA 28', 'offset': 5, 'minDur': [29, 3, 24, 22, 3, 22, 3], 'maxDur': [50, 3, 95, 90, 3, 40, 3], 'cycle': 180, 'duration': [30, 3, 61, 57, 3, 23, 3], 'green_idx': (array([0, 2, 3, 5]),), 'duration_bins': [-0.6491228070175439, 0.0643274853801169, 0.7309941520467835, 0.9999999999999999], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 3, 5], 'tl_idx': 0, 'remain': 74, 'max_phase': (array([1]),), 'action_space': 4, 'in_edge_list': ['-563101166', '-563101167', '-563103199', '-563103201', '-563101187', '-563101215', '-563112310', '-563113020', '563101166', '563101167', '563103199', '563103201', '563103202'], 'in_edge_list_0': ['-563101166', '-563101167', '-563103199', '-563103201'], 'in_edge_list_1': ['-563101187', '-563101215', '-563112310', '-563113020', '563101166', '563101167', '563103199', '563103201', '563103202']}, '563103266': {'crossName': '장터길네거리', 'signalGroup': 'SA 28', 'offset': 117, 'minDur': [25, 3, 23, 3, 25, 3, 27], 'maxDur': [90, 3, 65, 3, 45, 3, 75], 'cycle': 180, 'duration': [57, 3, 40, 3, 25, 3, 49], 'green_idx': (array([0, 2, 4, 6]),), 'duration_bins': [-0.33333333333333337, 0.13450292397660812, 0.42690058479532156, 0.9999999999999999], 'main_green_idx': (array([0]),), 'sub_green_idx': [2, 4, 6], 'tl_idx': 1, 'remain': 71, 'max_phase': (array([0]),), 'action_space': 4, 'in_edge_list': ['-563109124', '-563113274', '563103894', '563103895', '-563101247', '-563103894', '-563103895', '563101118', '563101187', '563109123', '563109124', '563113273', '563113274'], 'in_edge_list_0': ['-563109124', '-563113274', '563103894', '563103895'], 'in_edge_list_1': ['-563101247', '-563103894', '-563103895', '563101118', '563101187', '563109123', '563109124', '563113273', '563113274']}, 'cluster_563100465_563100466_563100467_563100468_563100469_563100470_563101540_563101541_563102928_563109518_563109519': {'crossName': '온천교네거리', 'signalGroup': 'SA 28', 'offset': 65, 'minDur': [10, 3, 24, 3, 40, 3, 27, 3], 'maxDur': [35, 3, 100, 3, 65, 3, 85, 3], 'cycle': 180, 'duration': [20, 3, 57, 3, 40, 3, 51, 3], 'green_idx': (array([0, 2, 4, 6]),), 'duration_bins': [-0.7619047619047619, -0.08333333333333326, 0.3928571428571429, 1.0], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 4, 6], 'tl_idx': 2, 'remain': 67, 'max_phase': (array([1]),), 'action_space': 4, 'in_edge_list': ['-563101988', '-563103378', '-563112984', '-563114227', '563101989', '563103377', '563103378', '563112983', '563112984', '563114226'], 'in_edge_list_0': ['-563101988', '-563103378', '-563112984', '-563114227'], 'in_edge_list_1': ['563101989', '563103377', '563103378', '563112983', '563112984', '563114226']}, 'cluster_563100878_563103320_563103322_563103323_563103324_563107114': {'crossName': '용반네거리', 'signalGroup': 'SA 28', 'offset': 79, 'minDur': [20, 3, 37, 3, 15, 3, 20, 3, 45, 3], 'maxDur': [50, 3, 70, 3, 30, 3, 55, 3, 75, 3], 'cycle': 180, 'duration': [30, 3, 38, 3, 15, 3, 37, 3, 45, 3], 'green_idx': (array([0, 2, 4, 6, 8]),), 'duration_bins': [-0.6363636363636364, -0.17575757575757572, 0.0060606060606061, 0.4545454545454546, 1.0], 'main_green_idx': (array([8]),), 'sub_green_idx': [0, 2, 4, 6], 'tl_idx': 3, 'remain': 28, 'max_phase': (array([4]),), 'action_space': 5, 'in_edge_list': ['-563101010', '-563104127', '563104012', '563104014', '-563101042', '-563103217', '-563103380', '-563103637', '-563104642', '-563104695', '563101010', '563101014', '563104127'], 'in_edge_list_0': ['-563101010', '-563104127', '563104012', '563104014'], 'in_edge_list_1': ['-563101042', '-563103217', '-563103380', '-563103637', '-563104642', '-563104695', '563101010', '563101014', '563104127']}, 'cluster_563100902_563101915': {'crossName': '휴양소삼거리', 'signalGroup': 'SA 28', 'offset': 54, 'minDur': [46, 3, 19, 17, 3], 'maxDur': [75, 3, 100, 100, 3], 'cycle': 180, 'duration': [47, 3, 65, 62, 3], 'green_idx': (array([0, 2, 3]),), 'duration_bins': [-0.45977011494252873, 0.28735632183908044, 1.0], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 3], 'tl_idx': 4, 'remain': 92, 'max_phase': (array([1]),), 'action_space': 3, 'in_edge_list': ['-563101042', '-563103637', '563101014', '-563101057', '-563104016', '-563104128', '563101042', '563103636', '563111255'], 'in_edge_list_0': ['-563101042', '-563103637', '563101014'], 'in_edge_list_1': ['-563101057', '-563104016', '-563104128', '563101042', '563103636', '563111255']}, 'cluster_563100933_563105569_563105576_563105577': {'crossName': '월평삼거리', 'signalGroup': 'SA 28', 'offset': 153, 'minDur': [15, 3, 43, 3, 10, 3, 15, 3, 44, 3], 'maxDur': [30, 3, 90, 3, 30, 3, 40, 3, 70, 3], 'cycle': 180, 'duration': [22, 3, 57, 3, 17, 3, 25, 3, 44, 3], 'green_idx': (array([0, 2, 4, 6, 8]),), 'duration_bins': [-0.7333333333333334, -0.042424242424242475, 0.16363636363636358, 0.4666666666666666, 1.0], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 8, 4, 6], 'tl_idx': 5, 'remain': 38, 'max_phase': (array([1]),), 'action_space': 5, 'in_edge_list': ['-563101078', '-563107177', '563107155', '563107172', '-563101165', '-563107155', '-563111354', '563101078'], 'in_edge_list_0': ['-563101078', '-563107177', '563107155', '563107172'], 'in_edge_list_1': ['-563101165', '-563107155', '-563111354', '563101078']}, 'cluster_563101055_563101057_563101523_563101524_563101565_563101566': {'crossName': '유성온천네거리', 'signalGroup': 'SA 28', 'offset': 117, 'minDur': [15, 3, 32, 3, 15, 3, 40, 3, 39, 3], 'maxDur': [40, 3, 70, 3, 40, 3, 65, 3, 65, 3], 'cycle': 180, 'duration': [22, 3, 42, 3, 22, 3, 40, 3, 39, 3], 'green_idx': (array([0, 2, 4, 6, 8]),), 'duration_bins': [-0.7333333333333334, -0.22424242424242435, 0.04242424242424231, 0.5272727272727271, 0.9999999999999998], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 8, 4, 6], 'tl_idx': 6, 'remain': 24, 'max_phase': (array([1]),), 'action_space': 5, 'in_edge_list': ['-563101241', '-563101758', '563101229', '563109497', '-563101229', '-563101249', '-563109492', '563101219', '563101241', '563101759', '563103062', '563103066', '563104851'], 'in_edge_list_0': ['-563101241', '-563101758', '563101229', '563109497'], 'in_edge_list_1': ['-563101229', '-563101249', '-563109492', '563101219', '563101241', '563101759', '563103062', '563103066', '563104851']}, 'cluster_563101520_563101521_563101678_563101679_563102728_563102729_563102732_563102733_563102853_563103948_563103950_563103951_563108472_563108475_563108478_563108479': {'crossName': '1번 (유성네거리)', 'signalGroup': 'SA 28', 'offset': 50, 'minDur': [39, 3, 46, 3, 32, 3, 20, 3, 14, 3], 'maxDur': [70, 3, 75, 3, 55, 3, 35, 3, 40, 3], 'cycle': 180, 'duration': [44, 3, 46, 3, 32, 3, 20, 3, 23, 3], 'green_idx': (array([0, 2, 4, 6, 8]),), 'duration_bins': [-0.4666666666666667, 0.09090909090909094, 0.4787878787878788, 0.7212121212121212, 1.0], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 8, 4, 6], 'tl_idx': 7, 'remain': 14, 'max_phase': (array([1]),), 'action_space': 5, 'in_edge_list': ['563101759', '563103062', '563103066', '563104851', '-563101241', '-563101758', '-563104778', '-563104854', '-563112309', '563101107', '563101229', '563109497'], 'in_edge_list_0': ['563101759', '563103062', '563103066', '563104851'], 'in_edge_list_1': ['-563101241', '-563101758', '-563104778', '-563104854', '-563112309', '563101107', '563101229', '563109497']}, 'cluster_563101569_563101570_563103157_563103160_563103161_563103211': {'crossName': '만년교네거리', 'signalGroup': 'SA 28', 'offset': 57, 'minDur': [13, 3, 35, 3, 13, 3, 46], 'maxDur': [30, 3, 150, 3, 30, 3, 70], 'cycle': 180, 'duration': [17, 3, 93, 3, 15, 3, 46], 'green_idx': (array([0, 2, 4, 6]),), 'duration_bins': [-0.8011695906432749, 0.2865497076023392, 0.4619883040935673, 1.0], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 4, 6], 'tl_idx': 8, 'remain': 64, 'max_phase': (array([1]),), 'action_space': 4, 'in_edge_list': ['-563103691', '-563103692', '-563105869', '-563108132', '-563108147', '-563108182', '563103690', '563105870', '563108131'], 'in_edge_list_0': ['-563103691', '-563103692', '-563105869', '-563108132'], 'in_edge_list_1': ['-563108147', '-563108182', '563103690', '563105870', '563108131']}, 'cluster_563103119_563106919_563107911': {'crossName': '도안2단지삼거리', 'signalGroup': 'SA 28', 'offset': 51, 'minDur': [20, 25, 23, 20, 3], 'maxDur': [40, 100, 100, 40, 3], 'cycle': 180, 'duration': [25, 65, 65, 22, 3], 'green_idx': (array([0, 1, 2, 3]),), 'duration_bins': [-0.7175141242937852, 0.016949152542372947, 0.7514124293785311, 1.0], 'main_green_idx': (array([1, 2]),), 'sub_green_idx': [0, 3], 'tl_idx': 9, 'remain': 89, 'max_phase': (array([1]),), 'action_space': 4, 'in_edge_list': ['-563104128', '563103636', '563111255', '-563101042', '-563101110', '-563103069', '-563103637', '-563104339', '-563104641', '-563104855', '563101014', '563104128'], 'in_edge_list_0': ['-563104128', '563103636', '563111255'], 'in_edge_list_1': ['-563101042', '-563101110', '-563103069', '-563103637', '-563104339', '-563104641', '-563104855', '563101014', '563104128']}, 'cluster_563105584_563105585_563105586_563106234_563106235_563106237_563106238_563106239_563106240_563106242_563106243': {'crossName': '도시철도공사네거리', 'signalGroup': 'SA 28', 'offset': 102, 'minDur': [48, 4, 46, 4, 25, 4, 24, 4], 'maxDur': [80, 4, 110, 4, 45, 4, 45, 4], 'cycle': 180, 'duration': [48, 4, 67, 4, 25, 4, 24, 4], 'green_idx': (array([0, 2, 4, 6]),), 'duration_bins': [-0.41463414634146345, 0.4024390243902438, 0.7073170731707317, 1.0], 'main_green_idx': (array([2]),), 'sub_green_idx': [0, 4, 6], 'tl_idx': 10, 'remain': 21, 'max_phase': (array([1]),), 'action_space': 4, 'in_edge_list': ['-563113202', '563107184', '563108141', '563108143', '-563103694', '-563107195', '-563108257', '-563114048', '563108138', '563108139', '563108251'], 'in_edge_list_0': ['-563113202', '563107184', '563108141', '563108143'], 'in_edge_list_1': ['-563103694', '-563107195', '-563108257', '-563114048', '563108138', '563108139', '563108251']}, 'cluster_563106246_563106247': {'crossName': '월평(단)', 'signalGroup': 'SA 28', 'offset': 120, 'minDur': [44, 70, 3], 'maxDur': [44, 200, 3], 'cycle': 180, 'duration': [44, 133, 3], 'green_idx': (array([1]),), 'duration_bins': [1.0], 'main_green_idx': (array([1]),), 'sub_green_idx': [], 'tl_idx': 11, 'remain': 63, 'max_phase': (array([0]),), 'action_space': 1, 'in_edge_list': ['563108156', '563107175', '563107178'], 'in_edge_list_0': ['563108156'], 'in_edge_list_1': ['563107175', '563107178']}}scenarioFile: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/9db50c4e-cac9-470d-a7ea-8c5288f8415c/dj_all.scenario.json
+[SALT Simulator 2.0] 
+--- Scenario File: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/9db50c4e-cac9-470d-a7ea-8c5288f8415c/dj_all.scenario.json
+Loading Road Network ... done
+Loading Vehicle Demand ... done
+Loading Traffic Signal System ... done
+[Simulation Output (Periodic)] >> output/rl/-PeriodicOutput.csv 
+[Progress status] >> output/rl/progress.txt 
+--- Configuration Done ---
+[Simulation Info] 
+Input 
+	-Simulation Name: 
+	-Road Network: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/9db50c4e-cac9-470d-a7ea-8c5288f8415c/node.xml, /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/9db50c4e-cac9-470d-a7ea-8c5288f8415c/edge.xml, /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/9db50c4e-cac9-470d-a7ea-8c5288f8415c/connection.xml
+	-Vehicle Demand: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/dj_mon_20201222.rou.xml 
+	-Traffic Light System: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/9db50c4e-cac9-470d-a7ea-8c5288f8415c/tss.xml
+	-Time Range: 25200~32400
+Output 
+	-Output Per Period: output/rl/-PeriodicOutput.csv
+
+[Simulation Start]
+
+Traceback (most recent call last):
+  File "run.py", line 1253, in <module>
+    run_sappo()
+  File "run.py", line 329, in run_sappo
+    env = SALT_SAPPO_offset_single(args)
+  File "/home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/env/sappo_offset_single.py", line 159, in __init__
+    self.target_tl_obj, self.sa_obj, _lane_len = get_objs(args, trafficSignal, self.targetList_input2, edge_file_path, self.salt_scenario, self.startStep)
+  File "/home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/env/get_objs.py", line 112, in get_objs
+    libsalt.start(salt_scenario)
+  File "/home/pi/traffic-simulator/tools/libsalt/libsalt.py", line 76, in start
+    simulation.load(args)
+  File "/home/pi/traffic-simulator/tools/libsalt/libsalt.py", line 1665, in load
+    return _libsalt.simulation_load(argv)
+KeyboardInterrupt
+Using TensorFlow backend.
+WARNING:tensorflow:From /home/pi/anaconda3/envs/py37cpu/lib/python3.7/site-packages/tensorflow_core/python/compat/v2_compat.py:65: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+scenarioFile: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/4261911d-14b6-4d44-8d14-11469ad2d250/doan_2021.scenario.json
+[SALT Simulator 2.0] 
+--- Scenario File: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/4261911d-14b6-4d44-8d14-11469ad2d250/doan_2021.scenario.json
+Loading Road Network ... done
+Loading Vehicle Demand ... done
+Loading Traffic Signal System ... done
+[Simulation Output (Periodic)] >> output/rl/-PeriodicOutput.csv 
+[Progress status] >> output/rl/progress.txt 
+--- Configuration Done ---
+[Simulation Info] 
+Input 
+	-Simulation Name: 
+	-Road Network: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/4261911d-14b6-4d44-8d14-11469ad2d250/doan.nod.xml, /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/4261911d-14b6-4d44-8d14-11469ad2d250/doan.edg.xml, /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/4261911d-14b6-4d44-8d14-11469ad2d250/doan.con.xml
+	-Vehicle Demand: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/4261911d-14b6-4d44-8d14-11469ad2d250/dj_doan_kaist_2h.rou.xml 
+	-Traffic Light System: /home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/data/envs/salt/data/4261911d-14b6-4d44-8d14-11469ad2d250/doan_20210421.tss.xml
+	-Time Range: 0~7200
+Output 
+	-Output Per Period: output/rl/-PeriodicOutput.csv
+
+[Simulation Start]
+[Jump currentStep from 0 to 25200]
+[Simulation End]
+Elapsed Time: 0 seconds
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{'IS_DOCKERIZE': False, 'libsalt_dir': '/home/pi/traffic-simulator/tools/libsalt', 'lr': 0.01, 'lr_update_period': 5, 'lr_update_decay': 0.9, 'batch_size': 32, 'replay_size': 2000, 'network_size': (512, 512, 512, 512, 512), 'rnd_network_size': (256, 128)}
+{}
+init []
+init []
+init []
+init []
+init []
+target tl obj {}
+target tl id list []
+number of target tl 0
+{}
+before action []
+Traceback (most recent call last):
+  File "run.py", line 1253, in <module>
+    run_sappo()
+  File "run.py", line 329, in run_sappo
+    env = SALT_SAPPO_offset_single(args)
+  File "/home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent/env/sappo_offset_single.py", line 113, in __init__
+    shutil.copy(full_file_name, self.dest_dir)
+  File "/home/pi/anaconda3/envs/py37cpu/lib/python3.7/shutil.py", line 248, in copy
+    copyfile(src, dst, follow_symlinks=follow_symlinks)
+  File "/home/pi/anaconda3/envs/py37cpu/lib/python3.7/shutil.py", line 122, in copyfile
+    copyfileobj(fsrc, fdst)
+  File "/home/pi/anaconda3/envs/py37cpu/lib/python3.7/shutil.py", line 82, in copyfileobj
+    fdst.write(buf)
+KeyboardInterrupt

@@ -66,7 +66,10 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
     if IS_DOCKERIZE:
         tree = parse(edge_file_path)
     else:
-        tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20210401.edg.xml')
+        if args.map=='doan':
+            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20210401.edg.xml')
+        elif args.map=='dj':
+            tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
 
     root = tree.getroot()
 
