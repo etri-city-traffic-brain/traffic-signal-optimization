@@ -28,15 +28,18 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             if "SA " not in _signalGroup:
                 _signalGroup = _signalGroup.replace("SA", "SA ")
             target_tl_obj[x.attrib['nodeID']]['signalGroup'] = _signalGroup
-
-            target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find("schedule[@id='2']").attrib['offset'])
+            if _signalGroup == "SA 1":
+                s_id = '11'
+            else:
+                s_id = '2'
+            target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find(f"schedule[@id='{s_id}']").attrib['offset'])
             target_tl_obj[x.attrib['nodeID']]['minDur'] = [int(y.attrib['minDur']) if 'minDur' in y.attrib else int(y.attrib['duration']) for
-                                                                y in x.findall("schedule[@id='2']/phase")]
+                                                                y in x.findall(f"schedule[@id='{s_id}']/phase")]
             target_tl_obj[x.attrib['nodeID']]['maxDur'] = [int(y.attrib['maxDur']) if 'maxDur' in y.attrib else int(y.attrib['duration']) for
-                                                                y in x.findall("schedule[@id='2']/phase")]
-            target_tl_obj[x.attrib['nodeID']]['cycle'] = np.sum([int(y.attrib['duration']) for y in x.findall("schedule[@id='2']/phase")])
-            target_tl_obj[x.attrib['nodeID']]['duration'] = [int(y.attrib['duration']) for y in x.findall("schedule[@id='2']/phase")]
-            tmp_duration_list = np.array([int(y.attrib['duration']) for y in x.findall("schedule[@id='2']/phase")])
+                                                                y in x.findall(f"schedule[@id='{s_id}']/phase")]
+            target_tl_obj[x.attrib['nodeID']]['cycle'] = np.sum([int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")])
+            target_tl_obj[x.attrib['nodeID']]['duration'] = [int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")]
+            tmp_duration_list = np.array([int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")])
             # target_tl_obj[x.attrib['nodeID']]['green_idx'] = np.where(tmp_duration_list > 5)
             target_tl_obj[x.attrib['nodeID']]['green_idx'] = np.where(np.array(target_tl_obj[x.attrib['nodeID']]['minDur']) != np.array(target_tl_obj[x.attrib['nodeID']]['maxDur']))
 
@@ -70,6 +73,8 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20210401.edg.xml')
         elif args.map=='dj':
             tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
+            if args.target_TL == 'SA 1' or args.target_TL == 'SA 6' or args.target_TL == 'SA 17':
+                tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/edge.xml')
 
     root = tree.getroot()
 

@@ -57,7 +57,7 @@ if IS_DOCKERIZE:
 else:
     # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
     #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--target-TL', type=str, default="SA 17",
+    parser.add_argument('--target-TL', type=str, default="SA 1",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt'], default='wq',
@@ -95,7 +95,7 @@ parser.add_argument('--lr', type=float, default=0.0001)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
-parser.add_argument('--controlcycle', type=int, default=2)
+parser.add_argument('--controlcycle', type=int, default=5)
 
 args = parser.parse_args()
 
