@@ -178,9 +178,9 @@ class SALT_SAPPO_offset_single(gym.Env):
         print('target tl id list {}'.format(self.target_tl_id_list))
         print('number of target tl {}'.format(len(self.target_tl_id_list)))
 
-        self.max_lane_length = np.max(_lane_len)
+        # self.max_lane_length = np.max(_lane_len)
         print(self.target_tl_obj)
-        print(np.max(_lane_len))
+        # print(np.max(_lane_len))
         self.observations = []
         self.lane_passed = []
 

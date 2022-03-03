@@ -174,7 +174,7 @@ class SALT_doan_multi_PSA(gym.Env):
                 self.phase_numbers.append(len(self.target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
                 i+=1
 
-        self.max_phase_length = int(np.max(self.phase_numbers))
+        # self.max_phase_length = int(np.max(self.phase_numbers))
 
         self.target_tl_id_list = list(self.target_tl_obj.keys())
         self.agent_num = len(self.target_tl_id_list)
@@ -226,9 +226,9 @@ class SALT_doan_multi_PSA(gym.Env):
             self.target_tl_obj[n]['in_edge_list_1'] = self.near_tl_obj[n]['in_edge_list_1']
             _edge_len.append(len(self.near_tl_obj[n]['in_edge_list']))
 
-        self.max_edge_length = int(np.max(_edge_len))
+        # self.max_edge_length = int(np.max(_edge_len))
         print(self.target_tl_obj)
-        print(self.max_edge_length)
+        # print(self.max_edge_length)
 
         self.done = False
 
@@ -267,9 +267,9 @@ class SALT_doan_multi_PSA(gym.Env):
             else:
                 self.target_tl_obj[target]['state_space'] = len(_lane_list) + 1
             _lane_len.append(len(_lane_list))
-        self.max_lane_length = np.max(_lane_len)
+        # self.max_lane_length = np.max(_lane_len)
         print(self.target_tl_obj)
-        print(np.max(_lane_len))
+        # print(np.max(_lane_len))
         self._observation = []
         # for i in range(len(self.min_green)):
         #     self._observation = np.append(self._observation, self.get_state(self.ts_ids[0]))
@@ -618,7 +618,7 @@ class SALT_doan_multi_PSA_test(gym.Env):
                 self.phase_numbers.append(len(self.target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
                 i+=1
 
-        self.max_phase_length = int(np.max(self.phase_numbers))
+        # self.max_phase_length = int(np.max(self.phase_numbers))
 
         self.target_tl_id_list = list(self.target_tl_obj.keys())
         self.agent_num = len(self.target_tl_id_list)
@@ -687,9 +687,9 @@ class SALT_doan_multi_PSA_test(gym.Env):
             self.target_tl_obj[n]['in_edge_list_1'] = self.near_tl_obj[n]['in_edge_list_1']
             _edge_len.append(len(self.near_tl_obj[n]['in_edge_list']))
 
-        self.max_edge_length = int(np.max(_edge_len))
+        # self.max_edge_length = int(np.max(_edge_len))
         print(self.target_tl_obj)
-        print(self.max_edge_length)
+        # print(self.max_edge_length)
 
         self.done = False
 
@@ -728,9 +728,9 @@ class SALT_doan_multi_PSA_test(gym.Env):
             else:
                 self.target_tl_obj[target]['state_space'] = len(_lane_list) + 1
             _lane_len.append(len(_lane_list))
-        self.max_lane_length = np.max(_lane_len)
+        # self.max_lane_length = np.max(_lane_len)
         print(self.target_tl_obj)
-        print(np.max(_lane_len))
+        # print(np.max(_lane_len))
         self._observation = []
         # for i in range(len(self.min_green)):
         #     self._observation = np.append(self._observation, self.get_state(self.ts_ids[0]))

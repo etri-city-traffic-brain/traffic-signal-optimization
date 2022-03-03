@@ -30,8 +30,8 @@ else:
     from env.sappo_offset_ea import SALT_SAPPO_offset_EA
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='2980')
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='test')
+parser.add_argument('--model-num', type=str, default='600')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -57,7 +57,7 @@ if IS_DOCKERIZE:
 else:
     # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
     #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--target-TL', type=str, default="SA 1",
+    parser.add_argument('--target-TL', type=str, default="SA 6",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt'], default='wq',
@@ -79,7 +79,7 @@ if IS_DOCKERIZE:
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
 
-parser.add_argument('--gamma', type=float, default=0.11)
+parser.add_argument('--gamma', type=float, default=0.1)
 parser.add_argument('--gamma-i', type=float, default=0.11)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
@@ -541,6 +541,11 @@ def run_sappo():
             next_values[i] = np.copy(values[i][1:])
             values[i] = values[i][:-1]
             adv[i], target[i] = ppornd_agent[i].get_gaes(rewards[i], dones[i], values[i], next_values[i], True)
+            print("update")
+            print("target", target[i])
+            print("adv", adv[i])
+            print("logp_ts", logp_ts[i])
+
             ppornd_agent[i].update(states[i], actionss[i], target[i], adv[i], logp_ts[i], sess)
             ep_agent_reward_list[i].append(episodic_agent_reward[i])
 

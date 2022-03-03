@@ -30,6 +30,8 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             target_tl_obj[x.attrib['nodeID']]['signalGroup'] = _signalGroup
             if _signalGroup == "SA 1":
                 s_id = '11'
+            elif _signalGroup == "SA 56":
+                s_id = '5'
             else:
                 s_id = '2'
             target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find(f"schedule[@id='{s_id}']").attrib['offset'])

@@ -8,7 +8,7 @@ TRAIN_CONFIG = {
     'batch_size': 32,
     'replay_size': 2000,
     # 'network_size': [16,32,64,128,64,32,16] # for keep or change
-    'network_size': (512,512,512,512,512), # for keep or change
+    'network_size': (512,512,512,512), # for keep or change
     # 'network_size': (512,256,128,64,32), # for keep or change
     'rnd_network_size': (256,128) # for keep or change
 }
