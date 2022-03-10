@@ -15,6 +15,26 @@ def gaussian_likelihood(x, mu, log_std):
     print(tf.reduce_sum(pre_sum, axis=1))
     return tf.reduce_sum(pre_sum, axis=1)
 
+# class Actor:
+#     def __init__(self, name, state_size, action_size, action_min, action_max):
+#         with tf.variable_scope(name):
+#             self.state = tf.placeholder(tf.float32, [None, state_size])
+#             self.action = tf.placeholder(tf.float32, [None, action_size])
+#
+#             inp = tf.layers.dense(self.state, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+#             for i in range(len(TRAIN_CONFIG['network_size'])):
+#                 if i!=0:
+#                     inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+#
+#             self.mu = tf.layers.dense(inp, action_size, tf.tanh)
+#
+#             self.log_std = tf.get_variable("log_std", initializer=-0.5 * np.ones(action_size, np.float32))
+#             self.std = tf.exp(self.log_std)
+#             self.pi = self.mu + tf.random_normal(tf.shape(self.mu)) * self.std
+#             self.pi = tf.clip_by_value(self.pi, -1, 1)
+#             self.logp = gaussian_likelihood(self.action, self.mu, self.log_std)
+#             self.logp_pi = gaussian_likelihood(self.pi, self.mu, self.log_std)
+
 class Actor:
     def __init__(self, name, state_size, action_size, action_min, action_max):
         with tf.variable_scope(name):
@@ -22,11 +42,16 @@ class Actor:
             self.action = tf.placeholder(tf.float32, [None, action_size])
 
             inp = tf.layers.dense(self.state, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+            identity = inp
             for i in range(len(TRAIN_CONFIG['network_size'])):
                 if i!=0:
                     inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
-            self.mu = tf.layers.dense(inp, action_size, tf.tanh)
+            x = tf.layers.dense(inp, units=512, activation=tf.nn.relu)
+            # self.mu = tf.layers.dense(inp, action_size, tf.tanh)
+            output = tf.keras.layers.Add()([x, identity])
+            output = tf.layers.dense(output, units=512, activation=tf.nn.relu)
+            self.mu = tf.layers.dense(output, action_size, tf.tanh)
 
             self.log_std = tf.get_variable("log_std", initializer=-0.5 * np.ones(action_size, np.float32))
             self.std = tf.exp(self.log_std)

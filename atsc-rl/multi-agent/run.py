@@ -30,7 +30,7 @@ else:
     from env.sappo_offset_ea import SALT_SAPPO_offset_EA
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='test')
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
 parser.add_argument('--model-num', type=str, default='600')
 
 if IS_DOCKERIZE:
@@ -55,10 +55,10 @@ if IS_DOCKERIZE:
     parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
                         help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
 else:
-    # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
-    #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--target-TL', type=str, default="SA 6",
+    parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
                         help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+    # parser.add_argument('--target-TL', type=str, default="SA 6",
+    #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt'], default='wq',
                     help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time')
@@ -71,7 +71,7 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], de
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
                          'pss - phase-set selection, o - offset')
-parser.add_argument('--map', choices=['dj', 'doan'], default='dj',
+parser.add_argument('--map', choices=['dj', 'doan'], default='doan',
                     help='dj - Daejeon all region, doan - doan 111 tss')
 
 if IS_DOCKERIZE:
@@ -91,7 +91,7 @@ parser.add_argument('--tvi', type=int, default=1, help="train value iteration")
 parser.add_argument('--ppoEpoch', type=int, default=4)
 parser.add_argument('--ppo_eps', type=float, default=0.01)
 parser.add_argument('--_lambda', type=float, default=0.95)
-parser.add_argument('--lr', type=float, default=0.0001)
+parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
@@ -487,8 +487,10 @@ def run_sappo():
                 discrete_actions.append(discrete_action)
             new_state, reward, done, _ = env.step(discrete_actions)
             # print(f"current state {cur_state} action {actions} reward {reward} new_state {new_state}")
-            if (t + args.trainStartTime) % int(sa_cycle[i] * args.controlcycle) == 0:
-                print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
+
+            if agent_num==1:
+                if (t + args.trainStartTime) % int(sa_cycle[i] * args.controlcycle) == 0:
+                    print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):

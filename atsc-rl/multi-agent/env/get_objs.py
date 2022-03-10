@@ -27,13 +27,18 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                 _signalGroup = "SA " + _signalGroup
             if "SA " not in _signalGroup:
                 _signalGroup = _signalGroup.replace("SA", "SA ")
+
             target_tl_obj[x.attrib['nodeID']]['signalGroup'] = _signalGroup
             if _signalGroup == "SA 1":
                 s_id = '11'
-            elif _signalGroup == "SA 56":
+            elif _signalGroup == "SA 56" or _signalGroup == "SA 111":
                 s_id = '5'
+            elif _signalGroup == "SA 107":
+                s_id = '1'
             else:
                 s_id = '2'
+
+            # print(_signalGroup)
             target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find(f"schedule[@id='{s_id}']").attrib['offset'])
             target_tl_obj[x.attrib['nodeID']]['minDur'] = [int(y.attrib['minDur']) if 'minDur' in y.attrib else int(y.attrib['duration']) for
                                                                 y in x.findall(f"schedule[@id='{s_id}']/phase")]
@@ -72,7 +77,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         tree = parse(edge_file_path)
     else:
         if args.map=='doan':
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20210401.edg.xml')
+            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
         elif args.map=='dj':
             tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
             if args.target_TL == 'SA 1' or args.target_TL == 'SA 6' or args.target_TL == 'SA 17':
