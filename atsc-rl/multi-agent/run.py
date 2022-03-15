@@ -28,6 +28,7 @@ else:
     from env.sappo_offset import SALT_SAPPO_offset
     from env.sappo_offset_single import SALT_SAPPO_offset_single
     from env.sappo_offset_ea import SALT_SAPPO_offset_EA
+    from env.sappo_green_single import SALT_SAPPO_green_single
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
@@ -55,10 +56,10 @@ if IS_DOCKERIZE:
     parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
                         help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
 else:
-    parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
-                        help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    # parser.add_argument('--target-TL', type=str, default="SA 6",
+    # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
     #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+    parser.add_argument('--target-TL', type=str, default="SA 6",
+                        help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt'], default='wq',
                     help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time')
@@ -68,10 +69,10 @@ parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
 
 parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo',
                     help='')
-parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o'], default='offset',
+parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr'], default='gr',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
-                         'pss - phase-set selection, o - offset')
-parser.add_argument('--map', choices=['dj', 'doan'], default='doan',
+                         'pss - phase-set selection, o - offset, gr - green ratio')
+parser.add_argument('--map', choices=['dj', 'doan'], default='dj',
                     help='dj - Daejeon all region, doan - doan 111 tss')
 
 if IS_DOCKERIZE:
@@ -96,6 +97,9 @@ parser.add_argument('--cp', type=float, default=0.0, help='action change penalty
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
 parser.add_argument('--controlcycle', type=int, default=5)
+
+### GREEN RATIO args
+parser.add_argument('--addTime', type=int, default=2)
 
 args = parser.parse_args()
 
@@ -128,6 +132,9 @@ if args.method=='ppoea':
     problem_var += "_ppoeps_{}".format(args.ppo_eps)
 if len(args.target_TL.split(","))==1:
     problem_var += "_{}".format(args.target_TL.split(",")[0])
+
+if args.action == 'gr':
+    problem_var += "_addTime_{}".format(args.addTime)
 
 if IS_DOCKERIZE:
     io_home = args.io_home
@@ -330,7 +337,10 @@ def run_sappo():
             print("SAPPO OFFSET")
             args.problem = "SAPPO_offset_" + problem_var
             env = SALT_SAPPO_offset(args)
-
+    if args.action=='gr':
+        print("SAPPO GREEN RATIO")
+        args.problem = "SAPPO_GR_single" + problem_var
+        env = SALT_SAPPO_green_single(args)
 
     trials = args.epoch
     if IS_DOCKERIZE:
@@ -483,8 +493,13 @@ def run_sappo():
                     if args.action=='offset':
                         # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
                         discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
+                    if args.action=='gr':
+                        discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
 
                 discrete_actions.append(discrete_action)
+
+            # print("discrete_actions", discrete_actions)
+
             new_state, reward, done, _ = env.step(discrete_actions)
             # print(f"current state {cur_state} action {actions} reward {reward} new_state {new_state}")
 
@@ -521,7 +536,6 @@ def run_sappo():
 
                         episodic_reward += reward[i]
                         episodic_agent_reward[i] += reward[i]
-
             if done:
                 break
 

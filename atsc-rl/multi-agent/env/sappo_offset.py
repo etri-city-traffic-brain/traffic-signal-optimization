@@ -238,7 +238,7 @@ class SALT_SAPPO_offset(gym.Env):
                     if self.reward_func == 'wt_max':
                         self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
                     if self.reward_func == 'wq':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])/5000
                     if self.reward_func == 'wq_median':
                         if len(self.lane_passed[sa_i])==0:
                             self.rewards[sa_i] = 0
@@ -314,6 +314,8 @@ class SALT_SAPPO_offset(gym.Env):
             for sa in self.sa_obj:
                 link_list_0 = self.sa_obj[sa]['in_edge_list_0']
                 link_list_1 = self.sa_obj[sa]['in_edge_list_1']
+                lane_list_0 = self.sa_obj[sa]['in_lane_list_0']
+                lane_list_1 = self.sa_obj[sa]['in_lane_list_1']
 
                 if self.reward_func == 'pn':
                     for l in link_list_0:
@@ -332,7 +334,8 @@ class SALT_SAPPO_offset(gym.Env):
                     #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT * reward_weight)
                 if self.reward_func in ['wq', 'wq_median', 'wq_min', 'wq_max']:
                     for l in link_list_0:
-                        self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l))
+                        # print("sum([l in x for x in lane_list_0])", sum([l in x for x in lane_list_0]))
+                        self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * sum([l in x for x in lane_list_0]))
                     # for l in link_list_1:
                     #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * reward_weight)
                 if self.reward_func == 'wt_SBV':
@@ -457,6 +460,9 @@ class SALT_SAPPO_offset(gym.Env):
             if self.args.state == 'vdd':
                 obs = np.append(vddMatrix, tlMatrix)
         # print(obs)
+        obs = obs + np.finfo(float).eps
+        # print(obs)
+        obs = obs/np.max(obs)
 
         # print(densityMatrix)
         # print(passedMatrix)

@@ -11,6 +11,131 @@ IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 import libsalt
 
+# parameters for green ratio
+addTime = 2
+
+def getActionList(phase_num, max_phase):
+    _pos = [4, 3, 2, 1, 0, -1, -2, -3, -4]
+
+    phase_num = phase_num
+    max_phase = max_phase
+    mask = np.ones(phase_num, dtype=bool)
+    mask[max_phase] = 0
+    if phase_num <= 5:
+        if phase_num == 2:
+            meshgrid = np.array(np.meshgrid(_pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 3:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 4:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 5:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+        #     action_list = [x.tolist() for x in meshgrid if x[max_phase]!=0 and x[max_phase]+np.sum(x[mask])==0 and np.min(np.abs(x[mask]))==0 and np.max(np.abs(x[mask]))==1]
+
+        if phase_num == 1:
+            action_list = [[0]]
+        else:
+            action_list = [x.tolist() for x in meshgrid if
+                           x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
+                               np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
+                               x[mask]) and x[max_phase] != np.max(x[mask])]
+    else:
+        meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+        action_list = [x.tolist() for x in meshgrid if
+                       x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
+                           np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
+                           x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1 and x[max_phase] != np.min(x[mask]) and
+                       x[max_phase] != np.max(x[mask])]
+
+    if phase_num != 1:
+        tmp = list([1] * phase_num)
+        tmp[max_phase] = -(phase_num - 1)
+        action_list.append(tmp)
+
+        tmp = list([-1] * phase_num)
+        tmp[max_phase] = phase_num - 1
+        action_list.append(tmp)
+
+        tmp = list([0] * phase_num)
+        action_list.append(tmp)
+
+        action_list.reverse()
+
+        for i in range(1, len(action_list)):
+            action_list.append(list(np.array(action_list[i])*2))
+
+    return action_list
+
+def getActionList_v2(phase_num, max_phase):
+    _pos = [4, 3, 2, 1, 0, -1, -2, -3, -4]
+
+    phase_num = phase_num
+    max_phase = max_phase
+    mask = np.ones(phase_num, dtype=bool)
+    mask[max_phase] = 0
+    if phase_num <= 5:
+        if phase_num == 2:
+            meshgrid = np.array(np.meshgrid(_pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 3:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 4:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 5:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+
+        #     action_list = [x.tolist() for x in meshgrid if x[max_phase]!=0 and x[max_phase]+np.sum(x[mask])==0 and np.min(np.abs(x[mask]))==0 and np.max(np.abs(x[mask]))==1]
+        action_list = [x.tolist() for x in meshgrid if
+                       x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
+                           np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
+                           x[mask]) and x[max_phase] != np.max(x[mask]) and x[max_phase]>0]
+    else:
+        meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+        action_list = [x.tolist() for x in meshgrid if
+                       x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
+                           np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
+                           x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1 and x[max_phase] != np.min(x[mask]) and
+                       x[max_phase] != np.max(x[mask]) and x[max_phase]>0]
+
+    action_list
+
+#     tmp = list([1] * phase_num)
+#     tmp[max_phase] = -(phase_num - 1)
+#     action_list.append(tmp)
+
+    tmp = list([-1] * phase_num)
+    tmp[max_phase] = phase_num - 1
+    action_list.append(tmp)
+
+    tmp = list([0] * phase_num)
+    action_list.append(tmp)
+
+    action_list.reverse()
+
+    for i in range(1, len(action_list)):
+        action_list.append(list(np.array(action_list[i])*2))
+
+    return action_list
+
+def getPossibleActionList(args, duration, minDur, maxDur, green_idx, actionList):
+
+    duration = np.array(duration)
+    minGreen = np.array(minDur)
+    maxGreen = np.array(maxDur)
+    green_idx = np.array(green_idx)
+
+    new_actionList = []
+
+    for action in actionList:
+        npsum = 0
+        newDur = duration[green_idx] + np.array(action) * args.addTime
+        npsum += np.sum(minGreen[green_idx] > newDur)
+        npsum += np.sum(maxGreen[green_idx] < newDur)
+        if npsum == 0:
+            new_actionList.append(action)
+    print('len(actionList)', len(actionList), 'len(new_actionList)', len(new_actionList))
+    return new_actionList
+
+
 def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenario, startStep):
     target_tl_obj = {}
     sa_obj = {}
@@ -69,6 +194,11 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             target_tl_obj[x.attrib['nodeID']]['remain'] = target_tl_obj[x.attrib['nodeID']]['cycle'] - np.sum(target_tl_obj[x.attrib['nodeID']]['minDur'])
             target_tl_obj[x.attrib['nodeID']]['max_phase'] = np.where(target_tl_obj[x.attrib['nodeID']]['green_idx'][0] == target_tl_obj[x.attrib['nodeID']]['main_green_idx'][0][0])
             target_tl_obj[x.attrib['nodeID']]['action_space'] = len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0])
+            target_tl_obj[x.attrib['nodeID']]['action_list'] = getPossibleActionList(args, target_tl_obj[x.attrib['nodeID']]['duration'],
+                                                                                           target_tl_obj[x.attrib['nodeID']]['minDur'],
+                                                                                           target_tl_obj[x.attrib['nodeID']]['maxDur'],
+                                                                                           target_tl_obj[x.attrib['nodeID']]['green_idx'],
+                                                                                           getActionList(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]), target_tl_obj[x.attrib['nodeID']]['max_phase'][0][0]))
             phase_numbers.append(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
             i += 1
 
@@ -184,6 +314,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['remain_list'] = []
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['max_phase_list'] = []
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space_list'] = []
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_list_list'] = []
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space_list'] = []
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list'] = []
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_0'] = []
@@ -217,6 +348,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['remain_list'].append(target_tl_obj[tl_obj]['remain'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['max_phase_list'].append(target_tl_obj[tl_obj]['max_phase'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space_list'].append(target_tl_obj[tl_obj]['action_space'])
+        sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_list_list'].append(target_tl_obj[tl_obj]['action_list'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space_list'].append(target_tl_obj[tl_obj]['state_space'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list'] += target_tl_obj[tl_obj]['in_edge_list']
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_0'] += target_tl_obj[tl_obj]['in_edge_list_0']
