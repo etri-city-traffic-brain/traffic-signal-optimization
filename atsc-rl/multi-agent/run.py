@@ -29,6 +29,7 @@ else:
     from env.sappo_offset_single import SALT_SAPPO_offset_single
     from env.sappo_offset_ea import SALT_SAPPO_offset_EA
     from env.sappo_green_single import SALT_SAPPO_green_single
+    from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
@@ -69,9 +70,9 @@ parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
 
 parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo',
                     help='')
-parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr'], default='gr',
+parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr', 'gro'], default='gro',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
-                         'pss - phase-set selection, o - offset, gr - green ratio')
+                         'pss - phase-set selection, o - offset, gr - green ratio, gro - green ratio+offset')
 parser.add_argument('--map', choices=['dj', 'doan'], default='dj',
                     help='dj - Daejeon all region, doan - doan 111 tss')
 
@@ -133,7 +134,7 @@ if args.method=='ppoea':
 if len(args.target_TL.split(","))==1:
     problem_var += "_{}".format(args.target_TL.split(",")[0])
 
-if args.action == 'gr':
+if args.action == 'gr' or args.action == 'gro':
     problem_var += "_addTime_{}".format(args.addTime)
 
 if IS_DOCKERIZE:
@@ -341,6 +342,10 @@ def run_sappo():
         print("SAPPO GREEN RATIO")
         args.problem = "SAPPO_GR_single" + problem_var
         env = SALT_SAPPO_green_single(args)
+    if args.action=='gro':
+        print("SAPPO GREEN RATIO + OFFSET")
+        args.problem = "SAPPO_GRO_single" + problem_var
+        env = SALT_SAPPO_green_offset_single(args)
 
     trials = args.epoch
     if IS_DOCKERIZE:
@@ -494,6 +499,9 @@ def run_sappo():
                         # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
                         discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
                     if args.action=='gr':
+                        discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
+                    if args.action=='gro':
+                        discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
                         discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
 
                 discrete_actions.append(discrete_action)

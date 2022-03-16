@@ -20,6 +20,8 @@ else:
     from env.sappo_noConst import SALT_SAPPO_noConst
     from env.sappo_offset import SALT_SAPPO_offset
     from env.sappo_offset_single import SALT_SAPPO_offset_single
+    from env.sappo_green_single import SALT_SAPPO_green_single
+    from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single
 
 
 from config import TRAIN_CONFIG
@@ -610,9 +612,11 @@ def sappo_test(args, trial, problem_var):
         env = SALT_SAPPO_noConst(args)
     elif args.action == 'offset':
         env = SALT_SAPPO_offset(args)
-
-    if len(args.target_TL.split(",")) == 1:
-        env = SALT_SAPPO_offset_single(args)
+        if len(args.target_TL.split(",")) == 1:
+            env = SALT_SAPPO_offset_single(args)
+    elif args.action=='gr':
+        if len(args.target_TL.split(",")) == 1:
+            env = SALT_SAPPO_green_single(args)
 
     agent_num = env.agent_num
 
@@ -687,6 +691,8 @@ def sappo_test(args, trial, problem_var):
                 if args.action=='offset':
                     # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
                     discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
+                if args.action=='gr':
+                    discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
             discrete_actions.append(discrete_action)
 
         new_state, reward, done, _ = env.step(discrete_actions)
