@@ -81,7 +81,7 @@ if IS_DOCKERIZE:
     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
 
 
-parser.add_argument('--gamma', type=float, default=0.1)
+parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--gamma-i', type=float, default=0.11)
 parser.add_argument('--tau', type=float, default=0.1)
 parser.add_argument('--action-t', type=int, default=12)
@@ -90,10 +90,10 @@ parser.add_argument('--offsetrange', type=int, default=2, help="offset side rang
 ### PPO args
 parser.add_argument('--tpi', type=int, default=1, help="train policy iteration")
 parser.add_argument('--tvi', type=int, default=1, help="train value iteration")
-parser.add_argument('--ppoEpoch', type=int, default=4)
+parser.add_argument('--ppoEpoch', type=int, default=10)
 parser.add_argument('--ppo_eps', type=float, default=0.01)
-parser.add_argument('--_lambda', type=float, default=0.95)
-parser.add_argument('--lr', type=float, default=0.001)
+parser.add_argument('--_lambda', type=float, default=0.99)
+parser.add_argument('--lr', type=float, default=0.005)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
@@ -107,9 +107,9 @@ args = parser.parse_args()
 
 if args.map == 'dj':
     args.trainStartTime = 25200
-    args.trainEndTime = 32400
+    args.trainEndTime = 43200
     args.testStartTime = 25200
-    args.testEndTime = 32400
+    args.testEndTime = 43200
 
 problem_var = ""
 # problem_var = "tau{}".format(args.tau)
@@ -123,6 +123,8 @@ problem_var += "_reward_{}".format(args.reward_func)
 problem_var += "_action_{}".format(args.action)
 problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 problem_var += "_gamma_{}".format(args.gamma)
+problem_var += "_lambda_{}".format(args._lambda)
+problem_var += "_ppoEpoch_{}".format(args.ppoEpoch)
 problem_var += "_lr_{}".format(args.lr)
 problem_var += "_cc_{}".format(args.controlcycle)
 problem_var += "_offsetrange_{}".format(args.offsetrange)

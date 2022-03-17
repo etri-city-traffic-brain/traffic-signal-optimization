@@ -43,13 +43,6 @@ class Actor:
 
             if args.res:
                 inp = tf.layers.dense(self.state, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
-                for i in range(len(TRAIN_CONFIG['network_size'])):
-                    if i!=0:
-                        inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
-
-                self.mu = tf.layers.dense(inp, action_size, tf.tanh)
-            else:
-                inp = tf.layers.dense(self.state, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
                 identity = inp
                 for i in range(len(TRAIN_CONFIG['network_size'])):
                     if i!=0:
@@ -60,6 +53,13 @@ class Actor:
                 output = tf.keras.layers.Add()([x, identity])
                 output = tf.layers.dense(output, units=TRAIN_CONFIG['network_size'][len(TRAIN_CONFIG['network_size'])-1], activation=tf.nn.relu)
                 self.mu = tf.layers.dense(output, action_size, tf.tanh)
+            else:
+                inp = tf.layers.dense(self.state, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
+                for i in range(len(TRAIN_CONFIG['network_size'])):
+                    if i!=0:
+                        inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
+
+                self.mu = tf.layers.dense(inp, action_size, tf.tanh)
 
             self.log_std = tf.get_variable("log_std", initializer=-0.5 * np.ones(action_size, np.float32))
             self.std = tf.exp(self.log_std)
