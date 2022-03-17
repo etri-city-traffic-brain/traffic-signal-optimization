@@ -98,6 +98,7 @@ parser.add_argument('--cp', type=float, default=0.0, help='action change penalty
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
 parser.add_argument('--controlcycle', type=int, default=5)
+parser.add_argument('--res', type=bool, default=True)
 
 ### GREEN RATIO args
 parser.add_argument('--addTime', type=int, default=2)
@@ -116,6 +117,7 @@ problem_var = ""
 # problem_var += "_yp0_actionT_{}".format(args.action_t)
 # problem_var += "_map_{}".format(args.map)
 problem_var += "_method_{}".format(args.method)
+problem_var += "_resnet_{}".format(args.res)
 problem_var += "_state_{}".format(args.state)
 problem_var += "_reward_{}".format(args.reward_func)
 problem_var += "_action_{}".format(args.action)
