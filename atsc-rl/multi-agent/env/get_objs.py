@@ -332,7 +332,10 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['crossName_list'].append(target_tl_obj[tl_obj]['crossName'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tlid_list'].append(tl_obj)
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space'] += target_tl_obj[tl_obj]['state_space']
-        sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 1
+        if args.action=='gro':
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 2
+        else:
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 1
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'].append(0)
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['offset_list'].append(target_tl_obj[tl_obj]['offset'])

@@ -190,13 +190,17 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         for target in self.sa_obj:
             self.observations.append([0] * self.sa_obj[target]['state_space'])
             # print(self.sa_obj[target]['action_min'], self.sa_obj[target]['action_max'])
-            self.sa_obj[target]['action_space'] = spaces.Box(low=-np.ones(self.sa_obj[target]['action_space']), high=np.ones(self.sa_obj[target]['action_space']), dtype=np.int32)
+            self.sa_obj[target]['action_space'] = spaces.Box(low=np.array(self.sa_obj[target]['action_min']), high=np.array(self.sa_obj[target]['action_max']), dtype=np.int32)
 
             self.lane_passed.append([])
             self.phase_arr.append([])
             self.action_mask = np.append(self.action_mask, 0)
 
+        self.observation_space = spaces.Box(low=np.zeros(self.sa_obj[target]['state_space']), high=np.ones(self.sa_obj[target]['state_space'])*1000, dtype=np.float32)
 
+        self.action_space = spaces.Box(
+            low=-np.ones(len(self.target_tl_obj)*2), high=np.ones(len(self.target_tl_obj)*2), shape=(len(self.target_tl_obj)*2,), dtype=np.float32
+        )
         # print("self.lane_passed", self.lane_passed)
         # print(self.observations)
         # print("self.action_keep_time", self.action_keep_time)
@@ -220,6 +224,14 @@ class SALT_SAPPO_green_offset_single(gym.Env):
 
         sa_i = 0
         for sa in self.sa_obj:
+
+            discrete_action = []
+            print(actions)
+            for di in range(len(actions)):
+                if self.args.action == 'gro':
+                    discrete_action.append(int(np.round(actions[di] * self.sa_obj[sa]['cycle_list'][0]) / 2 / self.args.offsetrange))
+                    discrete_action.append(np.digitize(actions[di], bins=np.linspace(-1, 1, len(self.sa_obj[sa]['action_list_list'][di]))) - 1)
+            print(discrete_action)
             # print("self.simulationSteps", self.simulationSteps)
             # print("self.sa_obj[sa]['cycle_list'][0]", self.sa_obj[sa]['cycle_list'][0])
             # print("self.control_cycle", self.control_cycle)
@@ -334,7 +346,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                                 self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / (len(link_list_0) * self.sim_period))
                             # for l in link_list_1:
                             #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
-                        self.observations[sa_i] += self.get_state(sa)
+                        self.observations[sa_i] += self._get_obs(sa)
 
                 if self.simulationSteps > 0:
                     if self.reward_func == 'pn':
@@ -374,7 +386,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func!='cwq':
                         self.lane_passed[sa_i] = []
-                    self.observations[sa_i] = self.get_state(sa)
+                    self.observations[sa_i] = self._get_obs(sa)
                 else:
                     self.rewards[sa_i] = 0
                     # self.rewards[sa_i] += penalty
@@ -421,7 +433,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         self.rewards = np.zeros(self.agent_num)
 
         for said in self.sa_obj:
-            # print(f"said{said}", self.get_state(said))
+            # print(f"said{said}", self._get_obs(said))
             self.lane_passed.append([])
             self.phase_arr.append([])
             self.phase_arr[sa_i] = []
@@ -437,13 +449,13 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                 self.phase_arr[sa_i].append(phase_arr)
                 tlid_i += 1
             self.action_mask = np.append(self.action_mask, 0)
-            observations.append(self.get_state(said))
+            observations.append(self._get_obs(said))
 
             sa_i += 1
+        self.state = observations[0]
+        return observations[0]
 
-        return observations
-
-    def get_state(self, said):
+    def _get_obs(self, said):
         # print(said)
         obs = []
         densityMatrix = []
@@ -499,10 +511,10 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         obs = obs + np.finfo(float).eps
         # print(obs)
         obs = obs/np.max(obs)
-        # print(obs)
+        print(obs)
         # print(densityMatrix)
         # print(passedMatrix)
-        # print(f"get_state obs {obs} obslen {len(obs)}")
+        # print(f"_get_obs obs {obs} obslen {len(obs)}")
         # print(obs)
         return obs
 

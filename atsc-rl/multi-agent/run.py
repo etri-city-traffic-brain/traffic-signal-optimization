@@ -116,7 +116,7 @@ if args.map == 'dj':
 
 problem_var = ""
 # problem_var = "tau{}".format(args.tau)
-problem_var = "gamma{}".format(args.gamma)
+problem_var = "_gamma{}".format(args.gamma)
 # problem_var += "_yp0_actionT_{}".format(args.action_t)
 # problem_var += "_map_{}".format(args.map)
 # problem_var += "_method_{}".format(args.method)
@@ -505,6 +505,7 @@ def run_sappo():
                 target_sa = list(env.sa_obj.keys())[i]
                 discrete_action = []
                 for di in range(len(actions[i])):
+                    # print("actions[i]", actions[i])
                     # discrete_action.append(np.digitize(actions[i][di], bins=env.sa_obj[target_sa]['duration_bins_list'][di]))
                     if args.action=='kc':
                         discrete_action.append(0 if actions[i][di] < args.actionp else 1)
@@ -513,9 +514,11 @@ def run_sappo():
                         discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
                     if args.action=='gr':
                         discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
-                    if args.action=='gro':
-                        discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
-                        discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
+
+                if args.action == 'gro':
+                    for di in range(int(len(actions[i])/2)):
+                        discrete_action.append(int(np.round(actions[i][di * 2] * sa_cycle[i]) / 2 / args.offsetrange))
+                        discrete_action.append(np.digitize(actions[i][di * 2 + 1], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
 
                 discrete_actions.append(discrete_action)
 
