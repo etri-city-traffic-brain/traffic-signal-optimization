@@ -48,20 +48,20 @@ class Actor:
                     if i!=0:
                         inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
-                x = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][len(TRAIN_CONFIG['network_size'])-1], activation=tf.nn.relu)
+                x = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][0], activation=tf.nn.relu)
                 # self.mu = tf.layers.dense(inp, action_size, tf.tanh)
                 output = tf.keras.layers.Add()([x, identity])
                 output = tf.layers.dense(output, units=TRAIN_CONFIG['network_size'][len(TRAIN_CONFIG['network_size'])-1], activation=tf.nn.relu)
-                self.mu = tf.layers.dense(output, action_size, tf.tanh)
+                self.mu = tf.layers.dense(output, action_size, tf.nn.tanh, use_bias=False)
             else:
                 inp = tf.layers.dense(self.state, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
                 for i in range(len(TRAIN_CONFIG['network_size'])):
                     if i!=0:
                         inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
-                self.mu = tf.layers.dense(inp, action_size, tf.tanh)
+                self.mu = tf.layers.dense(inp, action_size, tf.nn.tanh, use_bias=False)
 
-            self.log_std = tf.get_variable("log_std", initializer=-0.5 * np.ones(action_size, np.float32))
+            self.log_std = tf.get_variable("log_std", initializer=-args.logstdI * np.ones(action_size, np.float32))
             self.std = tf.exp(self.log_std)
             self.pi = self.mu + tf.random_normal(tf.shape(self.mu)) * self.std
             self.pi = tf.clip_by_value(self.pi, -1, 1)
@@ -79,7 +79,7 @@ class Critic:
                 if i!=0:
                     inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
-            self.value = tf.layers.dense(inp, 1)
+            self.value = tf.layers.dense(inp, 1, use_bias=False)
 
             self.v = tf.squeeze(self.value, axis=1)
 
@@ -111,8 +111,8 @@ class PPOAgent:
         self.pi_loss = -tf.reduce_mean(tf.minimum(self.ratio * self.adv, self.min_adv))
         self.v_loss = tf.reduce_mean((self.ret - self.critic.v) ** 2)
 
-        self.train_actor = tf.train.AdamOptimizer(self.learning_rate).minimize(self.pi_loss)
-        self.train_critic = tf.train.AdamOptimizer(self.learning_rate).minimize(self.v_loss)
+        self.train_actor = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.pi_loss)
+        self.train_critic = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.v_loss)
 
         self.approx_kl = tf.reduce_mean(self.logp_old - self.actor.logp)
         self.approx_ent = tf.reduce_mean(-self.actor.logp)
@@ -128,6 +128,10 @@ class PPOAgent:
             v_loss += sub_v_loss
             kl += approx_kl
             ent += approx_ent
+
+            if kl > 1.5 * 0.01:
+                # Early Stopping
+                break
 
         return v_loss, kl, ent
 
