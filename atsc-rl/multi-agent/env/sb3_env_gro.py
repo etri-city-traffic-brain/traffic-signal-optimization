@@ -226,12 +226,12 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         for sa in self.sa_obj:
 
             discrete_action = []
-            print(actions)
-            for di in range(len(actions)):
+            # print(actions)
+            for di in range(int(len(actions)/2)):
                 if self.args.action == 'gro':
-                    discrete_action.append(int(np.round(actions[di] * self.sa_obj[sa]['cycle_list'][0]) / 2 / self.args.offsetrange))
-                    discrete_action.append(np.digitize(actions[di], bins=np.linspace(-1, 1, len(self.sa_obj[sa]['action_list_list'][di]))) - 1)
-            print(discrete_action)
+                    discrete_action.append(int(np.round(actions[di*2] * self.sa_obj[sa]['cycle_list'][0]) / 2 / self.args.offsetrange))
+                    discrete_action.append(np.digitize(actions[di*2+1], bins=np.linspace(-1, 1, len(self.sa_obj[sa]['action_list_list'][di]))) - 1)
+            # print(discrete_action)
             # print("self.simulationSteps", self.simulationSteps)
             # print("self.sa_obj[sa]['cycle_list'][0]", self.sa_obj[sa]['cycle_list'][0])
             # print("self.control_cycle", self.control_cycle)
@@ -253,7 +253,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                     mpv = list(mpv)
 
                     action_list = self.sa_obj[sa]['action_list_list'][tlid_i]
-                    action = action_list[actions[sa_i][tlid_i*2+1]]
+                    action = action_list[discrete_action[tlid_i*2+1]]
                     # print(action)
                     # print("green_idx", green_idx)
 
@@ -281,7 +281,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                     for i in range(len(__phase_list_include_y)):
                         phase_arr = np.append(phase_arr, np.ones(__phase_list_include_y[i]) * i)
 
-                    self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + actions[sa_i][tlid_i*2]))
+                    self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + discrete_action[tlid_i*2]))
                 # print("sa_cycle, self.control_cycle", sa_cycle, self.control_cycle)
 
                 for _ in range(sa_cycle * self.control_cycle):
@@ -394,9 +394,10 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                     # self.action_mask[sa_i] = 0
 
                 if self.printOut:
-                    print("step {} tl_name {} actions {} rewards {}".format(self.simulationSteps,
+                    print("step {} tl_name {} raw_action {} actions {} rewards {}".format(self.simulationSteps,
                                                                                               self.sa_obj[sa]['crossName_list'],
-                                                                                              np.round(actions[sa_i], 3),
+                                                                                              np.round(actions, 3),
+                                                                                              np.round(discrete_action, 3),
                                                                                               np.round(self.rewards[sa_i], 2)))
             else:
                 libsalt.simulationStep()
@@ -416,7 +417,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         # print(self.before_action, actions)
         self.before_action = actions.copy()
 
-        return self.observations, self.rewards, self.done, info
+        return self.observations[0], self.rewards[0], self.done, info
 
     def reset(self):
         print("reset")
@@ -511,7 +512,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         obs = obs + np.finfo(float).eps
         # print(obs)
         obs = obs/np.max(obs)
-        print(obs)
+        # print(obs)
         # print(densityMatrix)
         # print(passedMatrix)
         # print(f"_get_obs obs {obs} obslen {len(obs)}")

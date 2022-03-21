@@ -48,7 +48,7 @@ parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_me
 parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
-parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo',
+parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea', 'ppo'], default='sappo',
                     help='')
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr', 'gro'], default='gro',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
@@ -86,33 +86,50 @@ parser.add_argument('--addTime', type=int, default=2)
 
 args = parser.parse_args()
 
+if args.map == 'dj':
+    args.trainStartTime = 25200
+    args.trainEndTime = 43200
+    # args.trainEndTime = 32400
+    args.testStartTime = 25200
+    args.testEndTime = 43200
+
 env = SALT_SAPPO_green_offset_single(args)
 n_sampled_goal = 4
 # model = PPO("MlpPolicy", env, verbose=1)
-model = SAC('MlpPolicy', env, train_freq=1, gradient_steps=2, verbose=1)
-# model = SAC(
-#     "MlpPolicy",
-#     env,
-#     # replay_buffer_class=HerReplayBuffer,
-#     # replay_buffer_kwargs=dict(
-#     #   n_sampled_goal=n_sampled_goal,
-#     #   goal_selection_strategy="future",
-#     #   # IMPORTANT: because the env is not wrapped with a TimeLimit wrapper
-#     #   # we have to manually specify the max number of steps per episode
-#     #   max_episode_length=100,
-#     #   online_sampling=True,
-#     # ),
-#     verbose=1,
-#     buffer_size=int(1e6),
-#     learning_rate=1e-3,
-#     gamma=0.95,
-#     batch_size=256,
-#     policy_kwargs=dict(net_arch=[256, 256, 256]),
-# )
+# model = SAC('MlpPolicy', env, train_freq=1, gradient_steps=2, verbose=1)
+if args.method == 'sac':
+    model = SAC(
+        "MlpPolicy",
+        env,
+        # replay_buffer_class=HerReplayBuffer,
+        # replay_buffer_kwargs=dict(
+        #   n_sampled_goal=n_sampled_goal,
+        #   goal_selection_strategy="future",
+        #   # IMPORTANT: because the env is not wrapped with a TimeLimit wrapper
+        #   # we have to manually specify the max number of steps per episode
+        #   max_episode_length=100,
+        #   online_sampling=True,
+        # ),
+        verbose=1,
+        buffer_size=int(1e6),
+        learning_rate=1e-3,
+        gamma=0.99,
+        batch_size=256,
+        policy_kwargs=dict(net_arch=[512, 512, 512, 512]),
+    )
+elif args.method == 'ppo':
+    model = PPO(
+        "MlpPolicy",
+        env,
+        verbose=1,
+        learning_rate=1e-3,
+        gamma=0.99,
+        batch_size=256,
+        policy_kwargs=dict(net_arch=[512, 512, 512, 512]),
+    )
 
-model.learn(int(2e5))
-
-# model.learn(total_timesteps=100000)
+model.learn(int(1800000))
+model.save(f'{args.method}_GRO_SINGLE_SA6')
 
 obs = env.reset()
 for i in range(1000):
@@ -120,6 +137,6 @@ for i in range(1000):
     obs, reward, done, info = env.step(action)
     # env.render()
     if done:
-      obs = env.reset()
+        obs = env.reset()
 
 env.close()
