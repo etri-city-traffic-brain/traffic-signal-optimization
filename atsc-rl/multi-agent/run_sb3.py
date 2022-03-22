@@ -4,6 +4,7 @@ import gym
 
 from stable_baselines3 import PPO, HerReplayBuffer, SAC, DDPG, TD3
 from stable_baselines3.common.noise import NormalActionNoise
+from stable_baselines3.common.cmd_util import make_vec_env
 
 from config import TRAIN_CONFIG
 
@@ -48,7 +49,7 @@ parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_me
 parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 
-parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea', 'ppo'], default='sappo',
+parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea', 'ppo', 'sac'], default='sac',
                     help='')
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr', 'gro'], default='gro',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
@@ -112,24 +113,24 @@ if args.method == 'sac':
         # ),
         verbose=1,
         buffer_size=int(1e6),
-        learning_rate=1e-3,
+        learning_rate=5e-4,
         gamma=0.99,
-        batch_size=256,
-        policy_kwargs=dict(net_arch=[512, 512, 512, 512]),
+        batch_size=8,
+        policy_kwargs=dict(net_arch=[512, 512, 512, 512, 512]),
     )
 elif args.method == 'ppo':
     model = PPO(
         "MlpPolicy",
         env,
         verbose=1,
-        learning_rate=1e-3,
-        gamma=0.99,
-        batch_size=256,
-        policy_kwargs=dict(net_arch=[512, 512, 512, 512]),
+        learning_rate=5e-4,
+        gamma=0.999,
+        batch_size=8,
+        policy_kwargs=dict(net_arch=[512, 512, 512, 512, 512]),
     )
 
 model.learn(int(1800000))
-model.save(f'{args.method}_GRO_SINGLE_SA6')
+model.save(f'{args.method}_GRO_SINGLE_{args.target_TL}')
 
 obs = env.reset()
 for i in range(1000):

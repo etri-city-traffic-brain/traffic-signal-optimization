@@ -687,18 +687,23 @@ def sappo_test(args, trial, problem_var):
 
             target_sa = list(env.sa_obj.keys())[i]
             discrete_action = []
+
             for di in range(len(actions[i])):
-                # discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, int(env.sa_obj[target_sa]['cycle_list'][di]/15))) - 1)
-                if args.action=='kc':
+                # print("actions[i]", actions[i])
+                # discrete_action.append(np.digitize(actions[i][di], bins=env.sa_obj[target_sa]['duration_bins_list'][di]))
+                if args.action == 'kc':
                     discrete_action.append(0 if actions[i][di] < args.actionp else 1)
-                if args.action=='offset':
+                if args.action == 'offset':
                     # discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2))
-                    discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
-                if args.action=='gr':
+                    discrete_action.append(int(np.round(actions[i][di] * sa_cycle[i]) / 2 / args.offsetrange))
+                if args.action == 'gr':
                     discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
-                if args.action=='gro':
-                    discrete_action.append(int(np.round(actions[i][di]*sa_cycle[i])/2/args.offsetrange))
-                    discrete_action.append(np.digitize(actions[i][di], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
+
+            if args.action == 'gro':
+                for di in range(int(len(actions[i]) / 2)):
+                    discrete_action.append(int(np.round(actions[i][di * 2] * sa_cycle[i]) / 2 / args.offsetrange))
+                    discrete_action.append(np.digitize(actions[i][di * 2 + 1], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
+
             discrete_actions.append(discrete_action)
 
         new_state, reward, done, _ = env.step(discrete_actions)

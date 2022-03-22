@@ -6,6 +6,8 @@ output/test/*
 output/train/*
 logs/*
 
+*.zip
+
 ### train tmp files ###
 data/envs/salt/data/*
 

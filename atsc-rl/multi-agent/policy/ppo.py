@@ -92,6 +92,8 @@ class PPOAgent:
         self._lambda = args._lambda
         self.ppo_eps = args.ppo_eps
         self.learning_rate = args.lr
+        self.actor_learning_rate = args.a_lr
+        self.critic_learning_rate = args.c_lr
         self.epoch = args.ppoEpoch
         self.gamma = args.gamma
 
@@ -111,8 +113,8 @@ class PPOAgent:
         self.pi_loss = -tf.reduce_mean(tf.minimum(self.ratio * self.adv, self.min_adv))
         self.v_loss = tf.reduce_mean((self.ret - self.critic.v) ** 2)
 
-        self.train_actor = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.pi_loss)
-        self.train_critic = tf.train.AdagradOptimizer(self.learning_rate).minimize(self.v_loss)
+        self.train_actor = tf.train.AdagradOptimizer(self.actor_learning_rate).minimize(self.pi_loss)
+        self.train_critic = tf.train.AdagradOptimizer(self.critic_learning_rate).minimize(self.v_loss)
 
         self.approx_kl = tf.reduce_mean(self.logp_old - self.actor.logp)
         self.approx_ent = tf.reduce_mean(-self.actor.logp)

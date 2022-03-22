@@ -95,6 +95,8 @@ parser.add_argument('--ppoEpoch', type=int, default=10)
 parser.add_argument('--ppo_eps', type=float, default=0.1)
 parser.add_argument('--_lambda', type=float, default=0.95)
 parser.add_argument('--lr', type=float, default=0.005)
+parser.add_argument('--a-lr', type=float, default=0.005)
+parser.add_argument('--c-lr', type=float, default=0.05)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
@@ -130,6 +132,8 @@ problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 problem_var += "_ppoEpoch_{}".format(args.ppoEpoch)
 problem_var += "_ppoeps_{}".format(args.ppo_eps)
 problem_var += "_lr_{}".format(args.lr)
+problem_var += "_alr_{}".format(args.a_lr)
+problem_var += "_clr_{}".format(args.c_lr)
 problem_var += "_cc_{}".format(args.controlcycle)
 # problem_var += "_offsetrange_{}".format(args.offsetrange)
 problem_var += "_logstdI_{}".format(args.logstdI)
@@ -499,8 +503,13 @@ def run_sappo():
             discrete_actions = []
             # print("range(agent_num)", range(agent_num))
             for i in range(agent_num):
-                actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
-                actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+                if ep_reward_list[-1:] < np.mean(ep_reward_list[-2:]):
+                    actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
+                    actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+                    actions[i] = np.random.randn(len(actions[i]))
+                else:
+                    actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
+                    actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
 
                 target_sa = list(env.sa_obj.keys())[i]
                 discrete_action = []
