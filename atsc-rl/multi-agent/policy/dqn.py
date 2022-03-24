@@ -6,8 +6,8 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
 
-from time import time
-from keras.callbacks import TensorBoard, LearningRateScheduler, Callback
+# from time import time
+# from keras.callbacks import TensorBoard, LearningRateScheduler, Callback
 
 import keras.backend as K
 from collections import deque

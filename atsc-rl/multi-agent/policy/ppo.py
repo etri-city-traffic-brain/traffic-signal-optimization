@@ -1,6 +1,5 @@
 import numpy as np
 import copy
-import time
 
 import tensorflow.compat.v1 as tf
 tf.disable_v2_behavior()

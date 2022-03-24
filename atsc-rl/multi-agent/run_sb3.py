@@ -1,7 +1,5 @@
 import argparse
 
-import gym
-
 from stable_baselines3 import PPO, HerReplayBuffer, SAC, DDPG, TD3
 from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.cmd_util import make_vec_env

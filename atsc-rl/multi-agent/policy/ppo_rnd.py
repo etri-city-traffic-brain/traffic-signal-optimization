@@ -5,17 +5,10 @@ tf.disable_v2_behavior()
 from config import TRAIN_CONFIG
 
 import numpy as np
-import matplotlib.pyplot as plt
-import gym
-import time
-import itertools
-
-import sklearn.pipeline
-import sklearn.preprocessing
 
 # Approximates feature map of an RBF kernel by Monte Carlo approximation of its Fourier transform.
 # https://scikit-learn.org/stable/modules/generated/sklearn.kernel_approximation.RBFSampler.html
-from sklearn.kernel_approximation import RBFSampler
+# from sklearn.kernel_approximation import RBFSampler
 
 class RunningStats(object):
     # This class which computes global stats is adapted & modified from:

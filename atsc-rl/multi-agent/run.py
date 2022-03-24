@@ -1,7 +1,6 @@
 import argparse
 
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 
 
@@ -111,10 +110,11 @@ args = parser.parse_args()
 
 if args.map == 'dj':
     args.trainStartTime = 25200
-    args.trainEndTime = 43200
-    # args.trainEndTime = 32400
+    # args.trainEndTime = 43200
+    args.trainEndTime = 32400
     args.testStartTime = 25200
-    args.testEndTime = 43200
+    # args.testEndTime = 43200
+    args.trainEndTime = 32400
 
 problem_var = ""
 # problem_var = "tau{}".format(args.tau)
@@ -503,13 +503,13 @@ def run_sappo():
             discrete_actions = []
             # print("range(agent_num)", range(agent_num))
             for i in range(agent_num):
-                if ep_reward_list[-1:] < np.mean(ep_reward_list[-2:]):
-                    actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
-                    actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
-                    actions[i] = np.random.randn(len(actions[i]))
-                else:
-                    actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
-                    actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+                # if ep_reward_list[-1:] < np.mean(ep_reward_list[-2:]):
+                #     actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
+                #     actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+                #     actions[i] = np.random.randn(len(actions[i]))
+                # else:
+                actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
+                actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
 
                 target_sa = list(env.sa_obj.keys())[i]
                 discrete_action = []
