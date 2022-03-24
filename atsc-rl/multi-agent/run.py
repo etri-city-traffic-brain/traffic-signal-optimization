@@ -116,7 +116,7 @@ if args.map == 'dj':
     args.trainEndTime = 32400
     args.testStartTime = 25200
     # args.testEndTime = 43200
-    args.trainEndTime = 32400
+    args.testEndTime = 32400
 
 problem_var = ""
 # problem_var = "tau{}".format(args.tau)
