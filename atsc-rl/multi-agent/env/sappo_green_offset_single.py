@@ -77,6 +77,8 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         self.cp = args.cp
         self.printOut = args.printOut
         self.sim_period = sim_period
+        self.warmupTime = args.warmupTime
+        self.maxobs = 999
 
         if IS_DOCKERIZE:
             scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
@@ -334,7 +336,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                                 self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / (len(link_list_0) * self.sim_period))
                             # for l in link_list_1:
                             #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
-                        self.observations[sa_i] += self.get_state(sa)
+                        # self.observations[sa_i] += self.get_state(sa)
 
                 if self.simulationSteps > 0:
                     if self.reward_func == 'pn':
@@ -413,6 +415,17 @@ class SALT_SAPPO_green_offset_single(gym.Env):
 
         self.simulationSteps = libsalt.getCurrentStep()
 
+        for _ in range(self.warmupTime):
+            libsalt.simulationStep()
+        self.simulationSteps = libsalt.getCurrentStep()
+
+        for said in self.sa_obj:
+            while(self.simulationSteps % (self.sa_obj[said]['cycle_list'][0]*self.control_cycle)!=0):
+                libsalt.simulationStep()
+                self.simulationSteps = libsalt.getCurrentStep()
+
+        print(f"{self.simulationSteps} start")
+
         observations = []
         self.lane_passed = []
         self.phase_arr = []
@@ -440,7 +453,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
             observations.append(self.get_state(said))
 
             sa_i += 1
-
         return observations
 
     def get_state(self, said):
@@ -497,8 +509,8 @@ class SALT_SAPPO_green_offset_single(gym.Env):
 
         # if self.args.method=='sappo':
         obs = obs + np.finfo(float).eps
-        # print(obs)
-        obs = obs/np.max(obs)
+        # # print(obs)
+        obs = obs/self.maxobs
         # print(obs)
         # print(densityMatrix)
         # print(passedMatrix)

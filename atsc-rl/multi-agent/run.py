@@ -48,7 +48,9 @@ else:
     parser.add_argument('--testStartTime', type=int, default=0)
     parser.add_argument('--testEndTime', type=int, default=7200)
 
+
 parser.add_argument('--epoch', type=int, default=3000)
+parser.add_argument('--warmupTime', type=int, default=600)
 parser.add_argument('--model-save-period', type=int, default=20)
 parser.add_argument('--logprint', type=bool, default=False)
 parser.add_argument('--printOut', type=bool, default=True, help='print result each step')
@@ -371,7 +373,7 @@ def run_sappo():
         end_time = args.end_time if args.end_time < scenario_end else scenario_end
         trial_len = end_time - start_time
     else:
-        trial_len = args.trainEndTime - args.trainStartTime
+        trial_len = args.trainEndTime - args.trainStartTime - args.warmupTime
 
     time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
     # self.train_summary_writer = tf.summary.FileWriter('logs/SAPPO/{}/{}_{}'.format(args.problem, self.time_data, agentID))
@@ -538,10 +540,11 @@ def run_sappo():
 
             new_state, reward, done, _ = env.step(discrete_actions)
             # print(f"current state {cur_state} action {actions} reward {reward} new_state {new_state}")
+            print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions, 2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
-            if agent_num==1:
-                if (t + args.trainStartTime) % int(sa_cycle[i] * args.controlcycle) == 0:
-                    print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
+            # if agent_num==1:
+            #     if (env.simulationSteps + args.warmupTime + args.trainStartTime) % int(sa_cycle[i] * args.controlcycle) == 0:
+            #         print(f"simStep {env.simulationSteps} current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
@@ -616,6 +619,7 @@ def run_sappo():
                                 rewards[i] = np.r_[rewards[i], reward[i]]
 
                         # Update the observation
+                        print(cur_state, new_state)
                         cur_state[i] = new_state[i]
 
                         episodic_reward += reward[i]

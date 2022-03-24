@@ -77,6 +77,7 @@ class SALT_SAPPO_offset_single(gym.Env):
         self.cp = args.cp
         self.printOut = args.printOut
         self.sim_period = sim_period
+        self.warmupTime = args.warmupTime
 
         if IS_DOCKERIZE:
             scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
@@ -383,6 +384,9 @@ class SALT_SAPPO_offset_single(gym.Env):
         libsalt.setCurrentStep(self.startStep)
 
         self.simulationSteps = libsalt.getCurrentStep()
+
+        for _ in range(self.warmupTime):
+            libsalt.simulationStep()
 
         observations = []
         self.lane_passed = []
