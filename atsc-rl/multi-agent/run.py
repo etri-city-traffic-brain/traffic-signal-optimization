@@ -1319,41 +1319,30 @@ def run_ppoea():
 
 if __name__ == "__main__":
     if IS_DOCKERIZE:
-        if args.method == 'sappo':
-            dir_name_list = [ #f"{args.io_home}/model",
-                             f"{args.io_home}/model/sappo",
-                             f"{args.io_home}/logs",
-                             # f"{args.io_home}/output",
-                             f"{args.io_home}/output/ft",
-                             f"{args.io_home}/output/rl",
-                             f"{args.io_home}/output/test",
-                             f"{args.io_home}/output/train",
-                             #f"{args.io_home}/data/envs/salt/data",
-            ]
-        elif args.method =='ddqn':
-            dir_name_list = [  # f"{args.io_home}/model",
-                f"{args.io_home}/model/ddqn",
-                f"{args.io_home}/logs",
-                # f"{args.io_home}/output",
-                f"{args.io_home}/output/ft",
-                f"{args.io_home}/output/rl",
-                f"{args.io_home}/output/test",
-                f"{args.io_home}/output/train",
-                # f"{args.io_home}/data/envs/salt/data",
-            ]
-        elif args.method =='ppornd':
-            dir_name_list = [  # f"{args.io_home}/model",
-                f"{args.io_home}/model/ppornd",
-                f"{args.io_home}/logs",
-                # f"{args.io_home}/output",
-                f"{args.io_home}/output/ft",
-                f"{args.io_home}/output/rl",
-                f"{args.io_home}/output/test",
-                f"{args.io_home}/output/train",
-                # f"{args.io_home}/data/envs/salt/data",
-            ]
-
+        dir_name_list = [ #f"{args.io_home}/model",
+                         f"{args.io_home}/model/{args.method}",
+                         f"{args.io_home}/logs",
+                         # f"{args.io_home}/output",
+                         f"{args.io_home}/output/ft",
+                         f"{args.io_home}/output/rl",
+                         f"{args.io_home}/output/test",
+                         f"{args.io_home}/output/train",
+                         #f"{args.io_home}/data/envs/salt/data",
+        ]
         makeDirectories(dir_name_list)
+    else:
+        dir_name_list = [
+                         f"{args.io_home}/model/{args.method}",
+                         f"{args.io_home}/logs",
+                         f"{args.io_home}/output",
+                         f"{args.io_home}/output/ft",
+                         f"{args.io_home}/output/rl",
+                         f"{args.io_home}/output/test",
+                         f"{args.io_home}/output/train",
+                         f"{args.io_home}/data/envs/salt/data",
+        ]
+        makeDirectories(dir_name_list)
+
 
     if args.mode == 'train':
         if args.method == 'sappo':
