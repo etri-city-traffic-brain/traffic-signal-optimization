@@ -156,12 +156,11 @@ if IS_DOCKERIZE:
     fn_train_epoch_total_reward = "{}/train_epoch_total_reward.txt".format(output_train_dir)
     fn_train_epoch_tl_reward = "{}/train_epoch_tl_reward.txt".format(output_train_dir)
 
-if IS_DOCKERIZE:
-    def makeDirectories(dir_name_list):
-        import os
-        for dir_name in dir_name_list:
-            os.makedirs(dir_name, exist_ok=True)
-        return
+def makeDirectories(dir_name_list):
+    import os
+    for dir_name in dir_name_list:
+        os.makedirs(dir_name, exist_ok=True)
+    return
 
 def run_ddqn():
     import tensorflow as tf
