@@ -102,6 +102,8 @@ parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 pr
 parser.add_argument('--controlcycle', type=int, default=5)
 parser.add_argument('--res', type=bool, default=True)
 parser.add_argument('--logstdI', type=float, default=0.5)
+parser.add_argument('--memLen', type=int, default=1000, help='memory length')
+parser.add_argument('--memFR', type=float, default=0.9, help='memory forget ratio')
 
 ### GREEN RATIO args
 parser.add_argument('--addTime', type=int, default=2)
@@ -131,12 +133,14 @@ problem_var += "_netsize_{}".format(TRAIN_CONFIG['network_size'])
 # problem_var += "_lambda_{}".format(args._lambda)
 problem_var += "_ppoEpoch_{}".format(args.ppoEpoch)
 problem_var += "_ppoeps_{}".format(args.ppo_eps)
-problem_var += "_lr_{}".format(args.lr)
+# problem_var += "_lr_{}".format(args.lr)
 problem_var += "_alr_{}".format(args.a_lr)
 problem_var += "_clr_{}".format(args.c_lr)
-problem_var += "_cc_{}".format(args.controlcycle)
+# problem_var += "_cc_{}".format(args.controlcycle)
+problem_var += "_mLen_{}".format(args.memLen)
+problem_var += "_mFR_{}".format(args.memFR)
 # problem_var += "_offsetrange_{}".format(args.offsetrange)
-problem_var += "_logstdI_{}".format(args.logstdI)
+# problem_var += "_logstdI_{}".format(args.logstdI)
 
 if args.method=='ppornd':
     problem_var += "_gammai_{}".format(args.gamma_i)
@@ -495,8 +499,8 @@ def run_sappo():
         episodic_reward = 0
         episodic_agent_reward = [0]*agent_num
         start = time.time()
-        m_len = 3000
-        m_remove_ratio = 0.9
+        m_len = args.memLen
+        m_remove_ratio = args.memFR
         print("trial_len", trial_len)
         for t in range(trial_len):
             discrete_actions = []
