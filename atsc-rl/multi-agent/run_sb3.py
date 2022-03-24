@@ -28,6 +28,7 @@ else:
     parser.add_argument('--testEndTime', type=int, default=7200)
 
 parser.add_argument('--epoch', type=int, default=3000)
+parser.add_argument('--warmupTime', type=int, default=600)
 parser.add_argument('--model-save-period', type=int, default=20)
 parser.add_argument('--logprint', type=bool, default=False)
 parser.add_argument('--printOut', type=bool, default=True, help='print result each step')
@@ -87,10 +88,10 @@ args = parser.parse_args()
 
 if args.map == 'dj':
     args.trainStartTime = 25200
-    args.trainEndTime = 43200
+    args.trainEndTime = 32400
     # args.trainEndTime = 32400
     args.testStartTime = 25200
-    args.testEndTime = 43200
+    args.testEndTime = 32400
 
 env = SALT_SAPPO_green_offset_single(args)
 n_sampled_goal = 4
@@ -110,7 +111,7 @@ if args.method == 'sac':
         #   online_sampling=True,
         # ),
         verbose=1,
-        buffer_size=int(1e6),
+        buffer_size=int(200),
         learning_rate=5e-4,
         gamma=0.99,
         batch_size=8,
@@ -127,7 +128,7 @@ elif args.method == 'ppo':
         policy_kwargs=dict(net_arch=[512, 512, 512, 512, 512]),
     )
 
-model.learn(int(1800000))
+model.learn(int(8*1000))
 model.save(f'{args.method}_GRO_SINGLE_{args.target_TL}')
 
 obs = env.reset()

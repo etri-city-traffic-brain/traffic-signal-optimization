@@ -77,6 +77,8 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         self.cp = args.cp
         self.printOut = args.printOut
         self.sim_period = sim_period
+        self.warmupTime = args.warmupTime
+        self.obsmax = 999
 
         if IS_DOCKERIZE:
             scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
@@ -346,7 +348,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                                 self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / (len(link_list_0) * self.sim_period))
                             # for l in link_list_1:
                             #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getSumTravelTime(l) / 1000 * reward_weight)
-                        self.observations[sa_i] += self._get_obs(sa)
+                        # self.observations[sa_i] += self._get_obs(sa)
 
                 if self.simulationSteps > 0:
                     if self.reward_func == 'pn':
@@ -425,6 +427,15 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         libsalt.setCurrentStep(self.startStep)
 
         self.simulationSteps = libsalt.getCurrentStep()
+
+        for _ in range(self.warmupTime):
+            libsalt.simulationStep()
+        self.simulationSteps = libsalt.getCurrentStep()
+
+        for said in self.sa_obj:
+            while(self.simulationSteps % (self.sa_obj[said]['cycle_list'][0]*self.control_cycle)!=0):
+                libsalt.simulationStep()
+                self.simulationSteps = libsalt.getCurrentStep()
 
         observations = []
         self.lane_passed = []
@@ -511,7 +522,7 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         # if self.args.method=='sappo':
         obs = obs + np.finfo(float).eps
         # print(obs)
-        obs = obs/np.max(obs)
+        obs = obs/self.obsmax
         # print(obs)
         # print(densityMatrix)
         # print(passedMatrix)
