@@ -1332,14 +1332,14 @@ if __name__ == "__main__":
         makeDirectories(dir_name_list)
     else:
         dir_name_list = [
-                         f"{args.io_home}/model/{args.method}",
-                         f"{args.io_home}/logs",
-                         f"{args.io_home}/output",
-                         f"{args.io_home}/output/ft",
-                         f"{args.io_home}/output/rl",
-                         f"{args.io_home}/output/test",
-                         f"{args.io_home}/output/train",
-                         f"{args.io_home}/data/envs/salt/data",
+                         f"model/{args.method}",
+                         f"logs",
+                         f"output",
+                         f"output/ft",
+                         f"output/rl",
+                         f"output/test",
+                         f"output/train",
+                         f"data/envs/salt/data",
         ]
         makeDirectories(dir_name_list)
 
