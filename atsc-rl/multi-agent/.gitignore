@@ -4,6 +4,7 @@ output/ft/*
 output/rl/*
 output/test/*
 output/train/*
+output/simulate/*
 logs/*
 
 *.zip
