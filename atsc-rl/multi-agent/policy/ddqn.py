@@ -14,17 +14,17 @@ from config import TRAIN_CONFIG
 class DDQN:
     def __init__(self, args, env, state_space, action_space, epsilon=1, epsilon_min=0.1):
         self.env = env
-        self.memory = deque(maxlen=TRAIN_CONFIG['replay_size'])
+        self.memory = deque(maxlen=args.replay_size)
 
         self.gamma = args.gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
         self.epsilon_decay = 0.999
-        self.learning_rate = TRAIN_CONFIG['lr']
+        self.learning_rate = args.lr
         self.tau = args.tau
         # self.tau = 0.05
 
-        self.batch_size = TRAIN_CONFIG['batch_size']
+        self.batch_size = args.batch_size
 
         self.state_space = state_space
         self.action_space = action_space
