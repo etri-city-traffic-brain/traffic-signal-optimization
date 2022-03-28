@@ -102,12 +102,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
             os.makedirs(self.dest_dir, exist_ok=True)
         else:
             self.src_dir = os.getcwd() + f"/data/envs/salt/{self.args.map}"
-            # if self.args.map == 'dj':
-            #     self.src_dir = os.getcwd() + "/data/envs/salt/dj_all"
-            #     if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-            #         self.src_dir = os.getcwd() + "/data/envs/salt/sa_1_6_17"
-            # if self.args.map == 'doan':
-            #     self.src_dir = os.getcwd() + "/data/envs/salt/doan"
             self.dest_dir = os.getcwd() + "/data/envs/salt/data/" + self.uid + "/"
             os.mkdir(self.dest_dir)
 
@@ -123,38 +117,10 @@ class SALT_SAPPO_green_offset_single(gym.Env):
             _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
             tree = parse(tss_file_path)
         else:
-            # self.salt_scenario = self.dest_dir + 'doan_2021_actionT{}.scenario.json'.format(self.actionT)
             self.salt_scenario = self.dest_dir + f'{self.args.map}_{args.mode}.scenario.json'
-            # if args.mode == 'train':
-            #     if self.args.map == 'dj':
-            #         self.salt_scenario = self.dest_dir + 'dj_all.scenario.json'
-            #         if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-            #             self.salt_scenario = self.dest_dir + 'sa_1_6_17.scenario.json'
-            #     if self.args.map == 'doan':
-            #         self.salt_scenario = self.dest_dir + 'doan_20211207.scenario.json'
-            # if args.mode == 'test':
-            #     if self.args.map == 'dj':
-            #         self.salt_scenario = self.dest_dir + 'dj_all_test.scenario.json'
-            #         if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-            #             self.salt_scenario = self.dest_dir + 'sa_1_6_17_test.scenario.json'
-            #     if self.args.map == 'doan':
-            #         self.salt_scenario = self.dest_dir + 'doan_20211207_test.scenario.json'
-
-            # if self.args.map == 'dj':
-            #     edge_file_path = "data/dj_all/edge.xml"
-            #     tss_file_path = "data/envs/salt/dj_all/tss.xml"
-            #     tree = parse(os.getcwd() + '/data/envs/salt/dj_all/tss.xml')
-            #     if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-            #         edge_file_path = "data/sa_1_6_17/edge.xml"
-            #         tss_file_path = "data/envs/salt/sa_1_6_17/tss.xml"
-            #         tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/tss.xml')
-            # if self.args.map == 'doan':
-            #     edge_file_path = "magic/doan_20211207.edg.xml"
-            #     tss_file_path = "magic/doan_20211207.tss.xml"
-            #     tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
-
             edge_file_path = f"data/{self.args.map}/{self.args.map}.edge.xml"
             tree = parse(os.getcwd() + f'/data/envs/salt/{self.args.map}/{self.args.map}.tss.xml')
+
 
         root = tree.getroot()
 

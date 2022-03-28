@@ -33,7 +33,7 @@ else:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='600')
+parser.add_argument('--model-num', type=str, default='0')
 
 if IS_DOCKERIZE:
     parser.add_argument('--result-comp', type=bool, default=False)
@@ -72,11 +72,10 @@ parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
 
 parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo',
                     help='')
-parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr', 'gro'], default='gro',
+parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'offset', 'gr', 'gro'], default='gr',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
-                         'pss - phase-set selection, o - offset, gr - green ratio, gro - green ratio+offset')
-parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17',
-                    help='dj - Daejeon all region, doan - doan 111 tss')
+                         'pss - phase-set selection, offset - offset, gr - green ratio, gro - green ratio+offset')
+parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
 
 if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')
@@ -112,12 +111,10 @@ parser.add_argument('--addTime', type=int, default=2)
 
 args = parser.parse_args()
 
-if args.map == 'dj':
+if args.map == 'sa_1_6_17' or args.map=='dj_all':
     args.trainStartTime = 25200
-    # args.trainEndTime = 43200
     args.trainEndTime = 32400
     args.testStartTime = 25200
-    # args.testEndTime = 43200
     args.testEndTime = 32400
 
 problem_var = ""

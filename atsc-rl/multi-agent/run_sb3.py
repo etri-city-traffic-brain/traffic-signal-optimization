@@ -53,8 +53,7 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea', 'pp
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr', 'gro'], default='gro',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
                          'pss - phase-set selection, o - offset, gr - green ratio, gro - green ratio+offset')
-parser.add_argument('--map', choices=['dj', 'doan'], default='dj',
-                    help='dj - Daejeon all region, doan - doan 111 tss')
+parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
 
 if IS_DOCKERIZE:
     parser.add_argument('--io-home', type=str, default='io')

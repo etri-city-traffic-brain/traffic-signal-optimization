@@ -404,19 +404,34 @@ def ft_simulate(args):
         start_time = args.testStartTime
         trial_len = args.testEndTime - args.testStartTime
 
-    env = SALT_doan_multi_PSA(args)
+    if args.action=='kc':
+        print("SAPPO KEEP OR CHANGE")
+        env = SALT_SAPPO_noConst(args)
+    if args.action=='offset':
+        if len(args.target_TL.split(",")) == 1:
+            print("SAPPO OFFSET SINGLE")
+            env = SALT_SAPPO_offset_single(args)
+        else:
+            print("SAPPO OFFSET")
+            env = SALT_SAPPO_offset(args)
+    if args.action=='gr':
+        print("SAPPO GREEN RATIO")
+        env = SALT_SAPPO_green_single(args)
+    if args.action=='gro':
+        print("SAPPO GREEN RATIO + OFFSET")
+        env = SALT_SAPPO_green_offset_single(args)
 
     for target_tl in list(env.target_tl_obj.keys()):
         env.target_tl_obj[target_tl]['crossName']
 
     if IS_DOCKERIZE:
-        output_ft_dir = '{}/output/ft'.format(args.io_home)
-        fn_ft_phase_reward_output = "{}/ft_phase_reward_output.txt".format(output_ft_dir)
+        output_ft_dir = f'{args.io_home}/output/{args.mode}'
+        fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
 
         f = open(fn_ft_phase_reward_output, mode='w+', buffering=-1, encoding='utf-8', errors=None, newline=None,
                                   closefd=True, opener=None)
     else:
-        f = open("output/ft/ft_phase_reward_output.txt", mode='w+', buffering=-1, encoding='utf-8', errors=None,
+        f = open(f"output/{args.mode}/ft_phase_reward_output.txt", mode='w+', buffering=-1, encoding='utf-8', errors=None,
                  newline=None,
                  closefd=True, opener=None)
 
@@ -436,7 +451,7 @@ def ft_simulate(args):
                     newline=None,
                     closefd=True, opener=None)
         else:
-            f = open("output/ft/ft_phase_reward_output.txt", mode='a+', buffering=-1, encoding='utf-8', errors=None,
+            f = open(f"output/{args.mode}/ft_phase_reward_output.txt", mode='a+', buffering=-1, encoding='utf-8', errors=None,
                      newline=None,
                      closefd=True, opener=None)
 
@@ -594,18 +609,22 @@ def sappo_test(args, trial, problem_var):
 
     # ft_simulate(args)
 
-    if args.action == 'kc':
+    if args.action=='kc':
+        print("SAPPO KEEP OR CHANGE")
         env = SALT_SAPPO_noConst(args)
-    elif args.action == 'offset':
-        env = SALT_SAPPO_offset(args)
+    if args.action=='offset':
         if len(args.target_TL.split(",")) == 1:
+            print("SAPPO OFFSET SINGLE")
             env = SALT_SAPPO_offset_single(args)
-    elif args.action=='gr':
-        if len(args.target_TL.split(",")) == 1:
-            env = SALT_SAPPO_green_single(args)
-    elif args.action=='gro':
-        if len(args.target_TL.split(",")) == 1:
-            env = SALT_SAPPO_green_offset_single(args)
+        else:
+            print("SAPPO OFFSET")
+            env = SALT_SAPPO_offset(args)
+    if args.action=='gr':
+        print("SAPPO GREEN RATIO")
+        env = SALT_SAPPO_green_single(args)
+    if args.action=='gro':
+        print("SAPPO GREEN RATIO + OFFSET")
+        env = SALT_SAPPO_green_offset_single(args)
 
     agent_num = env.agent_num
 
@@ -713,12 +732,12 @@ def sappo_test(args, trial, problem_var):
     if IS_DOCKERIZE:
         if args.result_comp:
             ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("{}/output/ft/-PeriodicOutput.csv".format(args.io_home))
+            ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
             rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
     else:
         # if args.resultComp:
             ## add time 3, state weight 0.0, model 1000, action v2
-        ft_output = pd.read_csv("output/ft/-PeriodicOutput.csv")
+        ft_output = pd.read_csv("output/simulate/-PeriodicOutput.csv")
         rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
 
     total_output = result_comp(args, ft_output, rl_output, model_num)
@@ -867,12 +886,12 @@ def ppornd_test(args, trial, problem_var):
     if IS_DOCKERIZE:
         if args.result_comp:
             ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("{}/output/ft/-PeriodicOutput.csv".format(args.io_home))
+            ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
             rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
     else:
         # if args.resultComp:
             ## add time 3, state weight 0.0, model 1000, action v2
-        ft_output = pd.read_csv("output/ft/-PeriodicOutput.csv")
+        ft_output = pd.read_csv("output/simulate/-PeriodicOutput.csv")
         rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
 
     total_output = result_comp(args, ft_output, rl_output, model_num)
