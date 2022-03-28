@@ -1,17 +1,5 @@
 # ATSC-RL(Multi-Agent)
 
-### Create the folders
-- model/
-- model/ddqn
-- logs/
-- output/
-- output/ft
-- output/rl
-- output/test
-- output/train 
-- data/envs/salt/data
-
-
 ### How to use ###
 - change libsalt directory in config.py
 
@@ -51,7 +39,7 @@ Tensorboard
 ```
 - SALT simulation output during training
 ```shell script
-    output/rl/-PeriodicOutput.csv
+    output/train/-PeriodicOutput.csv
 ```
 
 #### Test ####
@@ -67,11 +55,11 @@ Tensorboard
 ##### Fixed Time Scenario #####
 - phase for each step at each intersection
 ```shell script
-    output/ft/ft_phase_output.txt
+    output/simulate/ft_phase_output.txt
 ```
 - SALT simulation output for fixed time scenario
 ```shell script
-    output/ft/-PeriodicOutput.csv
+    output/simulate/-PeriodicOutput.csv
 ```
 
 - When **resultComp is True**, comparison of improvement for model number {}
