@@ -57,12 +57,13 @@ def result_comp(args, ft_output, rl_output, model_num):
 
         tree = parse(tss_file_path)
     else:
-        if args.map=='doan':
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
-        else:
-            tree = parse(os.getcwd() + '/data/envs/salt/dj_all/tss.xml')
-            if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
-                tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/tss.xml')
+        tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.tss.xml')
+        # if args.map=='doan':
+        #     tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
+        # else:
+        #     tree = parse(os.getcwd() + '/data/envs/salt/dj_all/tss.xml')
+        #     if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
+        #         tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/tss.xml')
 
     root = tree.getroot()
 
@@ -119,14 +120,16 @@ def result_comp(args, ft_output, rl_output, model_num):
         salt_scenario = scenario_file_path
         tree = parse(edge_file_path)
     else:
-        if args.map=='doan':
-            salt_scenario = 'data/envs/salt/doan/doan_20211207.scenario.json'
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
-        else:
-            salt_scenario = 'data/envs/salt/dj_all/dj_all.scenario.json'
-            tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
-            if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
-                tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/edge.xml')
+        salt_scenario = f'data/envs/salt/{args.map}/{args.map}_{args.mode}.scenario.json'
+        tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.edge.xml')
+        # if args.map=='doan':
+        #     salt_scenario = 'data/envs/salt/doan/doan_20211207.scenario.json'
+        #     tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
+        # else:
+        #     salt_scenario = 'data/envs/salt/dj_all/dj_all.scenario.json'
+        #     tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
+        #     if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
+        #         tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/edge.xml')
 
     root = tree.getroot()
 
@@ -379,12 +382,13 @@ def ft_simulate(args):
     if IS_DOCKERIZE:
         salt_scenario = args.scenario_file_path
     else:
-        if args.map=='doan':
-            salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
-        else:
-            salt_scenario = 'data/envs/salt/dj_all/dj_all_ft.scenario.json'
-            if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
-                salt_scenario = 'data/envs/salt/sa_1_6_17/sa_1_6_17_ft.scenario.json'
+        salt_scenario = f'data/envs/salt/{args.map}/{args.map}_{args.mode}.scenario.json'
+        # if args.map=='doan':
+        #     salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
+        # else:
+        #     salt_scenario = 'data/envs/salt/dj_all/dj_all_ft.scenario.json'
+        #     if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
+        #         salt_scenario = 'data/envs/salt/sa_1_6_17/sa_1_6_17_ft.scenario.json'
 
     if IS_DOCKERIZE:
         if 0:
@@ -448,12 +452,6 @@ def ft_simulate(args):
 
 def ddqn_test(args, trial, problem_var):
     model_num = trial
-
-    if IS_DOCKERIZE:
-        salt_scenario = args.scenario_file_path
-    else:
-        salt_scenario = 'data/envs/salt/doan/doan_2021_ft.scenario.json'
-
 
     # cmd = 'sudo ../traffic-simulator/bin/./salt-standalone data/envs/salt/doan/doan_2021_ft.scenario.json'
     # so = os.popen(cmd).read()
@@ -549,14 +547,14 @@ def ddqn_test(args, trial, problem_var):
     if IS_DOCKERIZE:
         if args.result_comp:
             ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("{}/output/ft/-PeriodicOutput.csv".format(args.io_home))
+            ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
             rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
 
             result_comp(args, ft_output, rl_output, model_num)
     else:
         if args.resultComp:
             ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("output/ft/-PeriodicOutput.csv")
+            ft_output = pd.read_csv("output/simulate/-PeriodicOutput.csv")
             rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
 
             result_comp(args, ft_output, rl_output, model_num)
@@ -567,17 +565,6 @@ def sappo_test(args, trial, problem_var):
     import tensorflow.compat.v1 as tf
     tf.disable_eager_execution()
     model_num = trial
-
-    if IS_DOCKERIZE:
-        salt_scenario = args.scenario_file_path
-    else:
-        if args.map == 'doan':
-            salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
-        else:
-            salt_scenario = 'data/envs/salt/dj_all/dj_all_ft.scenario.json'
-            if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
-                salt_scenario = 'data/envs/salt/sa_1_6_17/sa_1_6_17_ft.scenario.json'
-
 
     if IS_DOCKERIZE:
         if 0:
@@ -748,12 +735,6 @@ def ppornd_test(args, trial, problem_var):
     import tensorflow.compat.v1 as tf
     tf.disable_eager_execution()
     model_num = trial
-
-    if IS_DOCKERIZE:
-        salt_scenario = args.scenario_file_path
-    else:
-        salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
-
 
     if IS_DOCKERIZE:
         if 0:

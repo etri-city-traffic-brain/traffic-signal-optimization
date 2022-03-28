@@ -6,9 +6,6 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout
 from keras.optimizers import Adam
 
-# from time import time
-# from keras.callbacks import TensorBoard, LearningRateScheduler, Callback
-
 import keras.backend as K
 from collections import deque
 
@@ -53,15 +50,8 @@ class DDQN:
                 model.add(Dense(TRAIN_CONFIG['network_size'][ns], input_dim=state_shape, activation="relu"))
             else:
                 model.add(Dense(TRAIN_CONFIG['network_size'][ns], activation="relu"))
-        # model.add(Dense(self.action_space*100, input_dim=state_shape, activation="relu"))
-        # model.add(Dense(self.action_space*80, activation="relu"))
-        # model.add(Dense(self.action_space*60, activation="relu"))
-        # model.add(Dense(self.action_space*40, activation="relu"))
-        # model.add(Dense(self.action_space*20, activation="relu"))
         model.add(Dense(self.action_space))
 
-        # model.compile(loss="mean_squared_error",
-        #               optimizer=Adam(lr=self.learning_rate))
         model.compile(loss=self._huber_loss,
                       optimizer=Adam(lr=self.learning_rate))
         return model

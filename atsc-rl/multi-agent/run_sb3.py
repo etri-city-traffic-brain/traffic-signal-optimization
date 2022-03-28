@@ -111,11 +111,11 @@ if args.method == 'sac':
         #   online_sampling=True,
         # ),
         verbose=1,
-        buffer_size=int(200),
-        learning_rate=5e-4,
+        buffer_size=int(2000),
+        learning_rate=0.005,
         gamma=0.99,
-        batch_size=8,
-        policy_kwargs=dict(net_arch=[512, 512, 512, 512, 512]),
+        batch_size=4,
+        policy_kwargs=dict(net_arch=[512, 512, 512, 512]),
     )
 elif args.method == 'ppo':
     model = PPO(

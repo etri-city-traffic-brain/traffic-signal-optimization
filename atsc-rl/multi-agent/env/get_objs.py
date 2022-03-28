@@ -206,12 +206,13 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
     if IS_DOCKERIZE:
         tree = parse(edge_file_path)
     else:
-        if args.map=='doan':
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
-        elif args.map=='dj':
-            tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
-            if args.target_TL == 'SA 1' or args.target_TL == 'SA 6' or args.target_TL == 'SA 17':
-                tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/edge.xml')
+        tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.edge.xml')
+        # if args.map=='doan':
+        #     tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
+        # elif args.map=='dj':
+        #     tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
+        #     if args.target_TL == 'SA 1' or args.target_TL == 'SA 6' or args.target_TL == 'SA 17':
+        #         tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/edge.xml')
 
     root = tree.getroot()
 

@@ -6,9 +6,6 @@ tf.disable_v2_behavior()
 
 from config import TRAIN_CONFIG
 
-episode_num = 1000
-n_step = 500
-
 def gaussian_likelihood(x, mu, log_std):
     pre_sum = -0.5 * (((x - mu) / (tf.exp(log_std) + 1e-8)) ** 2 + 2 * log_std + np.log(2 * np.pi))
     print(tf.reduce_sum(pre_sum, axis=1))
@@ -157,10 +154,3 @@ class PPOAgent:
         if normalize:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
         return gaes, target
-
-    def compute_intrinsic_reward(self, next_state):
-        target_next_feature = self.rnd.target(next_state)
-        predict_next_feature = self.rnd.predictor(next_state)
-        intrinsic_reward = (target_next_feature - predict_next_feature).pow(2).sum(1) / 2
-
-        return intrinsic_reward.data.cpu().numpy()

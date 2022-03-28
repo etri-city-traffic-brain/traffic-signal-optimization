@@ -75,7 +75,7 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], de
 parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr', 'gro'], default='gro',
                     help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
                          'pss - phase-set selection, o - offset, gr - green ratio, gro - green ratio+offset')
-parser.add_argument('--map', choices=['dj', 'doan'], default='dj',
+parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17',
                     help='dj - Daejeon all region, doan - doan 111 tss')
 
 if IS_DOCKERIZE:
@@ -546,7 +546,7 @@ def run_sappo():
             #     if (env.simulationSteps + args.warmupTime + args.trainStartTime) % int(sa_cycle[i] * args.controlcycle) == 0:
             #         print(f"simStep {env.simulationSteps} current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
-            if len(args.target_TL.split(",")) == 1:
+            if len(args.target_TL.split(",")) == 1: # for single target SA
                 for i in range(agent_num):
                     if trial==0:
                         states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
@@ -1330,8 +1330,7 @@ if __name__ == "__main__":
                          f"{args.io_home}/model/{args.method}",
                          f"{args.io_home}/logs",
                          # f"{args.io_home}/output",
-                         f"{args.io_home}/output/ft",
-                         f"{args.io_home}/output/rl",
+                         f"{args.io_home}/output/simulate",
                          f"{args.io_home}/output/test",
                          f"{args.io_home}/output/train",
                          #f"{args.io_home}/data/envs/salt/data",
@@ -1342,8 +1341,7 @@ if __name__ == "__main__":
                          f"model/{args.method}",
                          f"logs",
                          f"output",
-                         f"output/ft",
-                         f"output/rl",
+                         f"output/simulate",
                          f"output/test",
                          f"output/train",
                          f"data/envs/salt/data",
