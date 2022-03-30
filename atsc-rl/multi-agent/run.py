@@ -35,10 +35,10 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], de
 
 parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
 
-# parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
-#                     help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
-parser.add_argument('--target-TL', type=str, default="SA 6",
-                    help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
+                    help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
+# parser.add_argument('--target-TL', type=str, default="SA 6",
+#                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 parser.add_argument('--start-time', type=int, default=25400)
 parser.add_argument('--end-time', type=int, default=32400)
 
@@ -402,15 +402,16 @@ def run_sappo():
     print(ppo_agent)
     print("env.sa_obj", env.sa_obj)
 
-
     saver = tf.train.Saver(max_to_keep=5)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
 
+    ### agent 수 만큼 collection 생성
     actions_collection, state_collection, value_collection, logp_t_collection, done_collection, reward_collection = [], [], [], [], [], []
     for target_sa in env.sa_obj:
-        actions_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        actions_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0]) # 에이전트의 action이 여러 개이므로 에이전트의 action 수 만큼 0으로 초기화
+        ### 나머지 값들은 실수 값이라 0으로만 초기화
         state_collection.append([0])
         value_collection.append([0])
         logp_t_collection.append([0])
@@ -424,6 +425,8 @@ def run_sappo():
         cur_state = env.reset()
 
         sa_cycle = []
+
+        ### agent 수 만큼 필요한 변수들 초기화
         for target_sa in env.sa_obj:
             actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             v_t.append([0])

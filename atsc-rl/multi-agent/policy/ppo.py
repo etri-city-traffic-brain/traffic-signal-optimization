@@ -37,7 +37,7 @@ class Actor:
             self.state = tf.placeholder(tf.float32, [None, state_size])
             self.action = tf.placeholder(tf.float32, [None, action_size])
 
-            if args.res:
+            if args.res: # use resnet
                 inp = tf.layers.dense(self.state, TRAIN_CONFIG['network_size'][0], tf.nn.relu)
                 identity = inp
                 for i in range(len(TRAIN_CONFIG['network_size'])):
@@ -45,7 +45,6 @@ class Actor:
                         inp = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][i], activation=tf.nn.relu)
 
                 x = tf.layers.dense(inp, units=TRAIN_CONFIG['network_size'][0], activation=tf.nn.relu)
-                # self.mu = tf.layers.dense(inp, action_size, tf.tanh)
                 output = tf.keras.layers.Add()([x, identity])
                 output = tf.layers.dense(output, units=TRAIN_CONFIG['network_size'][len(TRAIN_CONFIG['network_size'])-1], activation=tf.nn.relu)
                 self.mu = tf.layers.dense(output, action_size, tf.nn.tanh, use_bias=False)
@@ -87,7 +86,6 @@ class PPOAgent:
 
         self._lambda = args._lambda
         self.ppo_eps = args.ppo_eps
-        self.learning_rate = args.lr
         self.actor_learning_rate = args.a_lr
         self.critic_learning_rate = args.c_lr
         self.epoch = args.ppoEpoch
@@ -115,7 +113,6 @@ class PPOAgent:
         self.approx_kl = tf.reduce_mean(self.logp_old - self.actor.logp)
         self.approx_ent = tf.reduce_mean(-self.actor.logp)
 
-
     def update(self, state, action, target, adv, logp_old, sess):
         v_loss, kl, ent = 0, 0, 0
         for i in range(self.epoch):
@@ -140,8 +137,6 @@ class PPOAgent:
         if self.mode=='test':
             action, v, logp_pi = sess.run([self.actor.mu, self.critic.v, self.actor.logp_pi],
                                                feed_dict={self.actor.state: state, self.critic.state: state})
-            # print(state, action)
-
         return action, v, logp_pi
 
     def get_gaes(self, rewards, dones, values, next_values, normalize):
