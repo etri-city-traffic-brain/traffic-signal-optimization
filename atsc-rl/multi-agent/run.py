@@ -34,25 +34,15 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], de
                     help='')
 
 parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
-if IS_DOCKERIZE:
-    parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
-                        help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
-    parser.add_argument('--result-comp', type=bool, default=False)
-    parser.add_argument('--start-time', type=int, default=0)
-    parser.add_argument('--end-time', type=int, default=7200)
-else:
-    # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
-    #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--target-TL', type=str, default="SA 6",
-                        help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--resultComp', type=bool, default=False)
-    parser.add_argument('--trainStartTime', type=int, default=0)
-    parser.add_argument('--trainEndTime', type=int, default=7200)
-    parser.add_argument('--testStartTime', type=int, default=0)
-    parser.add_argument('--testEndTime', type=int, default=7200)
 
+parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
+                    help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
+# parser.add_argument('--target-TL', type=str, default="SA 6",
+#                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 parser.add_argument('--start-time', type=int, default=25400)
 parser.add_argument('--end-time', type=int, default=32400)
+
+parser.add_argument('--result-comp', type=bool, default=False)
 
 parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
                     help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
@@ -497,9 +487,10 @@ def run_sappo():
             # print("discrete_actions", discrete_actions)
 
             new_state, reward, done, _ = env.step(discrete_actions)
-            print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions, 2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
             if len(args.target_TL.split(",")) == 1:
+                print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions, 2)} reward {reward} new_state_mean {np.mean(new_state)}")
+
                 for i in range(agent_num):
                     if trial==0:
                         state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]

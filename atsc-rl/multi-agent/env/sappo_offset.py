@@ -185,10 +185,10 @@ class SALT_SAPPO_offset(gym.Env):
                     if self.reward_func == 'pn':
                         self.rewards[sa_i] = np.sum(self.lane_passed[sa_i])
                     if self.reward_func == 'wt':
-                        self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
+                        self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func == 'wt_max':
                         self.rewards[sa_i] = -np.max(self.lane_passed[sa_i])
-                    if self.reward_func == 'wq':
+                    if self.reward_func == 'wq' or self.reward_func == 'cwq':
                         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])/5000
                     if self.reward_func == 'wq_median':
                         if len(self.lane_passed[sa_i])==0:
@@ -217,17 +217,18 @@ class SALT_SAPPO_offset(gym.Env):
                         # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
                         # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
                         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
-                    self.lane_passed[sa_i] = []
+                    if self.reward_func != 'cwq':
+                        self.lane_passed[sa_i] = []
+                    self.observations[sa_i] = self.get_state(sa)
                 else:
                     self.rewards[sa_i] = 0
                     # self.rewards[sa_i] += penalty
                     # self.lane_passed[sa_i] = []
 
                 if self.printOut:
-                    print("step {} tl_name {} actions {} phase {} phase_sum {} rewards {}".format(self.simulationSteps,
+                    print("step {} tl_name {} actions {} rewards {}".format(self.simulationSteps,
                                                                                               self.sa_obj[sa]['crossName_list'],
                                                                                               np.round(actions[sa_i], 3),
-                                                                                              _phase_list, _phase_sum,
                                                                                               np.round(self.rewards[sa_i], 2)))
 
             sa_i += 1
@@ -273,7 +274,7 @@ class SALT_SAPPO_offset(gym.Env):
                         self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT)
                     # for l in link_list_1:
                     #     self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingTime(l) / self.actionT * reward_weight)
-                if self.reward_func in ['wq', 'wq_median', 'wq_min', 'wq_max']:
+                if self.reward_func in ['wq', 'wq_median', 'wq_min', 'wq_max', 'cwq']:
                     for l in link_list_0:
                         # print("sum([l in x for x in lane_list_0])", sum([l in x for x in lane_list_0]))
                         self.lane_passed[sa_i] = np.append(self.lane_passed[sa_i], libsalt.link.getAverageWaitingQLength(l) * sum([l in x for x in lane_list_0]))
