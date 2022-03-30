@@ -35,10 +35,10 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], de
 
 parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
 
-parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
-                    help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
-# parser.add_argument('--target-TL', type=str, default="SA 6",
-#                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+# parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
+#                     help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
+parser.add_argument('--target-TL', type=str, default="SA 6",
+                    help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 parser.add_argument('--start-time', type=int, default=25400)
 parser.add_argument('--end-time', type=int, default=32400)
 
@@ -87,7 +87,7 @@ parser.add_argument('--a-lr', type=float, default=0.005)
 parser.add_argument('--c-lr', type=float, default=0.05)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
-parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher value_buffer select more zeros')
+parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher value_collection select more zeros')
 
 ### PPO RND
 parser.add_argument('--gamma-i', type=float, default=0.11)
@@ -204,13 +204,11 @@ def run_ddqn():
 
     # updateTargetNetwork = 1000
     dqn_agent = []
-    state_space_arr = []
     ep_agent_reward_list = []
     agent_crossName = []
     for i in range(agent_num):
         target_tl = list(env.target_tl_obj.keys())[i]
         state_space = env.target_tl_obj[target_tl]['state_space']
-        state_space_arr.append(state_space)
         action_space = env.target_tl_obj[target_tl]['action_space']
         dqn_agent.append(DDQN(args = args, env=env, state_space=state_space, action_space=action_space))
         ep_agent_reward_list.append([])
@@ -321,16 +319,18 @@ def run_sappo():
     import tensorflow.compat.v1 as tf
     tf.disable_eager_execution()
 
+    # load envs
+    # args.problem - tensorboard 기록용
     if args.action=='kc':
         print("SAPPO KEEP OR CHANGE")
         args.problem = "SAPPO_NoConstraints_" + problem_var
         env = SALT_SAPPO_noConst(args)
     if args.action=='offset':
-        if len(args.target_TL.split(",")) == 1:
+        if len(args.target_TL.split(",")) == 1: # target-TL에 교차로 그룹 하나 들어올 때(ex. SA 6)
             print("SAPPO OFFSET SINGLE")
             args.problem = "SAPPO_offset_single_" + problem_var
             env = SALT_SAPPO_offset_single(args)
-        else:
+        else:                                   # target-TL에 여러 개 교차로 그룹이 들어올 때(ex. SA 1,SA 6,SA 17)
             print("SAPPO OFFSET")
             args.problem = "SAPPO_offset_" + problem_var
             env = SALT_SAPPO_offset(args)
@@ -368,11 +368,12 @@ def run_sappo():
     f.write('epoch,tl_name,reward,40ep_reward\n')
     f.close()
 
-    agent_num = env.agent_num
-
-    ppo_agent = []
-    state_space_arr = []
     ep_agent_reward_list = []
+    # To store reward history of each episode
+    ep_reward_list = []
+    # To store average reward history of last few episodes
+    ma40_reward_list = []
+
     agent_crossName = []
     agent_reward1, agent_reward40 = [], []
     agent_reward1_summary, agent_reward40_summary = [], []
@@ -380,11 +381,11 @@ def run_sappo():
     total_reward = tf.Variable(0, dtype=tf.float32)
     total_reward_summary = tf.summary.scalar('train/reward', total_reward)
 
-    # print("agent_num", agent_num)
+    ppo_agent = []
+    agent_num = env.agent_num
     for i in range(agent_num):
         target_sa = list(env.sa_obj.keys())[i]
         state_space = env.sa_obj[target_sa]['state_space']
-        state_space_arr.append(state_space)
         action_space = env.sa_obj[target_sa]['action_space']
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
@@ -398,56 +399,42 @@ def run_sappo():
         agent_reward1_summary.append(tf.summary.scalar('train_agent_reward/agent_{}'.format(list(env.sa_obj.keys())[i]), agent_reward1[i]))  # summary to write to TensorBoard
         agent_reward40_summary.append(tf.summary.scalar('train_agent_reward_40ep_mean/agent_{}'.format(list(env.sa_obj.keys())[i]), agent_reward40[i]))  # summary to write to TensorBoard
 
+    print(ppo_agent)
+    print("env.sa_obj", env.sa_obj)
+
+
     saver = tf.train.Saver(max_to_keep=5)
 
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
 
-    print(ppo_agent)
-    print("env.sa_obj", env.sa_obj)
-
-    # To store reward history of each episode
-    ep_reward_list = []
-    # To store average reward history of last few episodes
-    ma40_reward_list = []
-
-    actions_buffer, state_buffer, value_buffer, logp_t_buffer, done_buffer, reward_buffer = [], [], [], [], [], []
-
+    actions_collection, state_collection, value_collection, logp_t_collection, done_collection, reward_collection = [], [], [], [], [], []
     for target_sa in env.sa_obj:
-        actions_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        value_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        logp_t_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        done_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        reward_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-
+        actions_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        state_collection.append([0])
+        value_collection.append([0])
+        logp_t_collection.append([0])
+        done_collection.append([0])
+        reward_collection.append([0])
 
     for trial in range(trials):
-        actions = []
-        logits = []
-        value_t = []
-        logprobability_t = []
-
-        v_t = []
-        next_values = []
-        adv = []
-        target = []
-
-        sa_cycle = []
-
-        for target_sa in env.sa_obj:
-            actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logits.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            value_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logprobability_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-
-            v_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            next_values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            adv.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            target.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            sa_cycle = np.append(sa_cycle, env.sa_obj[target_sa]['cycle_list'][0])
+        actions, v_t, logp_t = [], [], []
+        next_values, adv, target = [], [], []
 
         cur_state = env.reset()
+
+        sa_cycle = []
+        for target_sa in env.sa_obj:
+            actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            v_t.append([0])
+            logp_t.append([0])
+
+            next_values.append([0])
+            adv.append([0])
+            target.append([0])
+
+            sa_cycle = np.append(sa_cycle, env.sa_obj[target_sa]['cycle_list'][0])
+
         episodic_reward = 0
         episodic_agent_reward = [0]*agent_num
         start = time.time()
@@ -456,15 +443,9 @@ def run_sappo():
         print("trial_len", trial_len)
         for t in range(trial_len):
             discrete_actions = []
-            # print("range(agent_num)", range(agent_num))
             for i in range(agent_num):
-                # if ep_reward_list[-1:] < np.mean(ep_reward_list[-2:]):
-                #     actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
-                #     actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
-                #     actions[i] = np.random.randn(len(actions[i]))
-                # else:
-                actions[i], value_t[i], logprobability_t[i] = ppo_agent[i].get_action([cur_state[i]], sess)
-                actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+                actions[i], v_t[i], logp_t[i] = ppo_agent[i].get_action([cur_state[i]], sess)
+                actions[i], v_t[i], logp_t[i] = actions[i][0], v_t[i][0], logp_t[i][0]
 
                 target_sa = list(env.sa_obj.keys())[i]
                 discrete_action = []
@@ -493,35 +474,35 @@ def run_sappo():
 
                 for i in range(agent_num):
                     if trial==0:
-                        state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
-                        actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
-                        value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
-                        logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                        done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
-                        reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
+                        state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] if t else [cur_state[i]]
+                        actions_collection[i] = np.r_[actions_collection[i], [actions[i]]] if t else [actions[i]]
+                        value_collection[i] = np.r_[value_collection[i], v_t[i]] if t else [v_t[i]]
+                        logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]] if t else [logp_t[i]]
+                        done_collection[i] = np.r_[done_collection[i], done] if t else [done]
+                        reward_collection[i] = np.r_[reward_collection[i], reward[i]] if t else [reward[i]]
                     else:
-                        if len(state_buffer[i]) >= m_len:
+                        if len(state_collection[i]) >= m_len:
                             nrc = np.random.choice(range(m_len), int(m_len*m_remove_ratio), replace=False)
-                            state_buffer[i] = np.delete(state_buffer[i], nrc, axis=0)
-                            actions_buffer[i] = np.delete(actions_buffer[i], nrc, axis=0)
-                            value_buffer[i] = np.delete(value_buffer[i], nrc, axis=0)
-                            logp_t_buffer[i] = np.delete(logp_t_buffer[i], nrc, axis=0)
-                            done_buffer[i] = np.delete(done_buffer[i], nrc, axis=0)
-                            reward_buffer[i] = np.delete(reward_buffer[i], nrc, axis=0)
+                            state_collection[i] = np.delete(state_collection[i], nrc, axis=0)
+                            actions_collection[i] = np.delete(actions_collection[i], nrc, axis=0)
+                            value_collection[i] = np.delete(value_collection[i], nrc, axis=0)
+                            logp_t_collection[i] = np.delete(logp_t_collection[i], nrc, axis=0)
+                            done_collection[i] = np.delete(done_collection[i], nrc, axis=0)
+                            reward_collection[i] = np.delete(reward_collection[i], nrc, axis=0)
 
-                            state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] # if t else [cur_state[i]]
-                            actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] # if t else [actions[i]]
-                            value_buffer[i] = np.r_[value_buffer[i], value_t[i]] # if t else [value_t[i]]
-                            logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] # if t else [logprobability_t[i]]
-                            done_buffer[i] = np.r_[done_buffer[i], done] # if t else [done]
-                            reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] # if t else [reward[i]]
+                            state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] # if t else [cur_state[i]]
+                            actions_collection[i] = np.r_[actions_collection[i], [actions[i]]] # if t else [actions[i]]
+                            value_collection[i] = np.r_[value_collection[i], v_t[i]] # if t else [v_t[i]]
+                            logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]] # if t else [logp_t[i]]
+                            done_collection[i] = np.r_[done_collection[i], done] # if t else [done]
+                            reward_collection[i] = np.r_[reward_collection[i], reward[i]] # if t else [reward[i]]
                         else:
-                            state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]]
-                            actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]]
-                            value_buffer[i] = np.r_[value_buffer[i], value_t[i]]
-                            logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]]
-                            done_buffer[i] = np.r_[done_buffer[i], done]
-                            reward_buffer[i] = np.r_[reward_buffer[i], reward[i]]
+                            state_collection[i] = np.r_[state_collection[i], [cur_state[i]]]
+                            actions_collection[i] = np.r_[actions_collection[i], [actions[i]]]
+                            value_collection[i] = np.r_[value_collection[i], v_t[i]]
+                            logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]]
+                            done_collection[i] = np.r_[done_collection[i], done]
+                            reward_collection[i] = np.r_[reward_collection[i], reward[i]]
 
                     # Update the observation
                     cur_state[i] = new_state[i]
@@ -532,35 +513,35 @@ def run_sappo():
                 if t % int(sa_cycle[i] * args.controlcycle) == 0:
                     for i in range(agent_num):
                         if trial==0:
-                            state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
-                            actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
-                            value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
-                            logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                            done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
-                            reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
+                            state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] if t else [cur_state[i]]
+                            actions_collection[i] = np.r_[actions_collection[i], [actions[i]]] if t else [actions[i]]
+                            value_collection[i] = np.r_[value_collection[i], v_t[i]] if t else [v_t[i]]
+                            logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]] if t else [logp_t[i]]
+                            done_collection[i] = np.r_[done_collection[i], done] if t else [done]
+                            reward_collection[i] = np.r_[reward_collection[i], reward[i]] if t else [reward[i]]
                         else:
-                            if len(state_buffer[i]) >= m_len:
+                            if len(state_collection[i]) >= m_len:
                                 nrc = np.random.choice(range(m_len), int(m_len*m_remove_ratio), replace=False)
-                                state_buffer[i] = np.delete(state_buffer[i], nrc, axis=0)
-                                actions_buffer[i] = np.delete(actions_buffer[i], nrc, axis=0)
-                                value_buffer[i] = np.delete(value_buffer[i], nrc, axis=0)
-                                logp_t_buffer[i] = np.delete(logp_t_buffer[i], nrc, axis=0)
-                                done_buffer[i] = np.delete(done_buffer[i], nrc, axis=0)
-                                reward_buffer[i] = np.delete(reward_buffer[i], nrc, axis=0)
+                                state_collection[i] = np.delete(state_collection[i], nrc, axis=0)
+                                actions_collection[i] = np.delete(actions_collection[i], nrc, axis=0)
+                                value_collection[i] = np.delete(value_collection[i], nrc, axis=0)
+                                logp_t_collection[i] = np.delete(logp_t_collection[i], nrc, axis=0)
+                                done_collection[i] = np.delete(done_collection[i], nrc, axis=0)
+                                reward_collection[i] = np.delete(reward_collection[i], nrc, axis=0)
 
-                                state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]]
-                                actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]]
-                                value_buffer[i] = np.r_[value_buffer[i], value_t[i]]
-                                logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]]
-                                done_buffer[i] = np.r_[done_buffer[i], done]
-                                reward_buffer[i] = np.r_[reward_buffer[i], reward[i]]
+                                state_collection[i] = np.r_[state_collection[i], [cur_state[i]]]
+                                actions_collection[i] = np.r_[actions_collection[i], [actions[i]]]
+                                value_collection[i] = np.r_[value_collection[i], v_t[i]]
+                                logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]]
+                                done_collection[i] = np.r_[done_collection[i], done]
+                                reward_collection[i] = np.r_[reward_collection[i], reward[i]]
                             else:
-                                state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]]
-                                actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]]
-                                value_buffer[i] = np.r_[value_buffer[i], value_t[i]]
-                                logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]]
-                                done_buffer[i] = np.r_[done_buffer[i], done]
-                                reward_buffer[i] = np.r_[reward_buffer[i], reward[i]]
+                                state_collection[i] = np.r_[state_collection[i], [cur_state[i]]]
+                                actions_collection[i] = np.r_[actions_collection[i], [actions[i]]]
+                                value_collection[i] = np.r_[value_collection[i], v_t[i]]
+                                logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]]
+                                done_collection[i] = np.r_[done_collection[i], done]
+                                reward_collection[i] = np.r_[reward_collection[i], reward[i]]
 
                         # Update the observation
                         cur_state[i] = new_state[i]
@@ -575,7 +556,7 @@ def run_sappo():
         # Mean of last 40 episodes
         ma1_reward = np.mean(ep_reward_list[-1:])
         ma40_reward = np.mean(ep_reward_list[-40:])
-        print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, ma40_reward, len(state_buffer[0])))
+        print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, ma40_reward, len(state_collection[0])))
         print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
 
         ### 전체 평균 보상 tensorboard에 추가
@@ -587,11 +568,11 @@ def run_sappo():
             print("update")
             ### ppo agent update
             v_t[i] = ppo_agent[i].get_action([cur_state[i]], sess)[1][0]
-            value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
-            next_values[i] = np.copy(value_buffer[i][1:])
-            value_buffer[i] = value_buffer[i][:-1]
-            adv[i], target[i] = ppo_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
-            ppo_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
+            value_collection[i] = np.r_[value_collection[i], v_t[i]]
+            next_values[i] = np.copy(value_collection[i][1:])
+            value_collection[i] = value_collection[i][:-1]
+            adv[i], target[i] = ppo_agent[i].get_gaes(reward_collection[i], done_collection[i], value_collection[i], next_values[i], True)
+            ppo_agent[i].update(state_collection[i], actions_collection[i], target[i], adv[i], logp_t_collection[i], sess)
 
             ### epoch별, 에이전트 별 평균 보상 & 40epoch 평균 보상 tensorboard에 추가
             ep_agent_reward_list[i].append(episodic_agent_reward[i]) # epoisode별 리워드 리스트에 저장
@@ -703,7 +684,6 @@ def run_ppornd():
     agent_num = env.agent_num
 
     ppornd_agent = []
-    state_space_arr = []
     ep_agent_reward_list = []
     agent_crossName = []
     agent_reward1 = []
@@ -724,7 +704,6 @@ def run_ppornd():
     for i in range(agent_num):
         target_sa = list(env.sa_obj.keys())[i]
         state_space = env.sa_obj[target_sa]['state_space']
-        state_space_arr.append(state_space)
         action_space = env.sa_obj[target_sa]['action_space']
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
@@ -756,17 +735,16 @@ def run_ppornd():
         buffer_Vs, buffer_V_is = [], []
 
         actions = []
-        logits = []
-        # value_t = []
-        # logprobability_t = []
+        # v_t = []
+        # logp_t = []
 
-        actions_buffer = []
-        state_buffer = []
-        next_state_buffer = []
-        value_buffer = []
-        logp_t_buffer = []
-        done_buffer = []
-        reward_buffer = []
+        actions_collection = []
+        state_collection = []
+        next_state_collection = []
+        value_collection = []
+        logp_t_collection = []
+        done_collection = []
+        reward_collection = []
 
         v_t = []
         next_values = []
@@ -777,19 +755,18 @@ def run_ppornd():
 
         for target_sa in env.sa_obj:
             actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logits.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            # value_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            # logprobability_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            # v_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            # logp_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             buffer_Vs.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             buffer_V_is.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
-            actions_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            next_state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            value_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logp_t_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            done_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            reward_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            actions_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            state_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            next_state_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            value_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            logp_t_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            done_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            reward_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
             v_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             next_values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
@@ -823,17 +800,17 @@ def run_ppornd():
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
-                    state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
-                    actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
-                    # value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
-                    # logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                    done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
-                    reward_buffer[i] = np.r_[reward_buffer[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
+                    state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] if t else [cur_state[i]]
+                    actions_collection[i] = np.r_[actions_collection[i], [actions[i]]] if t else [actions[i]]
+                    # value_collection[i] = np.r_[value_collection[i], v_t[i]] if t else [v_t[i]]
+                    # logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]] if t else [logp_t[i]]
+                    done_collection[i] = np.r_[done_collection[i], done] if t else [done]
+                    reward_collection[i] = np.r_[reward_collection[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
                     v = ppornd_agent[i].get_v([cur_state[i]], sess)
                     buffer_Vs[i] = np.r_[buffer_Vs[i], v] if t else [v]
                     v_i = ppornd_agent[i].get_v_i([cur_state[i]], sess)
                     buffer_V_is[i] = np.r_[buffer_V_is[i], v_i] if t else [v_i]
-                    next_state_buffer[i] = np.r_[next_state_buffer[i], [new_state[i]]] if t else [new_state[i]]
+                    next_state_collection[i] = np.r_[next_state_collection[i], [new_state[i]]] if t else [new_state[i]]
                     cur_state[i] = new_state[i]
 
                     episodic_reward += reward[i]
@@ -841,10 +818,10 @@ def run_ppornd():
             else:
                 if t % int(sa_cycle[i] * args.controlcycle) == 0:
                     for i in range(agent_num):
-                        state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
-                        actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
-                        done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
-                        reward_buffer[i] = np.r_[reward_buffer[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
+                        state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] if t else [cur_state[i]]
+                        actions_collection[i] = np.r_[actions_collection[i], [actions[i]]] if t else [actions[i]]
+                        done_collection[i] = np.r_[done_collection[i], done] if t else [done]
+                        reward_collection[i] = np.r_[reward_collection[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
                         v = ppornd_agent[i].get_v([cur_state[i]], sess)
                         buffer_Vs[i] = np.r_[buffer_Vs[i], v] if t else [v]
                         v_i = ppornd_agent[i].get_v_i([cur_state[i]], sess)
@@ -873,19 +850,19 @@ def run_ppornd():
         train_summary_writer.add_summary(sess.run(total_reward_summary), trial)  # add summary
 
         for i in range(agent_num):
-            # print("before state_buffer[i]", state_buffer[i])
-            # state_buffer[i] = running_stats_fun(running_stats_s, state_buffer[i], ppornd_agent[i].s_CLIP, False)
-            # print("after state_buffer[i]", state_buffer[i])
-            # next_state_buffer[i] = running_stats_fun(running_stats_s_, next_state_buffer[i], ppornd_agent[i].s_CLIP, False)
-            buffer_r_i = ppornd_agent[i].intrinsic_r(next_state_buffer[i], sess)
+            # print("before state_collection[i]", state_collection[i])
+            # state_collection[i] = running_stats_fun(running_stats_s, state_collection[i], ppornd_agent[i].s_CLIP, False)
+            # print("after state_collection[i]", state_collection[i])
+            # next_state_collection[i] = running_stats_fun(running_stats_s_, next_state_collection[i], ppornd_agent[i].s_CLIP, False)
+            buffer_r_i = ppornd_agent[i].intrinsic_r(next_state_collection[i], sess)
             # Batch normalize running extrinsic r
-            reward_buffer[i] = running_stats_fun(running_stats_r, reward_buffer[i], ppornd_agent[i].r_CLIP, False)
+            reward_collection[i] = running_stats_fun(running_stats_r, reward_collection[i], ppornd_agent[i].r_CLIP, False)
             # Batch normalize running intrinsic r_i
             buffer_r_i = running_stats_fun(running_stats_r_i, buffer_r_i, ppornd_agent[i].r_CLIP, False)
 
             v_s_ = ppornd_agent[i].get_v([cur_state[i]], sess)
-            tdlamret, adv = ppornd_agent[i].add_vtarg_and_adv(np.vstack(reward_buffer[i]),
-                                                      np.vstack(done_buffer[i]),
+            tdlamret, adv = ppornd_agent[i].add_vtarg_and_adv(np.vstack(reward_collection[i]),
+                                                      np.vstack(done_collection[i]),
                                                       np.vstack(buffer_Vs[i]),
                                                       v_s_,
                                                       args.gamma,
@@ -893,22 +870,22 @@ def run_ppornd():
 
             v_s_i = ppornd_agent[i].get_v_i([cur_state[i]], sess)
             tdlamret_i, adv_i = ppornd_agent[i].add_vtarg_and_adv(np.vstack(buffer_r_i),
-                                                          np.vstack(done_buffer[i]),
+                                                          np.vstack(done_collection[i]),
                                                           np.vstack(buffer_V_is[i]),
                                                           v_s_i,
                                                           args.gamma_i,
                                                           ppornd_agent[i].lamda)
 
-            bs, bs_, ba, br, br_i, b_adv = np.vstack(state_buffer[i]), np.vstack(next_state_buffer[i]), np.vstack(actions_buffer[i]), tdlamret, tdlamret_i, np.vstack(adv + adv_i)  # sum advantages
+            bs, bs_, ba, br, br_i, b_adv = np.vstack(state_collection[i]), np.vstack(next_state_collection[i]), np.vstack(actions_collection[i]), tdlamret, tdlamret_i, np.vstack(adv + adv_i)  # sum advantages
 
             ppornd_agent[i].update(bs, bs_, ba, br, br_i, b_adv, sess)
 
             # v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
-            # value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
-            # next_values[i] = np.copy(value_buffer[i][1:])
-            # value_buffer[i] = value_buffer[i][:-1]
-            # adv[i], target[i] = ppornd_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
-            # ppornd_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
+            # value_collection[i] = np.r_[value_collection[i], v_t[i]]
+            # next_values[i] = np.copy(value_collection[i][1:])
+            # value_collection[i] = value_collection[i][:-1]
+            # adv[i], target[i] = ppornd_agent[i].get_gaes(reward_collection[i], done_collection[i], value_collection[i], next_values[i], True)
+            # ppornd_agent[i].update(state_collection[i], actions_collection[i], target[i], adv[i], logp_t_collection[i], sess)
             ep_agent_reward_list[i].append(episodic_agent_reward[i])
 
             sess.run(agent_reward1[i].assign(np.mean(ep_agent_reward_list[i][-1:])))  # update accuracy variable
@@ -1017,7 +994,6 @@ def run_ppoea():
     agent_num = env.agent_num
 
     ppornd_agent = []
-    state_space_arr = []
     ep_agent_reward_list = []
     agent_crossName = []
     agent_reward1 = []
@@ -1032,7 +1008,6 @@ def run_ppoea():
     for i in range(agent_num):
         target_sa = list(env.sa_obj.keys())[i]
         state_space = env.sa_obj[target_sa]['state_space']
-        state_space_arr.append(state_space)
         action_space = env.sa_obj[target_sa]['action_space']
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
@@ -1062,16 +1037,15 @@ def run_ppoea():
 
     for trial in range(trials):
         actions = []
-        logits = []
-        value_t = []
-        logprobability_t = []
+        v_t = []
+        logp_t = []
 
-        actions_buffer = []
-        state_buffer = []
-        value_buffer = []
-        logp_t_buffer = []
-        done_buffer = []
-        reward_buffer = []
+        actions_collection = []
+        state_collection = []
+        value_collection = []
+        logp_t_collection = []
+        done_collection = []
+        reward_collection = []
 
         v_t = []
         next_values = []
@@ -1082,16 +1056,15 @@ def run_ppoea():
 
         for target_sa in env.sa_obj:
             actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logits.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            value_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logprobability_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            v_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            logp_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
-            actions_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            value_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logp_t_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            done_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            reward_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            actions_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            state_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            value_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            logp_t_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            done_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            reward_collection.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
             v_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             next_values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
@@ -1108,8 +1081,8 @@ def run_ppoea():
             discrete_actions = []
             # print("range(agent_num)", range(agent_num))
             for i in range(agent_num):
-                actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
-                actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+                actions[i], v_t[i], logp_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
+                actions[i], v_t[i], logp_t[i] = actions[i][0], v_t[i][0], logp_t[i][0]
 
                 target_sa = list(env.sa_obj.keys())[i]
                 discrete_action = []
@@ -1127,12 +1100,12 @@ def run_ppoea():
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
-                    state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
-                    actions_buffer[i] = np.r_[actions_buffer[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
-                    value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
-                    logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                    done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
-                    reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
+                    state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] if t else [cur_state[i]]
+                    actions_collection[i] = np.r_[actions_collection[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
+                    value_collection[i] = np.r_[value_collection[i], v_t[i]] if t else [v_t[i]]
+                    logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]] if t else [logp_t[i]]
+                    done_collection[i] = np.r_[done_collection[i], done] if t else [done]
+                    reward_collection[i] = np.r_[reward_collection[i], reward[i]] if t else [reward[i]]
 
                     # Update the observation
                     cur_state[i] = new_state[i]
@@ -1142,12 +1115,12 @@ def run_ppoea():
             else:
                 if t % int(sa_cycle[i] * args.controlcycle) == 0:
                     for i in range(agent_num):
-                        state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
-                        actions_buffer[i] = np.r_[actions_buffer[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
-                        value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
-                        logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                        done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
-                        reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
+                        state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] if t else [cur_state[i]]
+                        actions_collection[i] = np.r_[actions_collection[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
+                        value_collection[i] = np.r_[value_collection[i], v_t[i]] if t else [v_t[i]]
+                        logp_t_collection[i] = np.r_[logp_t_collection[i], logp_t[i]] if t else [logp_t[i]]
+                        done_collection[i] = np.r_[done_collection[i], done] if t else [done]
+                        reward_collection[i] = np.r_[reward_collection[i], reward[i]] if t else [reward[i]]
 
                         # Update the observation
                         cur_state[i] = new_state[i]
@@ -1156,11 +1129,11 @@ def run_ppoea():
                         episodic_agent_reward[i] += reward[i]
 
                         v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
-                        value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
-                        next_values[i] = np.copy(value_buffer[i][1:])
-                        value_buffer[i] = value_buffer[i][:-1]
-                        adv[i], target[i] = ppornd_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
-                        ppornd_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
+                        value_collection[i] = np.r_[value_collection[i], v_t[i]]
+                        next_values[i] = np.copy(value_collection[i][1:])
+                        value_collection[i] = value_collection[i][:-1]
+                        adv[i], target[i] = ppornd_agent[i].get_gaes(reward_collection[i], done_collection[i], value_collection[i], next_values[i], True)
+                        ppornd_agent[i].update(state_collection[i], actions_collection[i], target[i], adv[i], logp_t_collection[i], sess)
 
             if done:
                 break
@@ -1179,11 +1152,11 @@ def run_ppoea():
 
         for i in range(agent_num):
             v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
-            value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
-            next_values[i] = np.copy(value_buffer[i][1:])
-            value_buffer[i] = value_buffer[i][:-1]
-            adv[i], target[i] = ppornd_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
-            ppornd_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
+            value_collection[i] = np.r_[value_collection[i], v_t[i]]
+            next_values[i] = np.copy(value_collection[i][1:])
+            value_collection[i] = value_collection[i][:-1]
+            adv[i], target[i] = ppornd_agent[i].get_gaes(reward_collection[i], done_collection[i], value_collection[i], next_values[i], True)
+            ppornd_agent[i].update(state_collection[i], actions_collection[i], target[i], adv[i], logp_t_collection[i], sess)
             ep_agent_reward_list[i].append(episodic_agent_reward[i])
 
             sess.run(agent_reward1[i].assign(np.mean(ep_agent_reward_list[i][-1:])))  # update accuracy variable
