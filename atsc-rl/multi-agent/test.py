@@ -1,7 +1,10 @@
-import argparse
-
+import sys
+import os
+import pandas as pd
 import numpy as np
 import time
+
+from xml.etree.ElementTree import parse
 
 from policy.ddqn import DDQN
 from policy.ppo import PPOAgent
@@ -15,35 +18,15 @@ if IS_DOCKERIZE:
     from env.salt_PennStateAction import SALT_doan_multi_PSA_test, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
     from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
 else:
-    from env.salt_PennStateAction import SALT_doan_multi_PSA
+    from env.salt_PennStateAction import SALT_doan_multi_PSA_test
     from env.sappo_noConst import SALT_SAPPO_noConst
     from env.sappo_offset import SALT_SAPPO_offset
     from env.sappo_offset_single import SALT_SAPPO_offset_single
     from env.sappo_green_single import SALT_SAPPO_green_single
     from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single
 
-
-from config import TRAIN_CONFIG
-
-import sys
-import os
-import pandas as pd
-
-import subprocess
-
-from xml.etree.ElementTree import parse
-
-from config import TRAIN_CONFIG
-
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
-
 import libsalt
-
-
-addTime = 2
-state_weight = 1
-
-
 
 def result_comp(args, ft_output, rl_output, model_num):
     if IS_DOCKERIZE:
@@ -58,12 +41,6 @@ def result_comp(args, ft_output, rl_output, model_num):
         tree = parse(tss_file_path)
     else:
         tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.tss.xml')
-        # if args.map=='doan':
-        #     tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
-        # else:
-        #     tree = parse(os.getcwd() + '/data/envs/salt/dj_all/tss.xml')
-        #     if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
-        #         tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/tss.xml')
 
     root = tree.getroot()
 
@@ -122,14 +99,6 @@ def result_comp(args, ft_output, rl_output, model_num):
     else:
         salt_scenario = f'data/envs/salt/{args.map}/{args.map}_{args.mode}.scenario.json'
         tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.edge.xml')
-        # if args.map=='doan':
-        #     salt_scenario = 'data/envs/salt/doan/doan_20211207.scenario.json'
-        #     tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
-        # else:
-        #     salt_scenario = 'data/envs/salt/dj_all/dj_all.scenario.json'
-        #     tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
-        #     if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
-        #         tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/edge.xml')
 
     root = tree.getroot()
 
@@ -201,7 +170,6 @@ def result_comp(args, ft_output, rl_output, model_num):
 
     simulationSteps = 0
 
-    print("\nstate_weight {} addtime {} model_num {}".format(state_weight, addTime, model_num))
     print("target_tl_obj", target_tl_obj)
     total_output = pd.DataFrame()
 
@@ -377,18 +345,11 @@ def result_comp(args, ft_output, rl_output, model_num):
 
     return total_output
 
-
 def ft_simulate(args):
     if IS_DOCKERIZE:
         salt_scenario = args.scenario_file_path
     else:
         salt_scenario = f'data/envs/salt/{args.map}/{args.map}_{args.mode}.scenario.json'
-        # if args.map=='doan':
-        #     salt_scenario = 'data/envs/salt/doan/doan_20211207_ft.scenario.json'
-        # else:
-        #     salt_scenario = 'data/envs/salt/dj_all/dj_all_ft.scenario.json'
-        #     if args.target_TL=='SA 1' or args.target_TL=='SA 6' or args.target_TL=='SA 17':
-        #         salt_scenario = 'data/envs/salt/sa_1_6_17/sa_1_6_17_ft.scenario.json'
 
     if IS_DOCKERIZE:
         if 0:
@@ -463,7 +424,6 @@ def ft_simulate(args):
 
     print("ft_step {}".format(libsalt.getCurrentStep()))
     libsalt.close()
-
 
 def ddqn_test(args, trial, problem_var):
     model_num = trial

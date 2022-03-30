@@ -29,40 +29,39 @@ from config import TRAIN_CONFIG
 
 IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
-if IS_DOCKERIZE:
-    import json
-    import platform
+import json
+import platform
 
-    def getScenarioRelatedFilePath(args):
-        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
+def getScenarioRelatedFilePath(args):
+    abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
 
-        input_file_path = os.path.dirname(abs_scenario_file_path)
-        if platform.system() == 'Windows':  # one of { Windows, Linux , Darwin }
-            dir_delimiter = "\\"
-        else:
-            dir_delimiter = "/"
+    input_file_path = os.path.dirname(abs_scenario_file_path)
+    if platform.system() == 'Windows':  # one of { Windows, Linux , Darwin }
+        dir_delimiter = "\\"
+    else:
+        dir_delimiter = "/"
 
-        with open(abs_scenario_file_path, 'r') as json_file:
-            json_data = json.load(json_file)
-            node_file = json_data["scenario"]["input"]["node"]
-            edge_file = json_data["scenario"]["input"]["link"]
-            tss_file = json_data["scenario"]["input"]["trafficLightSystem"]
+    with open(abs_scenario_file_path, 'r') as json_file:
+        json_data = json.load(json_file)
+        node_file = json_data["scenario"]["input"]["node"]
+        edge_file = json_data["scenario"]["input"]["link"]
+        tss_file = json_data["scenario"]["input"]["trafficLightSystem"]
 
-        node_file_path = input_file_path + dir_delimiter + node_file
-        edge_file_path = input_file_path + dir_delimiter + edge_file
-        tss_file_path = input_file_path + dir_delimiter + tss_file
+    node_file_path = input_file_path + dir_delimiter + node_file
+    edge_file_path = input_file_path + dir_delimiter + edge_file
+    tss_file_path = input_file_path + dir_delimiter + tss_file
 
-        return abs_scenario_file_path, node_file_path, edge_file_path, tss_file_path
+    return abs_scenario_file_path, node_file_path, edge_file_path, tss_file_path
 
-    def getScenarioRelatedBeginEndTime(scenario_file_path):
-        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
+def getScenarioRelatedBeginEndTime(scenario_file_path):
+    abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
 
-        with open(abs_scenario_file_path, 'r') as json_file:
-            json_data = json.load(json_file)
-            begin_time = json_data["scenario"]["time"]["begin"]
-            end_time = json_data["scenario"]["time"]["end"]
+    with open(abs_scenario_file_path, 'r') as json_file:
+        json_data = json.load(json_file)
+        begin_time = json_data["scenario"]["time"]["begin"]
+        end_time = json_data["scenario"]["time"]["end"]
 
-        return begin_time, end_time
+    return begin_time, end_time
 
 
 
@@ -81,7 +80,7 @@ class SALT_doan_multi_PSA(gym.Env):
         self.addTime = addTime
         self.reward_func = args.reward_func
         self.actionT = args.action_t
-        self.logprint = args.logprint
+        self.printOut = args.printOut
         self.args = args
 
         if IS_DOCKERIZE:
@@ -406,7 +405,7 @@ class SALT_doan_multi_PSA(gym.Env):
 
         self.simulationSteps = libsalt.getCurrentStep()
 
-        if self.logprint:
+        if self.printOut:
             for i in range(len(self.target_tl_id_list)):
                 tlid = self.target_tl_id_list[i]
                 print("step {} tl_name {} actions {} action_phase {} getCurrPhaseGreen {} reward {}".format(

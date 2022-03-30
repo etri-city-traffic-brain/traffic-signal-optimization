@@ -16,24 +16,19 @@ from config import TRAIN_CONFIG
 
 IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
-if IS_DOCKERIZE:
-    from env.salt_PennStateAction import SALT_doan_multi_PSA, getScenarioRelatedBeginEndTime
-    from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedBeginEndTime
-    from env.sappo_offset import SALT_SAPPO_offset, getScenarioRelatedBeginEndTime
-    from env.sappo_offset_single import SALT_SAPPO_offset_single, getScenarioRelatedBeginEndTime
-    from env.sappo_offset_ea import SALT_SAPPO_offset_EA, getScenarioRelatedBeginEndTime
-else:
-    from env.salt_PennStateAction import SALT_doan_multi_PSA
-    from env.sappo_noConst import SALT_SAPPO_noConst
-    from env.sappo_offset import SALT_SAPPO_offset
-    from env.sappo_offset_single import SALT_SAPPO_offset_single
-    from env.sappo_offset_ea import SALT_SAPPO_offset_EA
-    from env.sappo_green_single import SALT_SAPPO_green_single
-    from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single
+from env.salt_PennStateAction import SALT_doan_multi_PSA, getScenarioRelatedBeginEndTime
+from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedBeginEndTime
+from env.sappo_offset import SALT_SAPPO_offset, getScenarioRelatedBeginEndTime
+from env.sappo_offset_single import SALT_SAPPO_offset_single, getScenarioRelatedBeginEndTime
+from env.sappo_offset_ea import SALT_SAPPO_offset_EA, getScenarioRelatedBeginEndTime
+from env.sappo_green_single import SALT_SAPPO_green_single, getScenarioRelatedBeginEndTime
+from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single, getScenarioRelatedBeginEndTime
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
-parser.add_argument('--model-num', type=str, default='0')
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
+                    help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
+parser.add_argument('--model-num', type=str, default='0',
+                    help='trained model number for test mode')
 
 parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo',
                     help='')
@@ -56,23 +51,27 @@ else:
     parser.add_argument('--testStartTime', type=int, default=0)
     parser.add_argument('--testEndTime', type=int, default=7200)
 
-parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'offset', 'gr', 'gro'], default='gr',
-                    help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
-                         'pss - phase-set selection, offset - offset, gr - green ratio, gro - green ratio+offset')
+parser.add_argument('--start-time', type=int, default=25400)
+parser.add_argument('--end-time', type=int, default=32400)
+
+parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
+                    help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
 parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                     help='v - volume, d - density, vd - volume + density, vdd - volume / density')
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt', 'cwq'], default='cwq',
                     help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length')
 
-if IS_DOCKERIZE:
-    parser.add_argument('--io-home', type=str, default='io')
-    parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
+# if IS_DOCKERIZE:
+#     parser.add_argument('--io-home', type=str, default='io')
+#     parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
+
+parser.add_argument('--io-home', type=str, default='.')
+parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/')
 
 ### for train
 parser.add_argument('--epoch', type=int, default=3000)
 parser.add_argument('--warmupTime', type=int, default=600)
 parser.add_argument('--model-save-period', type=int, default=20)
-parser.add_argument('--logprint', type=bool, default=False)
 parser.add_argument('--printOut', type=bool, default=True, help='print result each step')
 
 ### common args
@@ -98,7 +97,7 @@ parser.add_argument('--a-lr', type=float, default=0.005)
 parser.add_argument('--c-lr', type=float, default=0.05)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
-parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher values select more zeros')
+parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher value_buffer select more zeros')
 
 ### PPO RND
 parser.add_argument('--gamma-i', type=float, default=0.11)
@@ -118,6 +117,8 @@ parser.add_argument('--controlcycle', type=int, default=5)
 parser.add_argument('--addTime', type=int, default=2)
 
 args = parser.parse_args()
+
+args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
 
 if args.map == 'sa_1_6_17' or args.map=='dj_all':
     args.trainStartTime = 25200 # 07:00
@@ -161,11 +162,10 @@ if len(args.target_TL.split(","))==1:
 if args.action == 'gr' or args.action == 'gro':
     problem_var += "_addTime_{}".format(args.addTime)
 
-if IS_DOCKERIZE:
-    io_home = args.io_home
-    output_train_dir = '{}/output/train'.format(io_home)
-    fn_train_epoch_total_reward = "{}/train_epoch_total_reward.txt".format(output_train_dir)
-    fn_train_epoch_tl_reward = "{}/train_epoch_tl_reward.txt".format(output_train_dir)
+io_home = args.io_home
+output_train_dir = '{}/output/train'.format(io_home)
+fn_train_epoch_total_reward = "{}/train_epoch_total_reward.txt".format(output_train_dir)
+fn_train_epoch_tl_reward = "{}/train_epoch_tl_reward.txt".format(output_train_dir)
 
 def makeDirectories(dir_name_list):
     import os
@@ -196,34 +196,17 @@ def run_ddqn():
     state_weight = env.state_weight
 
     time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
+    train_summary_writer = tf.summary.create_file_writer('{}/logs/DDQN/{}/{}'.format(io_home, problem, time_data))
 
-    if IS_DOCKERIZE:
-        train_summary_writer = tf.summary.create_file_writer('{}/logs/DDQN/{}/{}'.format(io_home, problem, time_data))
-    else:
-        train_summary_writer = tf.summary.create_file_writer('logs/DDQN/{}/{}'.format(problem, time_data))
-
-    if IS_DOCKERIZE:
-        f = open(fn_train_epoch_total_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-    else:
-        f = open("output/train/train_epoch_total_reward.txt", mode='w+', buffering=-1, encoding='utf-8',
-                 errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-
+    f = open(fn_train_epoch_total_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
+             newline=None,
+             closefd=True, opener=None)
     f.write('epoch,reward,40ep_reward\n')
     f.close()
 
-    if IS_DOCKERIZE:
-        f = open(fn_train_epoch_tl_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-    else:
-        f = open("output/train/train_epoch_tl_reward.txt", mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-
+    f = open(fn_train_epoch_tl_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
+             newline=None,
+             closefd=True, opener=None)
     f.write('epoch,tl_name,reward,40ep_reward\n')
     f.close()
 
@@ -289,14 +272,14 @@ def run_ddqn():
 
         # Mean of last 40 episodes
         avg_reward = np.mean(ep_reward_list[-40:])
-        avg_reward1 = np.mean(ep_reward_list[-1:])
+        ma1_reward = np.mean(ep_reward_list[-1:])
         print("Episode * {} * Avg Reward is ==> {}".format(trial, avg_reward))
         print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
         avg_reward_list.append(avg_reward)
 
         with train_summary_writer.as_default():
             tf.summary.scalar('train/reward_40ep_mean', avg_reward, step=trial)
-            tf.summary.scalar('train/reward', avg_reward1, step=trial)
+            tf.summary.scalar('train/reward', ma1_reward, step=trial)
             tf.summary.scalar('train/lr', dqn_agent[0].model.optimizer.lr.numpy(), step=trial)
             for i in range(agent_num):
                 ep_agent_reward_list[i].append(episodic_agent_reward[i])
@@ -314,7 +297,7 @@ def run_ddqn():
                      newline=None,
                      closefd=True, opener=None)
 
-        f.write('{},{},{}\n'.format(trial, avg_reward1, avg_reward))
+        f.write('{},{},{}\n'.format(trial, ma1_reward, avg_reward))
         f.close()
 
         for i in range(agent_num):
@@ -371,60 +354,38 @@ def run_sappo():
         env = SALT_SAPPO_green_offset_single(args)
 
     trials = args.epoch
-    if IS_DOCKERIZE:
-        # trial_len = args.end_time - args.start_time
-        scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-        start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-        end_time = args.end_time if args.end_time < scenario_end else scenario_end
-        trial_len = end_time - start_time
-    else:
-        trial_len = args.trainEndTime - args.trainStartTime - args.warmupTime
 
+    ### get simulation start & end time from scenario file
+    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    trial_len = end_time - start_time
+
+    ### 훈련 시작 시간 기록
     time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
-    # self.train_summary_writer = tf.summary.FileWriter('logs/SAPPO/{}/{}_{}'.format(args.problem, self.time_data, agentID))
-    # train_summary_writer = tf.summary.FileWriter('logs/SAPPO/{}/{}'.format(args.problem, time_data))
+    train_summary_writer = tf.summary.FileWriter('{}/logs/SAPPO/{}/{}'.format(io_home, args.problem, time_data))
 
-    if IS_DOCKERIZE:
-        train_summary_writer = tf.summary.FileWriter('{}/logs/SAPPO/{}/{}'.format(io_home, args.problem, time_data))
-    else:
-        train_summary_writer = tf.summary.FileWriter('logs/SAPPO/{}/{}'.format(args.problem, time_data))
-
-    if IS_DOCKERIZE:
-        f = open(fn_train_epoch_total_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-    else:
-        f = open("output/train/train_epoch_total_reward.txt", mode='w+', buffering=-1, encoding='utf-8',
-                 errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-
-
+    ### 가시화 서버에서 사용할 epoch별 전체 보상 파일
+    f = open(fn_train_epoch_total_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
+             newline=None,
+             closefd=True, opener=None)
     f.write('epoch,reward,40ep_reward\n')
     f.close()
-
-    if IS_DOCKERIZE:
-        f = open(fn_train_epoch_tl_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-    else:
-        f = open("output/train/train_epoch_tl_reward.txt", mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-
+    ### 가시화 서버에서 사용할 epoch별 agent별 전체 보상 파일
+    f = open(fn_train_epoch_tl_reward, mode='w+', buffering=-1, encoding='utf-8', errors=None,
+             newline=None,
+             closefd=True, opener=None)
     f.write('epoch,tl_name,reward,40ep_reward\n')
     f.close()
 
     agent_num = env.agent_num
 
-    ppornd_agent = []
+    ppo_agent = []
     state_space_arr = []
     ep_agent_reward_list = []
     agent_crossName = []
-    agent_reward1 = []
-    agent_reward40 = []
-    agent_reward1_summary = []
-    agent_reward40_summary = []
+    agent_reward1, agent_reward40 = [], []
+    agent_reward1_summary, agent_reward40_summary = [], []
 
     total_reward = tf.Variable(0, dtype=tf.float32)
     total_reward_summary = tf.summary.scalar('train/reward', total_reward)
@@ -438,7 +399,7 @@ def run_sappo():
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
         print(f"{target_sa}, state space {state_space} action space {action_space}, action min {action_min}, action max {action_max}")
-        ppornd_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
+        ppo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
         ep_agent_reward_list.append([])
         agent_crossName.append(env.sa_obj[target_sa]['crossName_list'])
 
@@ -452,29 +413,23 @@ def run_sappo():
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
 
-    print(ppornd_agent)
-
+    print(ppo_agent)
     print("env.sa_obj", env.sa_obj)
 
     # To store reward history of each episode
     ep_reward_list = []
     # To store average reward history of last few episodes
-    avg_reward_list = []
+    ma40_reward_list = []
 
-    actionss = []
-    states = []
-    values = []
-    logp_ts = []
-    dones = []
-    rewards = []
+    actions_buffer, state_buffer, value_buffer, logp_t_buffer, done_buffer, reward_buffer = [], [], [], [], [], []
 
     for target_sa in env.sa_obj:
-        actionss.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        states.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        logp_ts.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        dones.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        rewards.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        actions_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        value_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        logp_t_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        done_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        reward_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
 
     for trial in range(trials):
@@ -518,13 +473,12 @@ def run_sappo():
                 #     actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
                 #     actions[i] = np.random.randn(len(actions[i]))
                 # else:
-                actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
+                actions[i], value_t[i], logprobability_t[i] = ppo_agent[i].get_action([cur_state[i]], sess)
                 actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
 
                 target_sa = list(env.sa_obj.keys())[i]
                 discrete_action = []
                 for di in range(len(actions[i])):
-                    # print("actions[i]", actions[i])
                     # discrete_action.append(np.digitize(actions[i][di], bins=env.sa_obj[target_sa]['duration_bins_list'][di]))
                     if args.action=='kc':
                         discrete_action.append(0 if actions[i][di] < args.actionp else 1)
@@ -540,49 +494,43 @@ def run_sappo():
                         discrete_action.append(np.digitize(actions[i][di * 2 + 1], bins=np.linspace(-1, 1, len(env.sa_obj[target_sa]['action_list_list'][di]))) - 1)
 
                 discrete_actions.append(discrete_action)
-
             # print("discrete_actions", discrete_actions)
 
             new_state, reward, done, _ = env.step(discrete_actions)
-            # print(f"current state {cur_state} action {actions} reward {reward} new_state {new_state}")
             print(f"t{t} current state mean {np.mean(cur_state)} action {np.round(actions, 2)} reward {reward} new_state_mean {np.mean(new_state)}")
 
-            # if agent_num==1:
-            #     if (env.simulationSteps + args.warmupTime + args.trainStartTime) % int(sa_cycle[i] * args.controlcycle) == 0:
-            #         print(f"simStep {env.simulationSteps} current state mean {np.mean(cur_state)} action {np.round(actions,2)} reward {reward} new_state_mean {np.mean(new_state)}")
-
-            if len(args.target_TL.split(",")) == 1: # for single target SA
+            if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
                     if trial==0:
-                        states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                        actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
-                        values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
-                        logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                        dones[i] = np.r_[dones[i], done] if t else [done]
-                        rewards[i] = np.r_[rewards[i], reward[i]] if t else [reward[i]]
+                        state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
+                        actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
+                        value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
+                        logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
+                        done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
+                        reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
                     else:
-                        if len(states[i]) >= m_len:
+                        if len(state_buffer[i]) >= m_len:
                             nrc = np.random.choice(range(m_len), int(m_len*m_remove_ratio), replace=False)
-                            states[i] = np.delete(states[i], nrc, axis=0)
-                            actionss[i] = np.delete(actionss[i], nrc, axis=0)
-                            values[i] = np.delete(values[i], nrc, axis=0)
-                            logp_ts[i] = np.delete(logp_ts[i], nrc, axis=0)
-                            dones[i] = np.delete(dones[i], nrc, axis=0)
-                            rewards[i] = np.delete(rewards[i], nrc, axis=0)
+                            state_buffer[i] = np.delete(state_buffer[i], nrc, axis=0)
+                            actions_buffer[i] = np.delete(actions_buffer[i], nrc, axis=0)
+                            value_buffer[i] = np.delete(value_buffer[i], nrc, axis=0)
+                            logp_t_buffer[i] = np.delete(logp_t_buffer[i], nrc, axis=0)
+                            done_buffer[i] = np.delete(done_buffer[i], nrc, axis=0)
+                            reward_buffer[i] = np.delete(reward_buffer[i], nrc, axis=0)
 
-                            states[i] = np.r_[states[i], [cur_state[i]]] # if t else [cur_state[i]]
-                            actionss[i] = np.r_[actionss[i], [actions[i]]] # if t else [actions[i]]
-                            values[i] = np.r_[values[i], value_t[i]] # if t else [value_t[i]]
-                            logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] # if t else [logprobability_t[i]]
-                            dones[i] = np.r_[dones[i], done] # if t else [done]
-                            rewards[i] = np.r_[rewards[i], reward[i]] # if t else [reward[i]]
+                            state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] # if t else [cur_state[i]]
+                            actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] # if t else [actions[i]]
+                            value_buffer[i] = np.r_[value_buffer[i], value_t[i]] # if t else [value_t[i]]
+                            logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] # if t else [logprobability_t[i]]
+                            done_buffer[i] = np.r_[done_buffer[i], done] # if t else [done]
+                            reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] # if t else [reward[i]]
                         else:
-                            states[i] = np.r_[states[i], [cur_state[i]]]
-                            actionss[i] = np.r_[actionss[i], [actions[i]]]
-                            values[i] = np.r_[values[i], value_t[i]]
-                            logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]]
-                            dones[i] = np.r_[dones[i], done]
-                            rewards[i] = np.r_[rewards[i], reward[i]]
+                            state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]]
+                            actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]]
+                            value_buffer[i] = np.r_[value_buffer[i], value_t[i]]
+                            logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]]
+                            done_buffer[i] = np.r_[done_buffer[i], done]
+                            reward_buffer[i] = np.r_[reward_buffer[i], reward[i]]
 
                     # Update the observation
                     cur_state[i] = new_state[i]
@@ -593,38 +541,37 @@ def run_sappo():
                 if t % int(sa_cycle[i] * args.controlcycle) == 0:
                     for i in range(agent_num):
                         if trial==0:
-                            states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                            actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
-                            values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
-                            logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                            dones[i] = np.r_[dones[i], done] if t else [done]
-                            rewards[i] = np.r_[rewards[i], reward[i]] if t else [reward[i]]
+                            state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
+                            actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
+                            value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
+                            logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
+                            done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
+                            reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
                         else:
-                            if len(states[i]) >= m_len:
+                            if len(state_buffer[i]) >= m_len:
                                 nrc = np.random.choice(range(m_len), int(m_len*m_remove_ratio), replace=False)
-                                states[i] = np.delete(states[i], nrc, axis=0)
-                                actionss[i] = np.delete(actionss[i], nrc, axis=0)
-                                values[i] = np.delete(values[i], nrc, axis=0)
-                                logp_ts[i] = np.delete(logp_ts[i], nrc, axis=0)
-                                dones[i] = np.delete(dones[i], nrc, axis=0)
-                                rewards[i] = np.delete(rewards[i], nrc, axis=0)
+                                state_buffer[i] = np.delete(state_buffer[i], nrc, axis=0)
+                                actions_buffer[i] = np.delete(actions_buffer[i], nrc, axis=0)
+                                value_buffer[i] = np.delete(value_buffer[i], nrc, axis=0)
+                                logp_t_buffer[i] = np.delete(logp_t_buffer[i], nrc, axis=0)
+                                done_buffer[i] = np.delete(done_buffer[i], nrc, axis=0)
+                                reward_buffer[i] = np.delete(reward_buffer[i], nrc, axis=0)
 
-                                states[i] = np.r_[states[i], [cur_state[i]]] # if t else [cur_state[i]]
-                                actionss[i] = np.r_[actionss[i], [actions[i]]] # if t else [actions[i]]
-                                values[i] = np.r_[values[i], value_t[i]] # if t else [value_t[i]]
-                                logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] # if t else [logprobability_t[i]]
-                                dones[i] = np.r_[dones[i], done] # if t else [done]
-                                rewards[i] = np.r_[rewards[i], reward[i]] # if t else [reward[i]]
+                                state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]]
+                                actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]]
+                                value_buffer[i] = np.r_[value_buffer[i], value_t[i]]
+                                logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]]
+                                done_buffer[i] = np.r_[done_buffer[i], done]
+                                reward_buffer[i] = np.r_[reward_buffer[i], reward[i]]
                             else:
-                                states[i] = np.r_[states[i], [cur_state[i]]]
-                                actionss[i] = np.r_[actionss[i], [actions[i]]]
-                                values[i] = np.r_[values[i], value_t[i]]
-                                logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]]
-                                dones[i] = np.r_[dones[i], done]
-                                rewards[i] = np.r_[rewards[i], reward[i]]
+                                state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]]
+                                actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]]
+                                value_buffer[i] = np.r_[value_buffer[i], value_t[i]]
+                                logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]]
+                                done_buffer[i] = np.r_[done_buffer[i], done]
+                                reward_buffer[i] = np.r_[reward_buffer[i], reward[i]]
 
                         # Update the observation
-                        print(cur_state, new_state)
                         cur_state[i] = new_state[i]
 
                         episodic_reward += reward[i]
@@ -635,75 +582,54 @@ def run_sappo():
         ep_reward_list.append(episodic_reward)
 
         # Mean of last 40 episodes
-        avg_reward = np.mean(ep_reward_list[-40:])
-        avg_reward1 = np.mean(ep_reward_list[-1:])
-        print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, avg_reward, len(states[0])))
+        ma1_reward = np.mean(ep_reward_list[-1:])
+        ma40_reward = np.mean(ep_reward_list[-40:])
+        print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, ma40_reward, len(state_buffer[0])))
         print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
-        avg_reward_list.append(avg_reward)
 
-        sess.run(total_reward.assign(avg_reward1))  # update accuracy variable
-        train_summary_writer.add_summary(sess.run(total_reward_summary), trial)  # add summary
+        ### 전체 평균 보상 tensorboard에 추가
+        ma40_reward_list.append(ma40_reward)
+        sess.run(total_reward.assign(ma1_reward))
+        train_summary_writer.add_summary(sess.run(total_reward_summary), trial)
 
         for i in range(agent_num):
-            v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
-            values[i] = np.r_[values[i], v_t[i]]
-            next_values[i] = np.copy(values[i][1:])
-            values[i] = values[i][:-1]
-            adv[i], target[i] = ppornd_agent[i].get_gaes(rewards[i], dones[i], values[i], next_values[i], True)
             print("update")
-            # print("target", target[i])
-            # print("adv", adv[i])
-            # print("logp_ts", logp_ts[i])
+            ### ppo agent update
+            v_t[i] = ppo_agent[i].get_action([cur_state[i]], sess)[1][0]
+            value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
+            next_values[i] = np.copy(value_buffer[i][1:])
+            value_buffer[i] = value_buffer[i][:-1]
+            adv[i], target[i] = ppo_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
+            ppo_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
 
-            ppornd_agent[i].update(states[i], actionss[i], target[i], adv[i], logp_ts[i], sess)
-            ep_agent_reward_list[i].append(episodic_agent_reward[i])
+            ### epoch별, 에이전트 별 평균 보상 & 40epoch 평균 보상 tensorboard에 추가
+            ep_agent_reward_list[i].append(episodic_agent_reward[i]) # epoisode별 리워드 리스트에 저장
+            sess.run(agent_reward1[i].assign(np.mean(ep_agent_reward_list[i][-1:])))
+            sess.run(agent_reward40[i].assign(np.mean(ep_agent_reward_list[i][-40:])))
+            train_summary_writer.add_summary(sess.run(agent_reward1_summary[i]), trial)
+            train_summary_writer.add_summary(sess.run(agent_reward40_summary[i]), trial)
 
-            sess.run(agent_reward1[i].assign(np.mean(ep_agent_reward_list[i][-1:])))  # update accuracy variable
-            sess.run(agent_reward40[i].assign(np.mean(ep_agent_reward_list[i][-40:])))  # update accuracy variable
+        train_summary_writer.flush() # update tensorboard
 
-            train_summary_writer.add_summary(sess.run(agent_reward1_summary[i]), trial)  # add summary
-            train_summary_writer.add_summary(sess.run(agent_reward40_summary[i]), trial)  # add summary
-
-        train_summary_writer.flush()
-
-        if IS_DOCKERIZE :
-            f = open(fn_train_epoch_total_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                     newline=None,
-                     closefd=True, opener=None)
-        else:
-            f = open("output/train/train_epoch_total_reward.txt", mode='a+', buffering=-1, encoding='utf-8',
-                     errors=None,
-                     newline=None,
-                     closefd=True, opener=None)
-
-        f.write('{},{},{}\n'.format(trial, avg_reward1, avg_reward))
+        ### 가시화 서버에서 사용할 epoch별 reward 파일
+        f = open(fn_train_epoch_total_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                 newline=None,
+                 closefd=True, opener=None)
+        f.write('{},{},{}\n'.format(trial, ma1_reward, ma40_reward))
         f.close()
 
+        ### 가시화 서버에서 사용할 epoch별 agent별 reward 파일
         for i in range(agent_num):
-            if IS_DOCKERIZE:
-                f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                         newline=None,
-                         closefd=True, opener=None)
-            else:
-                f = open("output/train/train_epoch_tl_reward.txt", mode='a+', buffering=-1, encoding='utf-8',
-                         errors=None,
-                         newline=None,
-                         closefd=True, opener=None)
-
+            f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                     newline=None,
+                     closefd=True, opener=None)
             f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
             f.close()
 
-        # if trial % 20 == 0:
-        #     fn = "model/ppo/SAPPO-{}-trial".format(problem_var)
-        #     saver.save(sess, fn, global_step=trial)
-
+        ### model save
         if trial % args.model_save_period == 0:
-            if IS_DOCKERIZE:
-                fn = "{}/model/sappo/SAPPO-{}-trial".format(io_home, problem_var)
-                saver.save(sess, fn, global_step=trial)
-            else:
-                fn = "model/sappo/SAPPO-{}-trial".format(problem_var)
-                saver.save(sess, fn, global_step=trial)
+            fn = "{}/model/sappo/SAPPO-{}-trial".format(io_home, problem_var)
+            saver.save(sess, fn, global_step=trial)
 
 def run_ppornd():
     import tensorflow.compat.v1 as tf
@@ -833,7 +759,7 @@ def run_ppornd():
     # To store reward history of each episode
     ep_reward_list = []
     # To store average reward history of last few episodes
-    avg_reward_list = []
+    ma40_reward_list = []
 
     for trial in range(trials):
         buffer_Vs, buffer_V_is = [], []
@@ -843,13 +769,13 @@ def run_ppornd():
         # value_t = []
         # logprobability_t = []
 
-        actionss = []
-        states = []
-        next_states = []
-        values = []
-        logp_ts = []
-        dones = []
-        rewards = []
+        actions_buffer = []
+        state_buffer = []
+        next_state_buffer = []
+        value_buffer = []
+        logp_t_buffer = []
+        done_buffer = []
+        reward_buffer = []
 
         v_t = []
         next_values = []
@@ -866,13 +792,13 @@ def run_ppornd():
             buffer_Vs.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             buffer_V_is.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
-            actionss.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            states.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            next_states.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logp_ts.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            dones.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            rewards.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            actions_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            next_state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            value_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            logp_t_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            done_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            reward_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
             v_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             next_values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
@@ -906,20 +832,17 @@ def run_ppornd():
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
-                    states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                    actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
-                    # values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
-                    # logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                    dones[i] = np.r_[dones[i], done] if t else [done]
-                    rewards[i] = np.r_[rewards[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
+                    state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
+                    actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
+                    # value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
+                    # logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
+                    done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
+                    reward_buffer[i] = np.r_[reward_buffer[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
                     v = ppornd_agent[i].get_v([cur_state[i]], sess)
                     buffer_Vs[i] = np.r_[buffer_Vs[i], v] if t else [v]
                     v_i = ppornd_agent[i].get_v_i([cur_state[i]], sess)
                     buffer_V_is[i] = np.r_[buffer_V_is[i], v_i] if t else [v_i]
-                    next_states[i] = np.r_[next_states[i], [new_state[i]]] if t else [new_state[i]]
-                    # Update the observation
-                    # print("cur_state[i]", cur_state[i])
-                    # print("new_state[i]", new_state[i])
+                    next_state_buffer[i] = np.r_[next_state_buffer[i], [new_state[i]]] if t else [new_state[i]]
                     cur_state[i] = new_state[i]
 
                     episodic_reward += reward[i]
@@ -927,10 +850,10 @@ def run_ppornd():
             else:
                 if t % int(sa_cycle[i] * args.controlcycle) == 0:
                     for i in range(agent_num):
-                        states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                        actionss[i] = np.r_[actionss[i], [actions[i]]] if t else [actions[i]]
-                        dones[i] = np.r_[dones[i], done] if t else [done]
-                        rewards[i] = np.r_[rewards[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
+                        state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
+                        actions_buffer[i] = np.r_[actions_buffer[i], [actions[i]]] if t else [actions[i]]
+                        done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
+                        reward_buffer[i] = np.r_[reward_buffer[i], reward[i] * ppornd_agent[i].ext_r_coeff] if t else [reward[i]]
                         v = ppornd_agent[i].get_v([cur_state[i]], sess)
                         buffer_Vs[i] = np.r_[buffer_Vs[i], v] if t else [v]
                         v_i = ppornd_agent[i].get_v_i([cur_state[i]], sess)
@@ -949,29 +872,29 @@ def run_ppornd():
         ep_reward_list.append(episodic_reward)
 
         # Mean of last 40 episodes
-        avg_reward = np.mean(ep_reward_list[-40:])
-        avg_reward1 = np.mean(ep_reward_list[-1:])
-        print("Episode * {} * Avg Reward is ==> {}".format(trial, avg_reward))
+        ma40_reward = np.mean(ep_reward_list[-40:])
+        ma1_reward = np.mean(ep_reward_list[-1:])
+        print("Episode * {} * Avg Reward is ==> {}".format(trial, ma40_reward))
         print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
-        avg_reward_list.append(avg_reward)
+        ma40_reward_list.append(ma40_reward)
 
-        sess.run(total_reward.assign(avg_reward1))  # update accuracy variable
+        sess.run(total_reward.assign(ma1_reward))  # update accuracy variable
         train_summary_writer.add_summary(sess.run(total_reward_summary), trial)  # add summary
 
         for i in range(agent_num):
-            # print("before states[i]", states[i])
-            # states[i] = running_stats_fun(running_stats_s, states[i], ppornd_agent[i].s_CLIP, False)
-            # print("after states[i]", states[i])
-            # next_states[i] = running_stats_fun(running_stats_s_, next_states[i], ppornd_agent[i].s_CLIP, False)
-            buffer_r_i = ppornd_agent[i].intrinsic_r(next_states[i], sess)
+            # print("before state_buffer[i]", state_buffer[i])
+            # state_buffer[i] = running_stats_fun(running_stats_s, state_buffer[i], ppornd_agent[i].s_CLIP, False)
+            # print("after state_buffer[i]", state_buffer[i])
+            # next_state_buffer[i] = running_stats_fun(running_stats_s_, next_state_buffer[i], ppornd_agent[i].s_CLIP, False)
+            buffer_r_i = ppornd_agent[i].intrinsic_r(next_state_buffer[i], sess)
             # Batch normalize running extrinsic r
-            rewards[i] = running_stats_fun(running_stats_r, rewards[i], ppornd_agent[i].r_CLIP, False)
+            reward_buffer[i] = running_stats_fun(running_stats_r, reward_buffer[i], ppornd_agent[i].r_CLIP, False)
             # Batch normalize running intrinsic r_i
             buffer_r_i = running_stats_fun(running_stats_r_i, buffer_r_i, ppornd_agent[i].r_CLIP, False)
 
             v_s_ = ppornd_agent[i].get_v([cur_state[i]], sess)
-            tdlamret, adv = ppornd_agent[i].add_vtarg_and_adv(np.vstack(rewards[i]),
-                                                      np.vstack(dones[i]),
+            tdlamret, adv = ppornd_agent[i].add_vtarg_and_adv(np.vstack(reward_buffer[i]),
+                                                      np.vstack(done_buffer[i]),
                                                       np.vstack(buffer_Vs[i]),
                                                       v_s_,
                                                       args.gamma,
@@ -979,27 +902,22 @@ def run_ppornd():
 
             v_s_i = ppornd_agent[i].get_v_i([cur_state[i]], sess)
             tdlamret_i, adv_i = ppornd_agent[i].add_vtarg_and_adv(np.vstack(buffer_r_i),
-                                                          np.vstack(dones[i]),
+                                                          np.vstack(done_buffer[i]),
                                                           np.vstack(buffer_V_is[i]),
                                                           v_s_i,
                                                           args.gamma_i,
                                                           ppornd_agent[i].lamda)
 
-            bs, bs_, ba, br, br_i, b_adv = np.vstack(states[i]), np.vstack(next_states[i]), np.vstack(actionss[i]), tdlamret, tdlamret_i, np.vstack(adv + adv_i)  # sum advantages
-            # print("bs",bs)
-            # print("bs_",bs_)
-            # print("ba",ba)
-            # print("br",br)
-            # print("br_i",br_i)
-            # print("b_adv",b_adv)
+            bs, bs_, ba, br, br_i, b_adv = np.vstack(state_buffer[i]), np.vstack(next_state_buffer[i]), np.vstack(actions_buffer[i]), tdlamret, tdlamret_i, np.vstack(adv + adv_i)  # sum advantages
+
             ppornd_agent[i].update(bs, bs_, ba, br, br_i, b_adv, sess)
 
             # v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
-            # values[i] = np.r_[values[i], v_t[i]]
-            # next_values[i] = np.copy(values[i][1:])
-            # values[i] = values[i][:-1]
-            # adv[i], target[i] = ppornd_agent[i].get_gaes(rewards[i], dones[i], values[i], next_values[i], True)
-            # ppornd_agent[i].update(states[i], actionss[i], target[i], adv[i], logp_ts[i], sess)
+            # value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
+            # next_values[i] = np.copy(value_buffer[i][1:])
+            # value_buffer[i] = value_buffer[i][:-1]
+            # adv[i], target[i] = ppornd_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
+            # ppornd_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
             ep_agent_reward_list[i].append(episodic_agent_reward[i])
 
             sess.run(agent_reward1[i].assign(np.mean(ep_agent_reward_list[i][-1:])))  # update accuracy variable
@@ -1020,7 +938,7 @@ def run_ppornd():
                      newline=None,
                      closefd=True, opener=None)
 
-        f.write('{},{},{}\n'.format(trial, avg_reward1, avg_reward))
+        f.write('{},{},{}\n'.format(trial, ma1_reward, ma40_reward))
         f.close()
 
         for i in range(agent_num):
@@ -1036,10 +954,6 @@ def run_ppornd():
 
             f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
             f.close()
-
-        # if trial % 20 == 0:
-        #     fn = "model/ppo/SAPPO-{}-trial".format(problem_var)
-        #     saver.save(sess, fn, global_step=trial)
 
         if trial % args.model_save_period == 0:
             if IS_DOCKERIZE:
@@ -1153,7 +1067,7 @@ def run_ppoea():
     # To store reward history of each episode
     ep_reward_list = []
     # To store average reward history of last few episodes
-    avg_reward_list = []
+    ma40_reward_list = []
 
     for trial in range(trials):
         actions = []
@@ -1161,12 +1075,12 @@ def run_ppoea():
         value_t = []
         logprobability_t = []
 
-        actionss = []
-        states = []
-        values = []
-        logp_ts = []
-        dones = []
-        rewards = []
+        actions_buffer = []
+        state_buffer = []
+        value_buffer = []
+        logp_t_buffer = []
+        done_buffer = []
+        reward_buffer = []
 
         v_t = []
         next_values = []
@@ -1181,12 +1095,12 @@ def run_ppoea():
             value_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             logprobability_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
-            actionss.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            states.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            logp_ts.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            dones.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-            rewards.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            actions_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            state_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            value_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            logp_t_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            done_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+            reward_buffer.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
 
             v_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
             next_values.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
@@ -1222,12 +1136,12 @@ def run_ppoea():
 
             if len(args.target_TL.split(",")) == 1:
                 for i in range(agent_num):
-                    states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                    actionss[i] = np.r_[actionss[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
-                    values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
-                    logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                    dones[i] = np.r_[dones[i], done] if t else [done]
-                    rewards[i] = np.r_[rewards[i], reward[i]] if t else [reward[i]]
+                    state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
+                    actions_buffer[i] = np.r_[actions_buffer[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
+                    value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
+                    logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
+                    done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
+                    reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
 
                     # Update the observation
                     cur_state[i] = new_state[i]
@@ -1237,12 +1151,12 @@ def run_ppoea():
             else:
                 if t % int(sa_cycle[i] * args.controlcycle) == 0:
                     for i in range(agent_num):
-                        states[i] = np.r_[states[i], [cur_state[i]]] if t else [cur_state[i]]
-                        actionss[i] = np.r_[actionss[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
-                        values[i] = np.r_[values[i], value_t[i]] if t else [value_t[i]]
-                        logp_ts[i] = np.r_[logp_ts[i], logprobability_t[i]] if t else [logprobability_t[i]]
-                        dones[i] = np.r_[dones[i], done] if t else [done]
-                        rewards[i] = np.r_[rewards[i], reward[i]] if t else [reward[i]]
+                        state_buffer[i] = np.r_[state_buffer[i], [cur_state[i]]] if t else [cur_state[i]]
+                        actions_buffer[i] = np.r_[actions_buffer[i], [virtual_actions[i]]] if t else [virtual_actions[i]]
+                        value_buffer[i] = np.r_[value_buffer[i], value_t[i]] if t else [value_t[i]]
+                        logp_t_buffer[i] = np.r_[logp_t_buffer[i], logprobability_t[i]] if t else [logprobability_t[i]]
+                        done_buffer[i] = np.r_[done_buffer[i], done] if t else [done]
+                        reward_buffer[i] = np.r_[reward_buffer[i], reward[i]] if t else [reward[i]]
 
                         # Update the observation
                         cur_state[i] = new_state[i]
@@ -1251,11 +1165,11 @@ def run_ppoea():
                         episodic_agent_reward[i] += reward[i]
 
                         v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
-                        values[i] = np.r_[values[i], v_t[i]]
-                        next_values[i] = np.copy(values[i][1:])
-                        values[i] = values[i][:-1]
-                        adv[i], target[i] = ppornd_agent[i].get_gaes(rewards[i], dones[i], values[i], next_values[i], True)
-                        ppornd_agent[i].update(states[i], actionss[i], target[i], adv[i], logp_ts[i], sess)
+                        value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
+                        next_values[i] = np.copy(value_buffer[i][1:])
+                        value_buffer[i] = value_buffer[i][:-1]
+                        adv[i], target[i] = ppornd_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
+                        ppornd_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
 
             if done:
                 break
@@ -1263,22 +1177,22 @@ def run_ppoea():
         ep_reward_list.append(episodic_reward)
 
         # Mean of last 40 episodes
-        avg_reward = np.mean(ep_reward_list[-40:])
-        avg_reward1 = np.mean(ep_reward_list[-1:])
-        print("Episode * {} * Avg Reward is ==> {}".format(trial, avg_reward))
+        ma40_reward = np.mean(ep_reward_list[-40:])
+        ma1_reward = np.mean(ep_reward_list[-1:])
+        print("Episode * {} * Avg Reward is ==> {}".format(trial, ma40_reward))
         print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
-        avg_reward_list.append(avg_reward)
+        ma40_reward_list.append(ma40_reward)
 
-        sess.run(total_reward.assign(avg_reward1))  # update accuracy variable
+        sess.run(total_reward.assign(ma1_reward))  # update accuracy variable
         train_summary_writer.add_summary(sess.run(total_reward_summary), trial)  # add summary
 
         for i in range(agent_num):
             v_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)[1][0]
-            values[i] = np.r_[values[i], v_t[i]]
-            next_values[i] = np.copy(values[i][1:])
-            values[i] = values[i][:-1]
-            adv[i], target[i] = ppornd_agent[i].get_gaes(rewards[i], dones[i], values[i], next_values[i], True)
-            ppornd_agent[i].update(states[i], actionss[i], target[i], adv[i], logp_ts[i], sess)
+            value_buffer[i] = np.r_[value_buffer[i], v_t[i]]
+            next_values[i] = np.copy(value_buffer[i][1:])
+            value_buffer[i] = value_buffer[i][:-1]
+            adv[i], target[i] = ppornd_agent[i].get_gaes(reward_buffer[i], done_buffer[i], value_buffer[i], next_values[i], True)
+            ppornd_agent[i].update(state_buffer[i], actions_buffer[i], target[i], adv[i], logp_t_buffer[i], sess)
             ep_agent_reward_list[i].append(episodic_agent_reward[i])
 
             sess.run(agent_reward1[i].assign(np.mean(ep_agent_reward_list[i][-1:])))  # update accuracy variable
@@ -1299,7 +1213,7 @@ def run_ppoea():
                      newline=None,
                      closefd=True, opener=None)
 
-        f.write('{},{},{}\n'.format(trial, avg_reward1, avg_reward))
+        f.write('{},{},{}\n'.format(trial, ma1_reward, ma40_reward))
         f.close()
 
         for i in range(agent_num):
@@ -1328,7 +1242,6 @@ def run_ppoea():
                 fn = "model/sappo/SAPPO-{}-trial".format(problem_var)
                 saver.save(sess, fn, global_step=trial)
 
-
 if __name__ == "__main__":
     if IS_DOCKERIZE:
         dir_name_list = [ #f"{args.io_home}/model",
@@ -1352,7 +1265,6 @@ if __name__ == "__main__":
                          f"data/envs/salt/data",
         ]
         makeDirectories(dir_name_list)
-
 
     if args.mode == 'train':
         if args.method == 'sappo':

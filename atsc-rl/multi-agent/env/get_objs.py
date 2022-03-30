@@ -4,15 +4,11 @@ import sys
 import os
 
 from config import TRAIN_CONFIG
-print(TRAIN_CONFIG)
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 import libsalt
-
-# parameters for green ratio
-addTime = 2
 
 def getActionList(phase_num, max_phase):
     _pos = [4, 3, 2, 1, 0, -1, -2, -3, -4]
@@ -96,8 +92,6 @@ def getActionList_v2(phase_num, max_phase):
                            x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1 and x[max_phase] != np.min(x[mask]) and
                        x[max_phase] != np.max(x[mask]) and x[max_phase]>0]
 
-    action_list
-
 #     tmp = list([1] * phase_num)
 #     tmp[max_phase] = -(phase_num - 1)
 #     action_list.append(tmp)
@@ -135,10 +129,8 @@ def getPossibleActionList(args, duration, minDur, maxDur, green_idx, actionList)
     print('len(actionList)', len(actionList), 'len(new_actionList)', len(new_actionList))
     return new_actionList
 
-
 def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenario, startStep):
     target_tl_obj = {}
-    sa_obj = {}
 
     phase_numbers = []
     i=0
@@ -180,7 +172,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             for g in target_tl_obj[x.attrib['nodeID']]['green_idx'][0]:
                 dur_arr.append(target_tl_obj[x.attrib['nodeID']]['duration'][g])
             dur_ratio = dur_arr / np.sum(dur_arr)
-            dur_ratio
             tmp = -1
             dur_bins = []
             for dr in dur_ratio:
@@ -202,20 +193,8 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             phase_numbers.append(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
             i += 1
 
-
-    if IS_DOCKERIZE:
-        tree = parse(edge_file_path)
-    else:
-        tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.edge.xml')
-        # if args.map=='doan':
-        #     tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.edg.xml')
-        # elif args.map=='dj':
-        #     tree = parse(os.getcwd() + '/data/envs/salt/dj_all/edge.xml')
-        #     if args.target_TL == 'SA 1' or args.target_TL == 'SA 6' or args.target_TL == 'SA 17':
-        #         tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/edge.xml')
-
+    tree = parse(edge_file_path)
     root = tree.getroot()
-
     edge = root.findall("edge")
 
     target_tl_id_list = list(target_tl_obj.keys())
@@ -226,7 +205,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         near_tl_obj[i]['in_edge_list'] = []
         near_tl_obj[i]['in_edge_list_0'] = []
         near_tl_obj[i]['in_edge_list_1'] = []
-        # near_tl_obj[i]['near_length_list'] = []
 
     for x in edge:
         if x.attrib['to'] in target_tl_id_list:
@@ -253,8 +231,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
 
     print(target_tl_obj)
 
-    done = False
-
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(startStep)
 
@@ -273,7 +249,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                 _lane_id = "{}_{}".format(edge, lane)
                 _lane_list.append(_lane_id)
                 _lane_list_0.append((_lane_id))
-                # print(_lane_id, libsalt.lane.getLength(_lane_id))
         target_tl_obj[target]['in_lane_list_0'] = _lane_list_0
         _lane_list_1 = []
         for edge in target_tl_obj[target]['in_edge_list_1']:
@@ -281,7 +256,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                 _lane_id = "{}_{}".format(edge, lane)
                 _lane_list.append(_lane_id)
                 _lane_list_1.append((_lane_id))
-                # print(_lane_id, libsalt.lane.getLength(_lane_id))
         target_tl_obj[target]['in_lane_list_1'] = _lane_list_1
         target_tl_obj[target]['in_lane_list'] = _lane_list
         if args.state == 'vd':

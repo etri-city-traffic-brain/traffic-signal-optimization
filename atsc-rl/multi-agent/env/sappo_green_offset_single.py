@@ -28,40 +28,39 @@ IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 from env.get_objs import get_objs
 
-if IS_DOCKERIZE:
-    import json
-    import platform
+import json
+import platform
 
-    def getScenarioRelatedFilePath(args):
-        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
+def getScenarioRelatedFilePath(args):
+    abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
 
-        input_file_path = os.path.dirname(abs_scenario_file_path)
-        if platform.system() == 'Windows':  # one of { Windows, Linux , Darwin }
-            dir_delimiter = "\\"
-        else:
-            dir_delimiter = "/"
+    input_file_path = os.path.dirname(abs_scenario_file_path)
+    if platform.system() == 'Windows':  # one of { Windows, Linux , Darwin }
+        dir_delimiter = "\\"
+    else:
+        dir_delimiter = "/"
 
-        with open(abs_scenario_file_path, 'r') as json_file:
-            json_data = json.load(json_file)
-            node_file = json_data["scenario"]["input"]["node"]
-            edge_file = json_data["scenario"]["input"]["link"]
-            tss_file = json_data["scenario"]["input"]["trafficLightSystem"]
+    with open(abs_scenario_file_path, 'r') as json_file:
+        json_data = json.load(json_file)
+        node_file = json_data["scenario"]["input"]["node"]
+        edge_file = json_data["scenario"]["input"]["link"]
+        tss_file = json_data["scenario"]["input"]["trafficLightSystem"]
 
-        node_file_path = input_file_path + dir_delimiter + node_file
-        edge_file_path = input_file_path + dir_delimiter + edge_file
-        tss_file_path = input_file_path + dir_delimiter + tss_file
+    node_file_path = input_file_path + dir_delimiter + node_file
+    edge_file_path = input_file_path + dir_delimiter + edge_file
+    tss_file_path = input_file_path + dir_delimiter + tss_file
 
-        return abs_scenario_file_path, node_file_path, edge_file_path, tss_file_path
+    return abs_scenario_file_path, node_file_path, edge_file_path, tss_file_path
 
-    def getScenarioRelatedBeginEndTime(scenario_file_path):
-        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
+def getScenarioRelatedBeginEndTime(scenario_file_path):
+    abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
 
-        with open(abs_scenario_file_path, 'r') as json_file:
-            json_data = json.load(json_file)
-            begin_time = json_data["scenario"]["time"]["begin"]
-            end_time = json_data["scenario"]["time"]["end"]
+    with open(abs_scenario_file_path, 'r') as json_file:
+        json_data = json.load(json_file)
+        begin_time = json_data["scenario"]["time"]["begin"]
+        end_time = json_data["scenario"]["time"]["end"]
 
-        return begin_time, end_time
+    return begin_time, end_time
 
 class SALT_SAPPO_green_offset_single(gym.Env):
     metadata = {'render.modes': ['human']}
@@ -72,7 +71,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         self.addTime = addTime
         self.reward_func = args.reward_func
         self.actionT = args.action_t
-        self.logprint = args.logprint
         self.args = args
         self.cp = args.cp
         self.printOut = args.printOut
@@ -80,30 +78,19 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         self.warmupTime = args.warmupTime
         self.maxobs = 999
 
-        if IS_DOCKERIZE:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+        scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
 
-            # self.startStep = args.trainStartTime if args.trainStartTime > scenario_begin else scenario_begin
-            # self.endStep = args.trainEndTime if args.trainEndTime < scenario_end else scenario_end
-            self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
-            self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
-        else:
-            self.startStep = args.trainStartTime
-            self.endStep = args.trainEndTime
+        self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
+        self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.uid = str(uuid.uuid4())
 
-        if IS_DOCKERIZE:
-            abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
-            self.src_dir = os.path.dirname(abs_scenario_file_path)
-            self.dest_dir = os.path.split(self.src_dir)[0]
-            self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
-            os.makedirs(self.dest_dir, exist_ok=True)
-        else:
-            self.src_dir = os.getcwd() + f"/data/envs/salt/{self.args.map}"
-            self.dest_dir = os.getcwd() + "/data/envs/salt/data/" + self.uid + "/"
-            os.mkdir(self.dest_dir)
+        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
+        self.src_dir = os.path.dirname(abs_scenario_file_path)
+        self.dest_dir = os.path.split(self.src_dir)[0]
+        self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
+        os.makedirs(self.dest_dir, exist_ok=True)
 
         src_files = os.listdir(self.src_dir)
         for file_name in src_files:
@@ -111,26 +98,18 @@ class SALT_SAPPO_green_offset_single(gym.Env):
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, self.dest_dir)
 
-        if IS_DOCKERIZE:
-            scenario_file_name = args.scenario_file_path.split('/')[-1]
-            self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
-            _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
-            tree = parse(tss_file_path)
-        else:
-            self.salt_scenario = self.dest_dir + f'{self.args.map}_{args.mode}.scenario.json'
-            edge_file_path = f"data/{self.args.map}/{self.args.map}.edge.xml"
-            tree = parse(os.getcwd() + f'/data/envs/salt/{self.args.map}/{self.args.map}.tss.xml')
-
+        scenario_file_name = args.scenario_file_path.split('/')[-1]
+        self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
+        _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
+        tree = parse(tss_file_path)
 
         root = tree.getroot()
 
         trafficSignal = root.findall("trafficSignal")
 
         self.phase_numbers = []
-        i=0
 
         self.targetList_input = args.target_TL.split(',')
-
         self.targetList_input2 = []
 
         for tl_i in self.targetList_input:
@@ -169,17 +148,12 @@ class SALT_SAPPO_green_offset_single(gym.Env):
             self.action_mask = np.append(self.action_mask, 0)
 
 
-        # print("self.lane_passed", self.lane_passed)
-        # print(self.observations)
-        # print("self.action_keep_time", self.action_keep_time)
         self.rewards = np.zeros(self.agent_num)
 
         self.before_action = []
         for target_sa in self.sa_obj:
             self.before_action.append([0] * self.sa_obj[target_sa]['action_space'].shape[0])
         print("before action", self.before_action)
-
-        # print('{} traci closed\n'.format(self.uid))
 
         self.simulationSteps = 0
 
