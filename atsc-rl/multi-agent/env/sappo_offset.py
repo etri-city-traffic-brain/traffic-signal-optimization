@@ -15,17 +15,15 @@ import libsalt
 
 state_weight = 1
 reward_weight = 1
-addTime = 1
 
 sim_period = 30
-
-from config import TRAIN_CONFIG
 
 from env.get_objs import get_objs
 
 import json
 import platform
 
+### 시나리오 파일에 적혀있는 node, edge, tss 파일명을 가져옴
 def getScenarioRelatedFilePath(args):
     abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
 
@@ -47,6 +45,7 @@ def getScenarioRelatedFilePath(args):
 
     return abs_scenario_file_path, node_file_path, edge_file_path, tss_file_path
 
+### 시나리오 파일에 적혀있는 begin time과 end time을 가져옴
 def getScenarioRelatedBeginEndTime(scenario_file_path):
     abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
 
@@ -63,7 +62,6 @@ class SALT_SAPPO_offset(gym.Env):
     def __init__(self, args):
         self.state_weight = state_weight
         self.reward_weight = reward_weight
-        self.addTime = addTime
         self.reward_func = args.reward_func
         self.actionT = args.action_t
         self.args = args
@@ -119,11 +117,6 @@ class SALT_SAPPO_offset(gym.Env):
 
         self.control_cycle = args.controlcycle
 
-        print('target tl obj {}'.format(self.target_tl_obj))
-        print('target tl id list {}'.format(self.target_tl_id_list))
-        print('number of target tl {}'.format(len(self.target_tl_id_list)))
-
-        print(self.target_tl_obj)
         self.observations = []
         self.lane_passed = []
 

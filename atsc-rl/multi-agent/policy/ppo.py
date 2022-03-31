@@ -63,7 +63,6 @@ class Actor:
             self.logp = gaussian_likelihood(self.action, self.mu, self.log_std)
             self.logp_pi = gaussian_likelihood(self.pi, self.mu, self.log_std)
 
-
 class Critic:
     def __init__(self, name, state_size):
         with tf.variable_scope(name):
@@ -77,7 +76,6 @@ class Critic:
             self.value = tf.layers.dense(inp, 1, use_bias=False)
 
             self.v = tf.squeeze(self.value, axis=1)
-
 
 class PPOAgent:
     def __init__(self, args, state_space, action_space, action_min, action_max, agentID):

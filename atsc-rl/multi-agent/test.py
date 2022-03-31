@@ -23,6 +23,7 @@ sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 import libsalt
 
 from env.get_objs import get_objs
+import pprint
 
 def result_comp(args, ft_output, rl_output, model_num):
     ### get node, edge, tss file path
@@ -41,7 +42,8 @@ def result_comp(args, ft_output, rl_output, model_num):
 
     target_tl_obj, sa_obj, _lane_len = get_objs(args, trafficSignal, targetList_input2, edge_file_path, scenario_file_path, args.start_time)
 
-    print("target_tl_obj", target_tl_obj)
+    print("target_tl_obj")
+    pprint.pprint(target_tl_obj, width=200, compact=True)
     total_output = pd.DataFrame()
 
     compare_start_time = args.start_time + 3600 # 2시간 테스트시 앞에 1시간은 비교대상에서 제외

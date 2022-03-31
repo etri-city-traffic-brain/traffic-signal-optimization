@@ -368,7 +368,6 @@ def run_sappo():
         agent_reward40_summary.append(tf.summary.scalar('train_agent_reward_40ep_mean/agent_{}'.format(list(env.sa_obj.keys())[i]), agent_reward40[i]))  # summary to write to TensorBoard
 
     print(ppo_agent)
-    print("env.sa_obj", env.sa_obj)
 
     saver = tf.train.Saver(max_to_keep=5)
 

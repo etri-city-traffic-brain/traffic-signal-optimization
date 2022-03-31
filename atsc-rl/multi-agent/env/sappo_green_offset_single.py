@@ -7,22 +7,16 @@ import sys
 import os
 import numpy as np
 from xml.etree.ElementTree import parse
-import collections
-import math
 
 from config import TRAIN_CONFIG
-# print(TRAIN_CONFIG)
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import libsalt
 
 state_weight = 1
 reward_weight = 1
-addTime = 1
 
 sim_period = 30
-
-from config import TRAIN_CONFIG
 
 from env.get_objs import get_objs
 
@@ -66,7 +60,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
     def __init__(self, args):
         self.state_weight = state_weight
         self.reward_weight = reward_weight
-        self.addTime = addTime
         self.reward_func = args.reward_func
         self.actionT = args.action_t
         self.args = args

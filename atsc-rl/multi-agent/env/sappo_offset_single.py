@@ -112,11 +112,6 @@ class SALT_SAPPO_offset_single(gym.Env):
 
         self.agent_num = len(self.sa_obj)
 
-        print('target tl obj {}'.format(self.target_tl_obj))
-        print('target tl id list {}'.format(self.target_tl_id_list))
-        print('number of target tl {}'.format(len(self.target_tl_id_list)))
-
-        print(self.target_tl_obj)
         self.observations = []
         self.lane_passed = []
 

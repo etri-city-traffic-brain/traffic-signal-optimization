@@ -2,12 +2,14 @@ import numpy as np
 from xml.etree.ElementTree import parse
 import sys
 import os
+import pprint
 
 from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import libsalt
 
+### 녹색 시간 조정 actioon 생성
 def getActionList(phase_num, max_phase):
     _pos = [4, 3, 2, 1, 0, -1, -2, -3, -4]
 
@@ -108,6 +110,7 @@ def getActionList_v2(phase_num, max_phase):
 
     return action_list
 
+### 녹색 시간 조정 action list에서 제약 조건 벗어나는 action 제거
 def getPossibleActionList(args, duration, minDur, maxDur, green_idx, actionList):
 
     duration = np.array(duration)
@@ -127,6 +130,7 @@ def getPossibleActionList(args, duration, minDur, maxDur, green_idx, actionList)
     print('len(actionList)', len(actionList), 'len(new_actionList)', len(new_actionList))
     return new_actionList
 
+### 신호 최적화 대상 교차로 및 교차로 그룹에 대한 정보를 object로 생성
 def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenario, startStep):
     target_tl_obj = {}
 
@@ -225,7 +229,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         target_tl_obj[n]['in_edge_list_1'] = near_tl_obj[n]['in_edge_list_1']
         _edge_len.append(len(near_tl_obj[n]['in_edge_list']))
 
-    print(target_tl_obj)
 
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(startStep)
@@ -262,44 +265,47 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
 
     libsalt.close()
 
+    print("target_tl_obj")
+    pprint.pprint(target_tl_obj, width=200, compact=True)
+
     ### for SAPPO Agent ###
     sa_obj = {}
     for tl_obj in target_tl_obj:
         if target_tl_obj[tl_obj]['signalGroup'] not in sa_obj:
             sa_obj[target_tl_obj[tl_obj]['signalGroup']] = {}
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['crossName_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tlid_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space'] = 0
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] = 0
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['offset_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['minDur_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['maxDur_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['cycle_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['duration_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['green_idx_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['duration_bins_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['main_green_idx_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['sub_green_idx_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tl_idx_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['remain_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['max_phase_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_list_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_0'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_1'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_0_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_1_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_0'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_1'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_0_list'] = []
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_1_list'] = []
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['crossName_list'] = [] # 교차로 그룹에 속한 교차로 이름 목록
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tlid_list'] = []      # 교차로 id 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space'] = 0     # state space - 교차로 그룹에 속한 교차로의 in_lane 수
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] = 0    # action space - 교차로 그룹에 속한 교차로 수
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'] = []     # action_min에 대한 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'] = []     # action_max에 대한 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['offset_list'] = []    # 각 교차로의 offset 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['minDur_list'] = []    # 각 교차로의 최소 녹색 시간 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['maxDur_list'] = []    # 각 교차로의 최대 녹색 시간 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['cycle_list'] = []     # 각 교차로의 주기 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['duration_list'] = []  # 각 교차로의 현재 신호 시간 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['green_idx_list'] = [] # 각 교차로의 녹색 시간 인덱스 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['duration_bins_list'] = []     # 각 교차로의 현재 신호 비율에 따라 -1에서 1까지 등분한 리스트(ppo phase 선택 action용)
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['main_green_idx_list'] = []    # 각 교차로의 주 현시 인덱스 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['sub_green_idx_list'] = []     # 각 교차로의 나머지 현시 인덱스 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tl_idx_list'] = []            # 각 교차로의 tl_idx 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['remain_list'] = []            # 각 교차로의 잔여 녹색 시간 리스트(잔여 녹색 시간 = 주기 - 최소 녹색 시간의 합)
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['max_phase_list'] = []         # 각 교차로의 녹색 현시가 가장 긴 현시 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space_list'] = []      # 각 교차로의 action space 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_list_list'] = []       # 각 교차로의 녹색 시간 조정 action list(주 현시와 나머지 현시 조정)
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space_list'] = []       # 각 교차로의 state space 리스트
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list'] = []           # 각 교차로의 진입 link list(0-hop, 1-hop), 2차원으로 구분 없이 1차원으로 모든 link
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_0'] = []         # 각 교차로의 진입 link list(0-hop), 2차원으로 구분 없이 1차원으로 모든 link
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_1'] = []         # 각 교차로의 진입 link list(1-hop), 2차원으로 구분 없이 1차원으로 모든 link
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_list'] = []      # 각 교차로의 진입 link list(0-hop, 1-hop), 2차원으로 구분하여 각 교차로마다 구분 됨
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_0_list'] = []    # 각 교차로의 진입 link list(0-hop), 2차원으로 구분하여 각 교차로마다 구분 됨
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_edge_list_1_list'] = []    # 각 교차로의 진입 link list(1-hop), 2차원으로 구분하여 각 교차로마다 구분 됨
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list'] = []           # 각 교차로의 진입 lane list(0-hop, 1-hop), 2차원으로 구분 없이 1차원으로 모든 link
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_0'] = []         # 각 교차로의 진입 lane list(0-hop), 2차원으로 구분 없이 1차원으로 모든 link
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_1'] = []         # 각 교차로의 진입 lane list(1-hop), 2차원으로 구분 없이 1차원으로 모든 link
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_list'] = []      # 각 교차로의 진입 lane list(0-hop, 1-hop), 2차원으로 구분하여 각 교차로마다 구분 됨
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_0_list'] = []    # 각 교차로의 진입 lane list(0-hop), 2차원으로 구분하여 각 교차로마다 구분 됨
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_1_list'] = []    # 각 교차로의 진입 lane list(1-hop), 2차원으로 구분하여 각 교차로마다 구분 됨
 
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['crossName_list'].append(target_tl_obj[tl_obj]['crossName'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tlid_list'].append(tl_obj)
@@ -337,6 +343,8 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_list'].append(target_tl_obj[tl_obj]['in_lane_list'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_0_list'].append(target_tl_obj[tl_obj]['in_lane_list_0'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_1_list'].append(target_tl_obj[tl_obj]['in_lane_list_1'])
-        
+
+    print("sa_obj")
+    pprint.pprint(sa_obj, width=200, compact=True)
     return target_tl_obj, sa_obj, _lane_len
 
