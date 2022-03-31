@@ -40,7 +40,7 @@ parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
 parser.add_argument('--start-time', type=int, default=25400)
 parser.add_argument('--end-time', type=int, default=32400)
 
-parser.add_argument('--result-comp', type=bool, default=False)
+parser.add_argument('--result-comp', type=bool, default=True)
 
 parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
                     help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')

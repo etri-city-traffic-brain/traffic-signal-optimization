@@ -130,7 +130,6 @@ def getPossibleActionList(args, duration, minDur, maxDur, green_idx, actionList)
 def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenario, startStep):
     target_tl_obj = {}
 
-    phase_numbers = []
     i=0
     for x in trafficSignal:
         if x.attrib['signalGroup'] in targetList_input2:
@@ -188,7 +187,6 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                                                                                            target_tl_obj[x.attrib['nodeID']]['maxDur'],
                                                                                            target_tl_obj[x.attrib['nodeID']]['green_idx'],
                                                                                            getActionList(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]), target_tl_obj[x.attrib['nodeID']]['max_phase'][0][0]))
-            phase_numbers.append(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
             i += 1
 
     tree = parse(edge_file_path)
@@ -263,6 +261,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         _lane_len.append(len(_lane_list))
 
     libsalt.close()
+
     ### for SAPPO Agent ###
     sa_obj = {}
     for tl_obj in target_tl_obj:

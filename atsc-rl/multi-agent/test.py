@@ -22,17 +22,14 @@ from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single, getSce
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 import libsalt
 
+from env.get_objs import get_objs
+
 def result_comp(args, ft_output, rl_output, model_num):
+    ### get node, edge, tss file path
     scenario_file_path, node_file_path, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
     tree = parse(tss_file_path)
-
     root = tree.getroot()
-
     trafficSignal = root.findall("trafficSignal")
-
-    target_tl_obj = {}
-    phase_numbers = []
-    i = 0
 
     targetList_input = args.target_TL.split(',')
     targetList_input2 = []
@@ -42,111 +39,14 @@ def result_comp(args, ft_output, rl_output, model_num):
         targetList_input2.append(tl_i.split(" ")[1])  ## ex.101
         targetList_input2.append(tl_i.replace(" ", ""))  ## ex. SA101
 
-    for x in trafficSignal:
-        if x.attrib['signalGroup'] in targetList_input2:
-            target_tl_obj[x.attrib['nodeID']] = {}
-            target_tl_obj[x.attrib['nodeID']]['crossName'] = x.attrib['crossName']
-            target_tl_obj[x.attrib['nodeID']]['signalGroup'] = x.attrib['signalGroup']
-            target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find('schedule').attrib['offset'])
-            target_tl_obj[x.attrib['nodeID']]['minDur'] = [
-                int(y.attrib['minDur']) if 'minDur' in y.attrib else int(y.attrib['duration']) for
-                y in x.findall("schedule/phase")]
-            target_tl_obj[x.attrib['nodeID']]['maxDur'] = [
-                int(y.attrib['maxDur']) if 'maxDur' in y.attrib else int(y.attrib['duration']) for
-                y in x.findall("schedule/phase")]
-            target_tl_obj[x.attrib['nodeID']]['cycle'] = np.sum(
-                [int(y.attrib['duration']) for y in x.findall("schedule/phase")])
-            target_tl_obj[x.attrib['nodeID']]['duration'] = [int(y.attrib['duration']) for y in
-                                                             x.findall("schedule/phase")]
-            tmp_duration_list = np.array([int(y.attrib['duration']) for y in x.findall("schedule/phase")])
-            target_tl_obj[x.attrib['nodeID']]['green_idx'] = np.where(tmp_duration_list > 5)
-            target_tl_obj[x.attrib['nodeID']]['main_green_idx'] = np.where(
-                tmp_duration_list == np.max(tmp_duration_list))
-            target_tl_obj[x.attrib['nodeID']]['sub_green_idx'] = list(set(np.where(tmp_duration_list > 5)[0]) - set(
-                np.where(tmp_duration_list == np.max(tmp_duration_list))[0]))
-            target_tl_obj[x.attrib['nodeID']]['tl_idx'] = i
-            target_tl_obj[x.attrib['nodeID']]['remain'] = target_tl_obj[x.attrib['nodeID']]['cycle'] - np.sum(
-                target_tl_obj[x.attrib['nodeID']]['minDur'])
-            target_tl_obj[x.attrib['nodeID']]['action_space'] = (len(
-                target_tl_obj[x.attrib['nodeID']]['green_idx'][0]) - 1) * 2
-
-            phase_numbers.append(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]))
-            i += 1
-
-    target_tl_id_list = list(target_tl_obj.keys())
-
-    salt_scenario = scenario_file_path
-    tree = parse(edge_file_path)
-
-    root = tree.getroot()
-
-    edge = root.findall("edge")
-
-    near_tl_obj = {}
-    for i in target_tl_id_list:
-        near_tl_obj[i] = {}
-        near_tl_obj[i]['in_edge_list'] = []
-        near_tl_obj[i]['in_edge_list_0'] = []
-        near_tl_obj[i]['in_edge_list_1'] = []
-        # near_tl_obj[i]['near_length_list'] = []
-
-    for x in edge:
-        if x.attrib['to'] in target_tl_id_list:
-            near_tl_obj[x.attrib['to']]['in_edge_list'].append(x.attrib['id'])
-            near_tl_obj[x.attrib['to']]['in_edge_list_0'].append(x.attrib['id'])
-
-    _edge_len = []
-    for n in near_tl_obj:
-        _tmp_in_edge_list = near_tl_obj[n]['in_edge_list']
-        _tmp_near_juction_list = []
-        for x in edge:
-            if x.attrib['id'] in _tmp_in_edge_list:
-                _tmp_near_juction_list.append(x.attrib['from'])
-
-        for x in edge:
-            if x.attrib['to'] in _tmp_near_juction_list:
-                near_tl_obj[n]['in_edge_list'].append(x.attrib['id'])
-                near_tl_obj[n]['in_edge_list_1'].append(x.attrib['id'])
-
-        target_tl_obj[n]['in_edge_list'] = near_tl_obj[n]['in_edge_list']
-        target_tl_obj[n]['in_edge_list_0'] = near_tl_obj[n]['in_edge_list_0']
-        target_tl_obj[n]['in_edge_list_1'] = near_tl_obj[n]['in_edge_list_1']
-        _edge_len.append(len(near_tl_obj[n]['in_edge_list']))
-
-    startStep = 0
-
-    libsalt.start(salt_scenario)
-    libsalt.setCurrentStep(startStep)
-
-    _lane_len = []
-    for target in target_tl_obj:
-        _lane_list = []
-        _lane_list_0 = []
-        for edge in target_tl_obj[target]['in_edge_list_0']:
-            for lane in range(libsalt.link.getNumLane(edge)):
-                _lane_id = "{}_{}".format(edge, lane)
-                _lane_list.append(_lane_id)
-                _lane_list_0.append((_lane_id))
-                # print(_lane_id, libsalt.lane.getLength(_lane_id))
-        target_tl_obj[target]['in_lane_list_0'] = _lane_list_0
-        _lane_list_1 = []
-        for edge in target_tl_obj[target]['in_edge_list_1']:
-            for lane in range(libsalt.link.getNumLane(edge)):
-                _lane_id = "{}_{}".format(edge, lane)
-                _lane_list.append(_lane_id)
-                _lane_list_1.append((_lane_id))
-                # print(_lane_id, libsalt.lane.getLength(_lane_id))
-        target_tl_obj[target]['in_lane_list_1'] = _lane_list_1
-        target_tl_obj[target]['in_lane_list'] = _lane_list
-        target_tl_obj[target]['state_space'] = len(_lane_list)
-        _lane_len.append(len(_lane_list))
-    # print(target_tl_obj)
-
-    libsalt.close()
+    target_tl_obj, sa_obj, _lane_len = get_objs(args, trafficSignal, targetList_input2, edge_file_path, scenario_file_path, args.start_time)
 
     print("target_tl_obj", target_tl_obj)
     total_output = pd.DataFrame()
 
+    compare_start_time = args.start_time + 3600 # 2시간 테스트시 앞에 1시간은 비교대상에서 제외
+
+    ### 각 교차로별 비교
     for tl in target_tl_obj:
         if "SA " not in target_tl_obj[tl]['signalGroup']:
             target_tl_obj[tl]['signalGroup'] = 'SA ' + target_tl_obj[tl]['signalGroup']
@@ -164,10 +64,10 @@ def result_comp(args, ft_output, rl_output, model_num):
         rl_output2 = rl_output[rl_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list_0) + '$', na=False)]
         ft_output3 = ft_output[ft_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list) + '$', na=False)]
         rl_output3 = rl_output[rl_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list) + '$', na=False)]
-        ft_output2 = ft_output2[ft_output2['intervalbegin'] >= 3600]
-        rl_output2 = rl_output2[rl_output2['intervalbegin'] >= 3600]
-        ft_output3 = ft_output3[ft_output3['intervalbegin'] >= 3600]
-        rl_output3 = rl_output3[rl_output3['intervalbegin'] >= 3600]
+        ft_output2 = ft_output2[ft_output2['intervalbegin'] >= compare_start_time]
+        rl_output2 = rl_output2[rl_output2['intervalbegin'] >= compare_start_time]
+        ft_output3 = ft_output3[ft_output3['intervalbegin'] >= compare_start_time]
+        rl_output3 = rl_output3[rl_output3['intervalbegin'] >= compare_start_time]
 
         varList = ['VehPassed', 'AverageSpeed', 'WaitingTime', 'AverageDensity', 'SumTravelTime', 'WaitingQLength']
         varOp = [1, 1, -1, -1, -1, -1]
@@ -240,6 +140,7 @@ def result_comp(args, ft_output, rl_output, model_num):
     in_edge_list = []
     in_edge_list_0 = []
 
+    ### 대상 교차로 전체 비교
     individual_output = pd.DataFrame({'name': ['total']})
     for tl in target_tl_obj:
         in_edge_list = np.append(in_edge_list, target_tl_obj[tl]['in_edge_list'])
@@ -250,10 +151,10 @@ def result_comp(args, ft_output, rl_output, model_num):
     rl_output2 = rl_output[rl_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list_0) + '$', na=False)]
     ft_output3 = ft_output[ft_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list) + '$', na=False)]
     rl_output3 = rl_output[rl_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list) + '$', na=False)]
-    ft_output2 = ft_output2[ft_output2['intervalbegin'] >= 3600]
-    rl_output2 = rl_output2[rl_output2['intervalbegin'] >= 3600]
-    ft_output3 = ft_output3[ft_output3['intervalbegin'] >= 3600]
-    rl_output3 = rl_output3[rl_output3['intervalbegin'] >= 3600]
+    ft_output2 = ft_output2[ft_output2['intervalbegin'] >= compare_start_time]
+    rl_output2 = rl_output2[rl_output2['intervalbegin'] >= compare_start_time]
+    ft_output3 = ft_output3[ft_output3['intervalbegin'] >= compare_start_time]
+    rl_output3 = rl_output3[rl_output3['intervalbegin'] >= compare_start_time]
 
     for v in range(len(varList)):
         if varOp2[v] == 'sum':
@@ -375,10 +276,10 @@ def ddqn_test(args, model_num, problem_var):
     end_time = args.end_time if args.end_time < scenario_end else scenario_end
     trial_len = end_time - start_time
 
-    if args.result_comp:
-        print("Start fixed time scenario for the result compare")
-        ft_simulate(args)
-        print("End fixed time scenario")
+    # if args.result_comp:
+    #     print("Start fixed time scenario for the result compare")
+    #     ft_simulate(args)
+    #     print("End fixed time scenario")
 
     problem = "SALT_doan_multi_PSA_test"
     env = SALT_doan_multi_PSA_test(args)
@@ -440,10 +341,10 @@ def sappo_test(args, model_num, problem_var):
     end_time = args.end_time if args.end_time < scenario_end else scenario_end
     trial_len = end_time - start_time
 
-    if args.result_comp:
-        print("Start fixed time scenario for the result compare")
-        ft_simulate(args)
-        print("End fixed time scenario")
+    # if args.result_comp:
+    #     print("Start fixed time scenario for the result compare")
+    #     ft_simulate(args)
+    #     print("End fixed time scenario")
 
     if args.action=='kc':
         print("SAPPO KEEP OR CHANGE")
@@ -477,10 +378,10 @@ def sappo_test(args, model_num, problem_var):
         print(f"{target_sa}, action space {action_space}, action min {action_min}, action max {action_max}")
         ppo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
 
+    ### trained model load using tf Saver
     fn = "{}/model/sappo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
-
-    sess = tf.Session()
     print("fn", fn)
+    sess = tf.Session()
     saver = tf.train.Saver()
     saver.restore(sess, fn)
 
@@ -548,8 +449,8 @@ def sappo_test(args, model_num, problem_var):
         ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
         rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
 
-    total_output = result_comp(args, ft_output, rl_output, model_num)
-    total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
+        total_output = result_comp(args, ft_output, rl_output, model_num)
+        total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
 
     return avg_reward
 

@@ -105,7 +105,6 @@ class SALT_SAPPO_green_single(gym.Env):
 
         trafficSignal = root.findall("trafficSignal")
 
-        self.phase_numbers = []
         i=0
 
         self.targetList_input = args.target_TL.split(',')
