@@ -45,6 +45,9 @@ def result_comp(args, ft_output, rl_output, model_num):
     total_output = pd.DataFrame()
 
     compare_start_time = args.start_time + 3600 # 2시간 테스트시 앞에 1시간은 비교대상에서 제외
+    print(f"training step: {args.start_time} to {args.end_time}")
+    print(f"comparing step: {compare_start_time} to {args.end_time}")
+    print(f"model number: {model_num}")
 
     ### 각 교차로별 비교
     for tl in target_tl_obj:
