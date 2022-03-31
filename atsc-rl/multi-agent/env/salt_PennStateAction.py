@@ -27,8 +27,6 @@ control_cycle = 3
 
 from config import TRAIN_CONFIG
 
-IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
-
 import json
 import platform
 
@@ -83,30 +81,18 @@ class SALT_doan_multi_PSA(gym.Env):
         self.printOut = args.printOut
         self.args = args
 
-        if IS_DOCKERIZE:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-
-            # self.startStep = args.trainStartTime if args.trainStartTime > scenario_begin else scenario_begin
-            # self.endStep = args.trainEndTime if args.trainEndTime < scenario_end else scenario_end
-            self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
-            self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
-        else:
-            self.startStep = args.trainStartTime
-            self.endStep = args.trainEndTime
+        scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+        self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
+        self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.uid = str(uuid.uuid4())
 
-        if IS_DOCKERIZE:
-            abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
-            self.src_dir = os.path.dirname(abs_scenario_file_path)
-            self.dest_dir = os.path.split(self.src_dir)[0]
-            self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
-            os.makedirs(self.dest_dir, exist_ok=True)
-        else:
-            self.src_dir = os.getcwd() + "/data/envs/salt/doan"
-            self.dest_dir = os.getcwd() + "/data/envs/salt/data/" + self.uid + "/"
-            os.mkdir(self.dest_dir)
+        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
+        self.src_dir = os.path.dirname(abs_scenario_file_path)
+        self.dest_dir = os.path.split(self.src_dir)[0]
+        self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
+        os.makedirs(self.dest_dir, exist_ok=True)
 
         src_files = os.listdir(self.src_dir)
         for file_name in src_files:
@@ -114,22 +100,11 @@ class SALT_doan_multi_PSA(gym.Env):
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, self.dest_dir)
 
-        if IS_DOCKERIZE:
-            scenario_file_name = args.scenario_file_path.split('/')[-1]
-            self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
-            if 0:
-                _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
-            else:
-                edge_file_path = "magic/doan_20211207.edg.xml"
-                tss_file_path = "magic/doan_20211207.tss.xml"
-            tree = parse(tss_file_path)
-        else:
-            # self.salt_scenario = self.dest_dir + 'doan_2021_actionT{}.scenario.json'.format(self.actionT)
-            self.salt_scenario = self.dest_dir + 'doan_20211207.scenario.json'
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
-
+        scenario_file_name = args.scenario_file_path.split('/')[-1]
+        self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
+        _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
+        tree = parse(tss_file_path)
         root = tree.getroot()
-
         trafficSignal = root.findall("trafficSignal")
 
         self.target_tl_obj = {}
@@ -185,11 +160,7 @@ class SALT_doan_multi_PSA(gym.Env):
         print('target tl id list {}'.format(self.target_tl_id_list))
         print('number of target tl {}'.format(len(self.target_tl_id_list)))
 
-        if IS_DOCKERIZE:
-            tree = parse(edge_file_path)
-        else:
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20210401.edg.xml')
-
+        tree = parse(edge_file_path)
         root = tree.getroot()
 
         edge = root.findall("edge")
@@ -517,34 +488,19 @@ class SALT_doan_multi_PSA_test(gym.Env):
         self.reward_func = args.reward_func
         self.actionT = args.action_t
 
-
-        if IS_DOCKERIZE:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-
-            # self.startStep = args.testStartTime if args.testStartTime > scenario_begin else scenario_begin
-            # self.endStep = args.testEndTime if args.testEndTime < scenario_end else scenario_end
-            self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
-            self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
-            self.args = args
-
-        else:
-            self.startStep = args.testStartTime
-            self.endStep = args.testEndTime
-            self.args = args
+        scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+        self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
+        self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
+        self.args = args
 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.uid = str(uuid.uuid4())
 
-        if IS_DOCKERIZE:
-            abs_scenario_file_path = '{}/{}'.format(os.getcwd(), self.args.scenario_file_path)
-            self.src_dir = os.path.dirname(abs_scenario_file_path)
-            self.dest_dir = os.path.split(self.src_dir)[0]
-            self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
-            os.makedirs(self.dest_dir, exist_ok=True)
-        else:
-            self.src_dir = os.getcwd() + "/data/envs/salt/doan"
-            self.dest_dir = os.getcwd() + "/data/envs/salt/data/" + self.uid + "/"
-            os.mkdir(self.dest_dir)
+        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), self.args.scenario_file_path)
+        self.src_dir = os.path.dirname(abs_scenario_file_path)
+        self.dest_dir = os.path.split(self.src_dir)[0]
+        self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
+        os.makedirs(self.dest_dir, exist_ok=True)
 
         src_files = os.listdir(self.src_dir)
         for file_name in src_files:
@@ -552,22 +508,10 @@ class SALT_doan_multi_PSA_test(gym.Env):
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, self.dest_dir)
 
-        if IS_DOCKERIZE:
-            scenario_file_name = self.args.scenario_file_path.split('/')[-1]
-            self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
-
-            if 0:
-                _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
-            else:
-                edge_file_path = "magic/doan_20210401.edg.xml"
-                tss_file_path = "magic/doan(without dan).tss.xml"
-
-            tree = parse(tss_file_path)
-
-        else:
-            self.salt_scenario = self.dest_dir + 'doan_2021_test.scenario.json'
-
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan(without dan).tss.xml')
+        scenario_file_name = self.args.scenario_file_path.split('/')[-1]
+        self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
+        _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
+        tree = parse(tss_file_path)
 
         root = tree.getroot()
 
@@ -576,11 +520,7 @@ class SALT_doan_multi_PSA_test(gym.Env):
         self.target_tl_obj = {}
         self.phase_numbers = []
         i=0
-        if IS_DOCKERIZE:
-            self.targetList_input = args.target_TL.split(',')
-        else:
-            self.targetList_input = args.targetTL.split(',')
-
+        self.targetList_input = args.target_TL.split(',')
         self.targetList_input2 = []
 
         for tl_i in self.targetList_input:
@@ -625,37 +565,23 @@ class SALT_doan_multi_PSA_test(gym.Env):
         self.action_mask = np.zeros(self.agent_num)
         self.control_cycle = control_cycle
 
-
         print('target tl obj {}'.format(self.target_tl_obj))
         print('target tl id list {}'.format(self.target_tl_id_list))
         print('number of target tl {}'.format(len(self.target_tl_id_list)))
 
-        if IS_DOCKERIZE:
-            tree = parse(edge_file_path)
-        else:
-            tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20210401.edg.xml')
-
+        tree = parse(edge_file_path)
         root = tree.getroot()
-
         edge = root.findall("edge")
 
         self.near_tl_obj = {}
 
-        if IS_DOCKERIZE:
-            if self.args.mode=='test':
-                self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
-                f = open(self.fn_rl_phase_reward_output, mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                         newline=None, closefd=True, opener=None)
-                f.write('step,tl_name,actions,phase,reward\n')
-                f.close()
-        else:
-            if self.args.mode=='test':
-                f = open("output/test/rl_phase_reward_output.txt", mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                         newline=None,
-                         closefd=True, opener=None)
+        if self.args.mode=='test':
+            self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
+            f = open(self.fn_rl_phase_reward_output, mode='w+', buffering=-1, encoding='utf-8', errors=None,
+                     newline=None, closefd=True, opener=None)
+            f.write('step,tl_name,actions,phase,reward\n')
+            f.close()
 
-                f.write('step,tl_name,actions,phase,reward\n')
-                f.close()
         for i in self.target_tl_id_list:
             self.near_tl_obj[i] = {}
             self.near_tl_obj[i]['in_edge_list'] = []
@@ -866,33 +792,17 @@ class SALT_doan_multi_PSA_test(gym.Env):
 
         self.simulationSteps = libsalt.getCurrentStep()
 
-
-        if IS_DOCKERIZE:
-            if self.args.mode=='test':
-                f = open(self.fn_rl_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                         newline=None,
-                         closefd=True, opener=None)
-                for i in range(len(self.target_tl_id_list)):
-                    tlid = self.target_tl_id_list[i]
-                    f.write("{},{},{},{},{}\n".format(setPhaseStep, self.target_tl_obj[tlid]['crossName'], actions[i],
-                                                      action_phase_list[i], np.round(self.rewards[i], 2)))
-                    print("step {} tl_name {} action {} phase {} reward {}\n".format(setPhaseStep, self.target_tl_obj[tlid]['crossName'], actions[i],
-                                                      action_phase_list[i], np.round(self.rewards[i], 2)))
-                f.close()
-
-        else:
-            if self.args.mode=='test':
-                f = open("output/test/rl_phase_reward_output.txt", mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                         newline=None,
-                         closefd=True, opener=None)
-
-                for i in range(len(self.target_tl_id_list)):
-                    tlid = self.target_tl_id_list[i]
-                    f.write("{},{},{},{},{}\n".format(setPhaseStep, self.target_tl_obj[tlid]['crossName'], actions[i],
-                                                      action_phase_list[i], np.round(self.rewards[i], 2)))
-                    print("step {} tl_name {} action {} phase {} reward {}\n".format(setPhaseStep, self.target_tl_obj[tlid]['crossName'], actions[i],
-                                                      action_phase_list[i], np.round(self.rewards[i], 2)))
-                f.close()
+        if self.args.mode=='test':
+            f = open(self.fn_rl_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                     newline=None,
+                     closefd=True, opener=None)
+            for i in range(len(self.target_tl_id_list)):
+                tlid = self.target_tl_id_list[i]
+                f.write("{},{},{},{},{}\n".format(setPhaseStep, self.target_tl_obj[tlid]['crossName'], actions[i],
+                                                  action_phase_list[i], np.round(self.rewards[i], 2)))
+                print("step {} tl_name {} action {} phase {} reward {}\n".format(setPhaseStep, self.target_tl_obj[tlid]['crossName'], actions[i],
+                                                  action_phase_list[i], np.round(self.rewards[i], 2)))
+            f.close()
 
         if self.simulationSteps > self.endStep:
             self.done = True
@@ -907,13 +817,10 @@ class SALT_doan_multi_PSA_test(gym.Env):
 
     def reset(self):
         self.uid = str(uuid.uuid4())
-        if IS_DOCKERIZE:
-            self.dest_dir = os.path.split(self.src_dir)[0]
-            self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
-            os.makedirs(self.dest_dir, exist_ok=True)
-        else:
-            self.dest_dir = os.getcwd() + "/data/envs/salt/data/" + self.uid + "/"
-            os.mkdir(self.dest_dir)
+
+        self.dest_dir = os.path.split(self.src_dir)[0]
+        self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
+        os.makedirs(self.dest_dir, exist_ok=True)
 
         src_files = os.listdir(self.src_dir)
         for file_name in src_files:
@@ -921,11 +828,8 @@ class SALT_doan_multi_PSA_test(gym.Env):
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, self.dest_dir)
 
-        if IS_DOCKERIZE:
-            scenario_file_name = self.args.scenario_file_path.split('/')[-1]
-            self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
-        else:
-            self.salt_scenario = self.dest_dir + 'doan_2021_test.scenario.json'
+        scenario_file_name = self.args.scenario_file_path.split('/')[-1]
+        self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
 
         libsalt.start(self.salt_scenario)
         libsalt.setCurrentStep(self.startStep)
@@ -938,9 +842,6 @@ class SALT_doan_multi_PSA_test(gym.Env):
             print(target, self.get_state(target))
             observations.append(self.get_state(target))
             self.lane_passed.append([])
-        #
-        # print("reset", observations)
-        # print(observations.shape)
 
         return observations
 

@@ -6,8 +6,6 @@ import os
 from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
-IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
-
 import libsalt
 
 def getActionList(phase_num, max_phase):

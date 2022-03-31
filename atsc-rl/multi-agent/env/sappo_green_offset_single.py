@@ -24,8 +24,6 @@ sim_period = 30
 
 from config import TRAIN_CONFIG
 
-IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
-
 from env.get_objs import get_objs
 
 import json

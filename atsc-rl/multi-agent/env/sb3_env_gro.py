@@ -24,8 +24,6 @@ sim_period = 30
 
 from config import TRAIN_CONFIG
 
-IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
-
 from env.get_objs import get_objs
 
 import json
@@ -78,35 +76,18 @@ class SALT_SAPPO_green_offset_single(gym.Env):
         self.warmupTime = args.warmupTime
         self.obsmax = 999
 
-        if IS_DOCKERIZE:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-
-            # self.startStep = args.trainStartTime if args.trainStartTime > scenario_begin else scenario_begin
-            # self.endStep = args.trainEndTime if args.trainEndTime < scenario_end else scenario_end
-            self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
-            self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
-        else:
-            self.startStep = args.trainStartTime
-            self.endStep = args.trainEndTime
+        scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+        self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
+        self.endStep = args.end_time if args.end_time < scenario_end else scenario_end
 
         self.dir_path = os.path.dirname(os.path.realpath(__file__))
         self.uid = str(uuid.uuid4())
 
-        if IS_DOCKERIZE:
-            abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
-            self.src_dir = os.path.dirname(abs_scenario_file_path)
-            self.dest_dir = os.path.split(self.src_dir)[0]
-            self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
-            os.makedirs(self.dest_dir, exist_ok=True)
-        else:
-            if self.args.map == 'dj':
-                self.src_dir = os.getcwd() + "/data/envs/salt/dj_all"
-                if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-                    self.src_dir = os.getcwd() + "/data/envs/salt/sa_1_6_17"
-            if self.args.map == 'doan':
-                self.src_dir = os.getcwd() + "/data/envs/salt/doan"
-            self.dest_dir = os.getcwd() + "/data/envs/salt/data/" + self.uid + "/"
-            os.mkdir(self.dest_dir)
+        abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
+        self.src_dir = os.path.dirname(abs_scenario_file_path)
+        self.dest_dir = os.path.split(self.src_dir)[0]
+        self.dest_dir = '{}/data/{}/'.format(self.dest_dir, self.uid)
+        os.makedirs(self.dest_dir, exist_ok=True)
 
         src_files = os.listdir(self.src_dir)
         for file_name in src_files:
@@ -114,44 +95,11 @@ class SALT_SAPPO_green_offset_single(gym.Env):
             if os.path.isfile(full_file_name):
                 shutil.copy(full_file_name, self.dest_dir)
 
-        if IS_DOCKERIZE:
-            scenario_file_name = args.scenario_file_path.split('/')[-1]
-            self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
-            _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
-            tree = parse(tss_file_path)
-        else:
-            # self.salt_scenario = self.dest_dir + 'doan_2021_actionT{}.scenario.json'.format(self.actionT)
-            if args.mode == 'train':
-                if self.args.map == 'dj':
-                    self.salt_scenario = self.dest_dir + 'dj_all.scenario.json'
-                    if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-                        self.salt_scenario = self.dest_dir + 'sa_1_6_17.scenario.json'
-                if self.args.map == 'doan':
-                    self.salt_scenario = self.dest_dir + 'doan_20211207.scenario.json'
-            if args.mode == 'test':
-                if self.args.map == 'dj':
-                    self.salt_scenario = self.dest_dir + 'dj_all_test.scenario.json'
-                    if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-                        self.salt_scenario = self.dest_dir + 'sa_1_6_17_test.scenario.json'
-                if self.args.map == 'doan':
-                    self.salt_scenario = self.dest_dir + 'doan_20211207_test.scenario.json'
-
-            if self.args.map == 'dj':
-                edge_file_path = "data/dj_all/edge.xml"
-                tss_file_path = "data/envs/salt/dj_all/tss.xml"
-                tree = parse(os.getcwd() + '/data/envs/salt/dj_all/tss.xml')
-                if self.args.target_TL == 'SA 1' or self.args.target_TL == 'SA 6' or self.args.target_TL == 'SA 17':
-                    edge_file_path = "data/sa_1_6_17/edge.xml"
-                    tss_file_path = "data/envs/salt/sa_1_6_17/tss.xml"
-                    tree = parse(os.getcwd() + '/data/envs/salt/sa_1_6_17/tss.xml')
-            if self.args.map == 'doan':
-                edge_file_path = "magic/doan_20211207.edg.xml"
-                tss_file_path = "magic/doan_20211207.tss.xml"
-                tree = parse(os.getcwd() + '/data/envs/salt/doan/doan_20211207.tss.xml')
-
-
+        scenario_file_name = args.scenario_file_path.split('/')[-1]
+        self.salt_scenario = "{}/{}".format(self.dest_dir, scenario_file_name)
+        _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
+        tree = parse(tss_file_path)
         root = tree.getroot()
-
         trafficSignal = root.findall("trafficSignal")
 
         self.phase_numbers = []

@@ -12,35 +12,19 @@ from policy.ppo_rnd import PPORNDAgent
 
 from config import TRAIN_CONFIG
 
-IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
-
-if IS_DOCKERIZE:
-    from env.salt_PennStateAction import SALT_doan_multi_PSA_test, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
-    from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
-else:
-    from env.salt_PennStateAction import SALT_doan_multi_PSA_test
-    from env.sappo_noConst import SALT_SAPPO_noConst
-    from env.sappo_offset import SALT_SAPPO_offset
-    from env.sappo_offset_single import SALT_SAPPO_offset_single
-    from env.sappo_green_single import SALT_SAPPO_green_single
-    from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single
+from env.salt_PennStateAction import SALT_doan_multi_PSA_test, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
+from env.sappo_noConst import SALT_SAPPO_noConst, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
+from env.sappo_offset import SALT_SAPPO_offset, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
+from env.sappo_offset_single import SALT_SAPPO_offset_single, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
+from env.sappo_green_single import SALT_SAPPO_green_single, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
+from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single, getScenarioRelatedFilePath, getScenarioRelatedBeginEndTime
 
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 import libsalt
 
 def result_comp(args, ft_output, rl_output, model_num):
-    if IS_DOCKERIZE:
-        if 0:
-            scenario_file_path, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
-            tree = parse(tss_file_path)
-        else:
-            scenario_file_path, node_file_path, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
-            edge_file_path = "magic/doan_20210401.edg.xml"
-            tss_file_path = "magic/doan(without dan).tss.xml"
-
-        tree = parse(tss_file_path)
-    else:
-        tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.tss.xml')
+    scenario_file_path, node_file_path, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args)
+    tree = parse(tss_file_path)
 
     root = tree.getroot()
 
@@ -51,7 +35,6 @@ def result_comp(args, ft_output, rl_output, model_num):
     i = 0
 
     targetList_input = args.target_TL.split(',')
-
     targetList_input2 = []
 
     for tl_i in targetList_input:
@@ -91,14 +74,9 @@ def result_comp(args, ft_output, rl_output, model_num):
             i += 1
 
     target_tl_id_list = list(target_tl_obj.keys())
-    agent_num = len(target_tl_id_list)
 
-    if IS_DOCKERIZE:
-        salt_scenario = scenario_file_path
-        tree = parse(edge_file_path)
-    else:
-        salt_scenario = f'data/envs/salt/{args.map}/{args.map}_{args.mode}.scenario.json'
-        tree = parse(os.getcwd() + f'/data/envs/salt/{args.map}/{args.map}.edge.xml')
+    salt_scenario = scenario_file_path
+    tree = parse(edge_file_path)
 
     root = tree.getroot()
 
@@ -137,8 +115,6 @@ def result_comp(args, ft_output, rl_output, model_num):
 
     startStep = 0
 
-    done = False
-
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(startStep)
 
@@ -167,8 +143,6 @@ def result_comp(args, ft_output, rl_output, model_num):
     # print(target_tl_obj)
 
     libsalt.close()
-
-    simulationSteps = 0
 
     print("target_tl_obj", target_tl_obj)
     total_output = pd.DataFrame()
@@ -340,31 +314,19 @@ def result_comp(args, ft_output, rl_output, model_num):
                                                   'imp_{}_{}_1hop'.format(varList[v], varOp2[v]): [imp]})], axis=1)
 
     total_output = pd.concat([total_output, individual_output])
-
     total_output = total_output.sort_values(by=["SA"], ascending=True)
 
     return total_output
 
 def ft_simulate(args):
-    if IS_DOCKERIZE:
-        salt_scenario = args.scenario_file_path
-    else:
-        salt_scenario = f'data/envs/salt/{args.map}/{args.map}_{args.mode}.scenario.json'
+    ### 시나리오 환경 세팅
+    salt_scenario = args.scenario_file_path
+    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    trial_len = end_time - start_time
 
-    if IS_DOCKERIZE:
-        if 0:
-            start_time = args.start_time
-            trial_len = args.end_time - args.start_time
-        else:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-            start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-            end_time = args.end_time if args.end_time < scenario_end else scenario_end
-
-            trial_len = end_time - start_time
-    else:
-        start_time = args.testStartTime
-        trial_len = args.testEndTime - args.testStartTime
-
+    ### target tl object를 가져오기 위함
     if args.action=='kc':
         print("SAPPO KEEP OR CHANGE")
         env = SALT_SAPPO_noConst(args)
@@ -382,82 +344,41 @@ def ft_simulate(args):
         print("SAPPO GREEN RATIO + OFFSET")
         env = SALT_SAPPO_green_offset_single(args)
 
-    for target_tl in list(env.target_tl_obj.keys()):
-        env.target_tl_obj[target_tl]['crossName']
-
-    if IS_DOCKERIZE:
-        output_ft_dir = f'{args.io_home}/output/{args.mode}'
-        fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
-
-        f = open(fn_ft_phase_reward_output, mode='w+', buffering=-1, encoding='utf-8', errors=None, newline=None,
-                                  closefd=True, opener=None)
-    else:
-        f = open(f"output/{args.mode}/ft_phase_reward_output.txt", mode='w+', buffering=-1, encoding='utf-8', errors=None,
-                 newline=None,
-                 closefd=True, opener=None)
-
+    ### 가시화 서버용 교차로별 고정 시간 신호 기록용
+    output_ft_dir = f'{args.io_home}/output/{args.mode}'
+    fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
+    f = open(fn_ft_phase_reward_output, mode='w+', buffering=-1, encoding='utf-8', errors=None, newline=None,
+                              closefd=True, opener=None)
     f.write('step,tl_name,actions,phase,reward\n')
     f.close()
 
+    ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(start_time)
-
+    f = open(fn_ft_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+             newline=None,
+             closefd=True, opener=None)
     for i in range(trial_len):
         libsalt.simulationStep()
-        for target_tl in list(env.target_tl_obj.keys()):
-            env.target_tl_obj[target_tl]['crossName']
-
-        if IS_DOCKERIZE:
-            f = open(fn_ft_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                    newline=None,
-                    closefd=True, opener=None)
-        else:
-            f = open(f"output/{args.mode}/ft_phase_reward_output.txt", mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                     newline=None,
-                     closefd=True, opener=None)
-
         for target_tl in list(env.target_tl_obj.keys()):
             tlid = target_tl
             f.write("{},{},{},{},{}\n".format(libsalt.getCurrentStep(), env.target_tl_obj[target_tl]['crossName'], 0,
                                               libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), 0))
-        f.close()
+    f.close()
 
     print("ft_step {}".format(libsalt.getCurrentStep()))
     libsalt.close()
 
-def ddqn_test(args, trial, problem_var):
-    model_num = trial
+def ddqn_test(args, model_num, problem_var):
+    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    trial_len = end_time - start_time
 
-    # cmd = 'sudo ../traffic-simulator/bin/./salt-standalone data/envs/salt/doan/doan_2021_ft.scenario.json'
-    # so = os.popen(cmd).read()
-    # print(so)
-
-    if IS_DOCKERIZE:
-        if 0:
-            start_time = args.start_time
-            trial_len = args.end_time - args.start_time
-        else:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-            start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-            end_time = args.end_time if args.end_time < scenario_end else scenario_end
-
-            trial_len = end_time - start_time
-
-    else:
-        start_time = args.testStartTime
-        trial_len = args.testEndTime - args.testStartTime
-
-    if IS_DOCKERIZE:
-        if args.result_comp:
-            print("Start fixed time scenario for the result compare")
-            ft_simulate(args)
-            print("End fixed time scenario")
-    else:
-        if args.resultComp:
-            print("Start fixed time scenario for the result compare")
-            # ft_simulate(args, trial, problem_var)
-            ft_simulate(args)
-            print("End fixed time scenario")
+    if args.result_comp:
+        print("Start fixed time scenario for the result compare")
+        ft_simulate(args)
+        print("End fixed time scenario")
 
     problem = "SALT_doan_multi_PSA_test"
     env = SALT_doan_multi_PSA_test(args)
@@ -465,7 +386,6 @@ def ddqn_test(args, trial, problem_var):
     agent_num = env.agent_num
     action_mask = env.action_mask
 
-    # updateTargetNetwork = 1000
     dqn_agent = []
     state_space_arr = []
     for i in range(agent_num):
@@ -474,38 +394,23 @@ def ddqn_test(args, trial, problem_var):
         state_space_arr.append(state_space)
         action_space = env.target_tl_obj[target_tl]['action_space']
         dqn_agent.append(DDQN(args=args, env=env, state_space=state_space, action_space=action_space, epsilon=0, epsilon_min=0))
-
-        if IS_DOCKERIZE:
-            print("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
-            dqn_agent[i].load_model("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
-        else:
-            print("model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(problem_var, i, model_num))
-            dqn_agent[i].load_model("model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(problem_var, i, model_num))
+        print("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
+        dqn_agent[i].load_model("{}/model/ddqn/PSA-{}-agent{}-trial-{}.h5".format(args.io_home, problem_var, i, model_num))
 
     # To store reward history of each episode
     ep_reward_list = []
-    # To store average reward history of last few episodes
-    avg_reward_list = []
-    steps = []
 
     actions = [0] * agent_num
     cur_state = env.reset()
     episodic_reward = 0
     start = time.time()
     for step in range(trial_len):
-
         for i in range(agent_num):
             actions[i] = dqn_agent[i].act(cur_state[i])
 
         new_state, reward, done, _ = env.step(actions)
 
         for i in range(agent_num):
-            new_state[i] = new_state[i]
-            # dqn_agent[i].remember(cur_state[i], actions[i], reward[i], new_state[i], done)
-            #
-            # dqn_agent[i].replay()  # internally iterates default (prediction) model
-            # dqn_agent[i].target_train()  # iterates target model
-
             cur_state[i] = new_state[i]
             episodic_reward += reward[i]
 
@@ -513,61 +418,32 @@ def ddqn_test(args, trial, problem_var):
             break
     print("step {}".format(step))
     ep_reward_list.append(episodic_reward)
-# Mean of last 40 episodes
+    # Mean of last 40 episodes
     avg_reward = np.mean(ep_reward_list[-40:])
     print("Avg Reward is ==> {}".format(avg_reward))
     print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
-    avg_reward_list.append(avg_reward)
 
-    if IS_DOCKERIZE:
-        if args.result_comp:
-            ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
-            rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
+    if args.result_comp:
+        ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
+        rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
 
-            result_comp(args, ft_output, rl_output, model_num)
-    else:
-        if args.resultComp:
-            ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("output/simulate/-PeriodicOutput.csv")
-            rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
-
-            result_comp(args, ft_output, rl_output, model_num)
+        result_comp(args, ft_output, rl_output, model_num)
 
     return avg_reward
 
-def sappo_test(args, trial, problem_var):
+def sappo_test(args, model_num, problem_var):
     import tensorflow.compat.v1 as tf
     tf.disable_eager_execution()
-    model_num = trial
 
-    if IS_DOCKERIZE:
-        if 0:
-            start_time = args.start_time
-            trial_len = args.end_time - args.start_time
-        else:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-            start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-            end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    trial_len = end_time - start_time
 
-            trial_len = end_time - start_time
-    else:
-        start_time = args.testStartTime
-        trial_len = args.testEndTime - args.testStartTime
-
-    if IS_DOCKERIZE:
-        if args.result_comp:
-            print("Start fixed time scenario for the result compare")
-            ft_simulate(args)
-            print("End fixed time scenario")
-    else:
-        if args.resultComp:
-            print("Start fixed time scenario for the result compare")
-            # ft_simulate(args, trial, problem_var)
-            ft_simulate(args)
-            print("End fixed time scenario")
-
-    # ft_simulate(args)
+    if args.result_comp:
+        print("Start fixed time scenario for the result compare")
+        ft_simulate(args)
+        print("End fixed time scenario")
 
     if args.action=='kc':
         print("SAPPO KEEP OR CHANGE")
@@ -588,14 +464,8 @@ def sappo_test(args, trial, problem_var):
 
     agent_num = env.agent_num
 
-    # updateTargetNetwork = 1000
-    ppornd_agent = []
+    ppo_agent = []
     state_space_arr = []
-    ep_agent_reward_list = []
-    agent_crossName = []
-
-    total_reward = tf.Variable(0, dtype=tf.float32)
-    total_reward_summary = tf.summary.scalar('train/reward', total_reward)
 
     for i in range(agent_num):
         target_sa = list(env.sa_obj.keys())[i]
@@ -605,12 +475,9 @@ def sappo_test(args, trial, problem_var):
         action_min = env.sa_obj[target_sa]['action_min']
         action_max = env.sa_obj[target_sa]['action_max']
         print(f"{target_sa}, action space {action_space}, action min {action_min}, action max {action_max}")
-        ppornd_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
+        ppo_agent.append(PPOAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
 
-    if IS_DOCKERIZE:
-        fn = "{}/model/sappo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
-    else:
-        fn = "model/sappo/SAPPO-{}-trial-{}".format(problem_var, model_num)
+    fn = "{}/model/sappo/SAPPO-{}-trial-{}".format(args.io_home, problem_var, model_num)
 
     sess = tf.Session()
     print("fn", fn)
@@ -619,43 +486,31 @@ def sappo_test(args, trial, problem_var):
 
     # To store reward history of each episode
     ep_reward_list = []
-    # To store average reward history of last few episodes
-    avg_reward_list = []
-    steps = []
 
-    actions = [0] * agent_num
     cur_state = env.reset()
     episodic_reward = 0
     start = time.time()
 
-    actions = []
-    logits = []
-    value_t = []
-    logprobability_t = []
-    sa_cycle = []
+    actions, v_t, logp_t = [], [], []
 
+    sa_cycle = []
     for target_sa in env.sa_obj:
         actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        logits.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        value_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        logprobability_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
+        v_t.append([0])
+        logp_t.append([0])
+
         sa_cycle = np.append(sa_cycle, env.sa_obj[target_sa]['cycle_list'][0])
 
     for t in range(trial_len):
-
         discrete_actions = []
         for i in range(agent_num):
-            actions[i], value_t[i], logprobability_t[i] = ppornd_agent[i].get_action([cur_state[i]], sess)
-            # print("cur_state[i]", np.round(cur_state[i],2))
-            # print("actions[i]", actions[i])
-            actions[i], value_t[i], logprobability_t[i] = actions[i][0], value_t[i][0], logprobability_t[i][0]
+            actions[i], v_t[i], logp_t[i] = ppo_agent[i].get_action([cur_state[i]], sess)
+            actions[i], v_t[i], logp_t[i] = actions[i][0], v_t[i][0], logp_t[i][0]
 
             target_sa = list(env.sa_obj.keys())[i]
             discrete_action = []
 
             for di in range(len(actions[i])):
-                # print("actions[i]", actions[i])
-                # discrete_action.append(np.digitize(actions[i][di], bins=env.sa_obj[target_sa]['duration_bins_list'][di]))
                 if args.action == 'kc':
                     discrete_action.append(0 if actions[i][di] < args.actionp else 1)
                 if args.action == 'offset':
@@ -687,61 +542,30 @@ def sappo_test(args, trial, problem_var):
     avg_reward = np.mean(ep_reward_list[-40:])
     print("Avg Reward is ==> {}".format(avg_reward))
     print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
-    avg_reward_list.append(avg_reward)
 
-    if IS_DOCKERIZE:
-        if args.result_comp:
-            ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
-            rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
-    else:
-        # if args.resultComp:
-            ## add time 3, state weight 0.0, model 1000, action v2
-        ft_output = pd.read_csv("output/simulate/-PeriodicOutput.csv")
-        rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
+    if args.result_comp:
+        ## add time 3, state weight 0.0, model 1000, action v2
+        ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
+        rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
 
     total_output = result_comp(args, ft_output, rl_output, model_num)
-
-    if IS_DOCKERIZE:
-        total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
-    else:
-        total_output.to_csv("output/test/{}_{}.csv".format(problem_var, model_num),
-                            encoding='utf-8-sig', index=False)
+    total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
 
     return avg_reward
 
-def ppornd_test(args, trial, problem_var):
+def ppornd_test(args, model_num, problem_var):
     import tensorflow.compat.v1 as tf
     tf.disable_eager_execution()
-    model_num = trial
 
-    if IS_DOCKERIZE:
-        if 0:
-            start_time = args.start_time
-            trial_len = args.end_time - args.start_time
-        else:
-            scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-            start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-            end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    trial_len = end_time - start_time
 
-            trial_len = end_time - start_time
-    else:
-        start_time = args.testStartTime
-        trial_len = args.testEndTime - args.testStartTime
-
-    if IS_DOCKERIZE:
-        if args.result_comp:
-            print("Start fixed time scenario for the result compare")
-            ft_simulate(args)
-            print("End fixed time scenario")
-    else:
-        if args.resultComp:
-            print("Start fixed time scenario for the result compare")
-            # ft_simulate(args, trial, problem_var)
-            ft_simulate(args)
-            print("End fixed time scenario")
-
-    # ft_simulate(args)
+    if args.result_comp:
+        print("Start fixed time scenario for the result compare")
+        ft_simulate(args)
+        print("End fixed time scenario")
 
     if args.action == 'kc':
         env = SALT_SAPPO_noConst(args)
@@ -753,14 +577,8 @@ def ppornd_test(args, trial, problem_var):
 
     agent_num = env.agent_num
 
-    # updateTargetNetwork = 1000
     ppornd_agent = []
     state_space_arr = []
-    ep_agent_reward_list = []
-    agent_crossName = []
-
-    total_reward = tf.Variable(0, dtype=tf.float32)
-    total_reward_summary = tf.summary.scalar('train/reward', total_reward)
 
     for i in range(agent_num):
         target_sa = list(env.sa_obj.keys())[i]
@@ -772,10 +590,7 @@ def ppornd_test(args, trial, problem_var):
         print(f"{target_sa}, action space {action_space}, action min {action_min}, action max {action_max}")
         ppornd_agent.append(PPORNDAgent(args=args, state_space=state_space, action_space=action_space, action_min=action_min, action_max=action_max, agentID=i))
 
-    if IS_DOCKERIZE:
-        fn = "{}/model/ppornd/PPORND-{}-trial-{}".format(args.io_home, problem_var, model_num)
-    else:
-        fn = "model/ppornd/PPORND-{}-trial-{}".format(problem_var, model_num)
+    fn = "{}/model/ppornd/PPORND-{}-trial-{}".format(args.io_home, problem_var, model_num)
 
     sess = tf.Session()
     print("fn", fn)
@@ -785,23 +600,18 @@ def ppornd_test(args, trial, problem_var):
     # To store reward history of each episode
     ep_reward_list = []
     # To store average reward history of last few episodes
-    avg_reward_list = []
-    steps = []
 
-    actions = [0] * agent_num
     cur_state = env.reset()
     episodic_reward = 0
     start = time.time()
 
     actions = []
-    logits = []
     value_t = []
     logprobability_t = []
     sa_cycle = []
 
     for target_sa in env.sa_obj:
         actions.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
-        logits.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
         value_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
         logprobability_t.append([0] * env.sa_obj[target_sa]['action_space'].shape[0])
         sa_cycle = np.append(sa_cycle, env.sa_obj[target_sa]['cycle_list'][0])
@@ -811,10 +621,6 @@ def ppornd_test(args, trial, problem_var):
         discrete_actions = []
         for i in range(agent_num):
             actions[i] = ppornd_agent[i].choose_action([cur_state[i]], sess)
-            # print("[cur_state[i]]", [cur_state[i]])
-            # print("cur_state[i]", np.round(cur_state[i],2))
-            # print("actions[i]", actions[i])
-
             target_sa = list(env.sa_obj.keys())[i]
             discrete_action = []
             for di in range(len(actions[i])):
@@ -841,26 +647,14 @@ def ppornd_test(args, trial, problem_var):
     avg_reward = np.mean(ep_reward_list[-40:])
     print("Avg Reward is ==> {}".format(avg_reward))
     print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
-    avg_reward_list.append(avg_reward)
 
-    if IS_DOCKERIZE:
-        if args.result_comp:
-            ## add time 3, state weight 0.0, model 1000, action v2
-            ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
-            rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
-    else:
-        # if args.resultComp:
-            ## add time 3, state weight 0.0, model 1000, action v2
-        ft_output = pd.read_csv("output/simulate/-PeriodicOutput.csv")
-        rl_output = pd.read_csv("output/test/-PeriodicOutput.csv")
+    if args.result_comp:
+        ## add time 3, state weight 0.0, model 1000, action v2
+        ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
+        rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
 
     total_output = result_comp(args, ft_output, rl_output, model_num)
-
-    if IS_DOCKERIZE:
-        total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
-    else:
-        total_output.to_csv("output/test/{}_{}.csv".format(problem_var, model_num),
-                            encoding='utf-8-sig', index=False)
+    total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num), encoding='utf-8-sig', index=False)
 
     return avg_reward
 

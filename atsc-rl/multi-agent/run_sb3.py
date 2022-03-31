@@ -6,26 +6,16 @@ from stable_baselines3.common.cmd_util import make_vec_env
 
 from config import TRAIN_CONFIG
 
-IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
-
 from env.sb3_env_gro import SALT_SAPPO_green_offset_single
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train')
 parser.add_argument('--model-num', type=str, default='600')
 
-if IS_DOCKERIZE:
-    parser.add_argument('--result-comp', type=bool, default=False)
+parser.add_argument('--result-comp', type=bool, default=False)
 
-    parser.add_argument('--start-time', type=int, default=0)
-    parser.add_argument('--end-time', type=int, default=7200)
-else:
-    parser.add_argument('--resultComp', type=bool, default=False)
-
-    parser.add_argument('--trainStartTime', type=int, default=0)
-    parser.add_argument('--trainEndTime', type=int, default=7200)
-    parser.add_argument('--testStartTime', type=int, default=0)
-    parser.add_argument('--testEndTime', type=int, default=7200)
+parser.add_argument('--start-time', type=int, default=0)
+parser.add_argument('--end-time', type=int, default=7200)
 
 parser.add_argument('--epoch', type=int, default=3000)
 parser.add_argument('--warmupTime', type=int, default=600)
@@ -33,14 +23,10 @@ parser.add_argument('--model-save-period', type=int, default=20)
 parser.add_argument('--logprint', type=bool, default=False)
 parser.add_argument('--printOut', type=bool, default=True, help='print result each step')
 
-if IS_DOCKERIZE:
-    parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
-                        help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
-else:
-    # parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
-    #                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
-    parser.add_argument('--target-TL', type=str, default="SA 6",
-                        help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+parser.add_argument('--target-TL', type=str, default="SA 101,SA 104,SA 107,SA 111",
+                    help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
+parser.add_argument('--target-TL', type=str, default="SA 6",
+                    help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 
 parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt', 'cwq'], default='cwq',
                     help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length')
@@ -55,10 +41,9 @@ parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'gr', 'gro'], d
                          'pss - phase-set selection, o - offset, gr - green ratio, gro - green ratio+offset')
 parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
 
-if IS_DOCKERIZE:
-    parser.add_argument('--io-home', type=str, default='io')
-    parser.add_argument('--scenario-file-path', type=str, default='io/data/sample/sample.json')
-
+# dockerize
+parser.add_argument('--io-home', type=str, default='.')
+parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/')
 
 parser.add_argument('--gamma', type=float, default=0.99)
 parser.add_argument('--gamma-i', type=float, default=0.11)

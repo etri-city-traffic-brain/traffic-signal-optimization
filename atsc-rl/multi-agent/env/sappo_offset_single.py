@@ -12,21 +12,17 @@ from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import libsalt
-
 state_weight = 1
 reward_weight = 1
 
 sim_period = 30
-
-from config import TRAIN_CONFIG
-
-IS_DOCKERIZE = TRAIN_CONFIG['IS_DOCKERIZE']
 
 from env.get_objs import get_objs
 
 import json
 import platform
 
+### 시나리오 파일에 적혀있는 node, edge, tss 파일명을 가져옴
 def getScenarioRelatedFilePath(args):
     abs_scenario_file_path = '{}/{}'.format(os.getcwd(), args.scenario_file_path)
 
@@ -48,6 +44,7 @@ def getScenarioRelatedFilePath(args):
 
     return abs_scenario_file_path, node_file_path, edge_file_path, tss_file_path
 
+### 시나리오 파일에 적혀있는 begin time과 end time을 가져옴
 def getScenarioRelatedBeginEndTime(scenario_file_path):
     abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
 
@@ -391,7 +388,6 @@ class SALT_SAPPO_offset_single(gym.Env):
         obs = obs + np.finfo(float).eps
         obs = obs/np.max(obs)
         return obs
-
 
     def render(self, mode='human'):
         pass
