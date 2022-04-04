@@ -130,6 +130,38 @@ def getPossibleActionList(args, duration, minDur, maxDur, green_idx, actionList)
     print('len(actionList)', len(actionList), 'len(new_actionList)', len(new_actionList))
     return new_actionList
 
+def getScheduleID(traffic_signal, given_start_time):
+    '''
+    get schedule id
+    :param traffic_signal: traffic signal
+    :param given_start_time: given simulation start time
+    :return: schedule id
+    '''
+    all_plan = traffic_signal.findall("TODPlan/plan")
+
+    current_start_time = 0
+    idx = -1
+    for i in range(len(all_plan)):
+        y = all_plan[i]
+        next_start_time = int(y.attrib["startTime"])
+        if (given_start_time >= current_start_time) and (given_start_time < next_start_time):
+            idx = i - 1
+            break
+
+    if idx == -1:
+        #offset = traffic_signal.find("TODPlan").attrib['offset']
+        schedule = traffic_signal.find("TODPlan").attrib['defaultPlan']
+        #start_time = given_start_time
+    else:
+        #offset = all_plan[idx].attrib['offset']
+        schedule = all_plan[idx].attrib['schedule']
+        #start_time = all_plan[idx].attrib['startTime']
+
+    # if 0:
+    #     print("given_start_time={} offset={} schedule={} startTime={}".format(given_start_time, offset, schedule, start_time))
+    return schedule
+###--------- end of addition
+
 ### 신호 최적화 대상 교차로 및 교차로 그룹에 대한 정보를 object로 생성
 def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenario, startStep):
     target_tl_obj = {}
@@ -147,14 +179,21 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                 _signalGroup = _signalGroup.replace("SA", "SA ")
 
             target_tl_obj[x.attrib['nodeID']]['signalGroup'] = _signalGroup
-            if _signalGroup == "SA 1":
-                s_id = '11'
-            elif _signalGroup == "SA 56" or _signalGroup == "SA 111":
-                s_id = '5'
-            elif _signalGroup == "SA 107":
-                s_id = '1'
+
+            # hunsooni : 범용으로 바꿔봄. start_time 이 시나리오 참고하여 제대로 설정되어야 함.
+            #----------- begin of modification : by hunsooni
+            if 0:
+                if _signalGroup == "SA 1":
+                    s_id = '11'
+                elif _signalGroup == "SA 56" or _signalGroup == "SA 111":
+                    s_id = '5'
+                elif _signalGroup == "SA 107":
+                    s_id = '1'
+                else:
+                    s_id = '2'
             else:
-                s_id = '2'
+                s_id = getScheduleID(x, args.start_time)
+            #----------- end of modification : by hunsooni
 
             # print(_signalGroup)
             target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find(f"schedule[@id='{s_id}']").attrib['offset'])

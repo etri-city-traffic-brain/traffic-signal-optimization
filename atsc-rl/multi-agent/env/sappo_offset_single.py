@@ -151,14 +151,18 @@ class SALT_SAPPO_offset_single(gym.Env):
                     tlid = tlid_list[tlid_i]
                     currDur = self.sa_obj[sa]['duration_list'][tlid_i]
                     phase_arr = []
+                    ### 현재 신호를 배열로 생성 ex. 5,3,5,3 -> [0,0,0,0,0,1,1,1,2,2,2,2,2,3,3,3]
                     for i in range(len(currDur)):
                         phase_arr = np.append(phase_arr, np.ones(currDur[i]) * i)
+                    ### 위에서 생성한 배열을 np.roll을 통해 현재 offset + action offset 만큼 shift 시킴
+                    ### 현재 offset + action offset이 3일 때, [0,0,0,0,0,1,1,1,2,2,2,2,2,3,3,3] -> [0,0,1,1,1,2,2,2,2,2,3,3,3,0,0,0]
                     self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + actions[sa_i][tlid_i]))
                     __phase_sum = np.sum([x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector])
                     _phase_sum.append(__phase_sum)
                     __phase_list = [x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector if x[0] > 5]
                     _phase_list.append(__phase_list)
 
+                ### 위에서 생성된 신호를 교차로 그룹 주기 * self.control_cycle step만큼 유지함
                 for _ in range(sa_cycle * self.control_cycle):
                     for tlid_i in range(len(tlid_list)):
                         tlid = tlid_list[tlid_i]
@@ -251,9 +255,6 @@ class SALT_SAPPO_offset_single(gym.Env):
                     if self.reward_func == 'wt_ABV':
                         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
                     if self.reward_func == 'tt':
-                        # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
-                        # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
-                        # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
                         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func != 'cwq':
                         self.lane_passed[sa_i] = []

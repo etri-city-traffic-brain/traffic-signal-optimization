@@ -23,7 +23,7 @@ from env.sappo_green_single import SALT_SAPPO_green_single, getScenarioRelatedBe
 from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single, getScenarioRelatedBeginEndTime
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='simulate',
+parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
                     help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
 parser.add_argument('--model-num', type=str, default='0',
                     help='trained model number for test mode')
@@ -33,10 +33,10 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], de
 
 parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
 
-parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
-                    help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
-# parser.add_argument('--target-TL', type=str, default="SA 6",
-#                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+# parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
+#                     help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
+parser.add_argument('--target-TL', type=str, default="SA 6",
+                    help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 parser.add_argument('--start-time', type=int, default=25400)
 parser.add_argument('--end-time', type=int, default=32400)
 
