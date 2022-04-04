@@ -162,13 +162,23 @@ def getScheduleID(traffic_signal, given_start_time):
     return schedule
 ###--------- end of addition
 
-### 신호 최적화 대상 교차로 및 교차로 그룹에 대한 정보를 object로 생성
-def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenario, startStep):
-    target_tl_obj = {}
+def constructTSSRelatedInfo(args, trafficSignal, targetList_input2):
+    '''
+    construce TSS related info from given traffic environment
+    # :param tss_file_path: file path of TSS
+    :param trafficSignal: parse(file path of TSS).getroot().findall("TrafficSignal")
+    :param targetList_input2: target signal group info
+    :return:  an object which contains TSS related info
+    '''
+    # tree = parse(tss_file_path)
+    # root = tree.getroot()
+    # trafficSignal = root.findall("trafficSignal")
 
-    i=0
+    target_tl_obj = {}
+    i = 0
     for x in trafficSignal:
-        if x.attrib['signalGroup'] in targetList_input2:
+        sg = x.attrib['signalGroup'].strip()  # add by hunsooni
+        if sg in targetList_input2:
             target_tl_obj[x.attrib['nodeID']] = {}
             target_tl_obj[x.attrib['nodeID']]['crossName'] = x.attrib['crossName']
 
@@ -181,7 +191,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             target_tl_obj[x.attrib['nodeID']]['signalGroup'] = _signalGroup
 
             # hunsooni : 범용으로 바꿔봄. start_time 이 시나리오 참고하여 제대로 설정되어야 함.
-            #----------- begin of modification : by hunsooni
+            # ----------- begin of modification : by hunsooni
             if 0:
                 if _signalGroup == "SA 1":
                     s_id = '11'
@@ -193,14 +203,14 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                     s_id = '2'
             else:
                 s_id = getScheduleID(x, args.start_time)
-            #----------- end of modification : by hunsooni
+            # ----------- end of modification : by hunsooni
 
             # print(_signalGroup)
             target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find(f"schedule[@id='{s_id}']").attrib['offset'])
             target_tl_obj[x.attrib['nodeID']]['minDur'] = [int(y.attrib['minDur']) if 'minDur' in y.attrib else int(y.attrib['duration']) for
-                                                                y in x.findall(f"schedule[@id='{s_id}']/phase")]
+                                                           y in x.findall(f"schedule[@id='{s_id}']/phase")]
             target_tl_obj[x.attrib['nodeID']]['maxDur'] = [int(y.attrib['maxDur']) if 'maxDur' in y.attrib else int(y.attrib['duration']) for
-                                                                y in x.findall(f"schedule[@id='{s_id}']/phase")]
+                                                           y in x.findall(f"schedule[@id='{s_id}']/phase")]
             target_tl_obj[x.attrib['nodeID']]['cycle'] = np.sum([int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")])
             target_tl_obj[x.attrib['nodeID']]['duration'] = [int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")]
             tmp_duration_list = np.array([int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")])
@@ -226,17 +236,27 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
             target_tl_obj[x.attrib['nodeID']]['max_phase'] = np.where(target_tl_obj[x.attrib['nodeID']]['green_idx'][0] == target_tl_obj[x.attrib['nodeID']]['main_green_idx'][0][0])
             target_tl_obj[x.attrib['nodeID']]['action_space'] = len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0])
             target_tl_obj[x.attrib['nodeID']]['action_list'] = getPossibleActionList(args, target_tl_obj[x.attrib['nodeID']]['duration'],
-                                                                                           target_tl_obj[x.attrib['nodeID']]['minDur'],
-                                                                                           target_tl_obj[x.attrib['nodeID']]['maxDur'],
-                                                                                           target_tl_obj[x.attrib['nodeID']]['green_idx'],
-                                                                                           getActionList(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]), target_tl_obj[x.attrib['nodeID']]['max_phase'][0][0]))
+                                                                                     target_tl_obj[x.attrib['nodeID']]['minDur'],
+                                                                                     target_tl_obj[x.attrib['nodeID']]['maxDur'],
+                                                                                     target_tl_obj[x.attrib['nodeID']]['green_idx'],
+                                                                                     getActionList(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]), target_tl_obj[x.attrib['nodeID']]['max_phase'][0][0]))
             i += 1
 
+    return target_tl_obj
+
+def constructEdgeRelatedInfo(edge_file_path, target_tl_id_list, target_tl_obj):
+    '''
+    construct EDGE related info from given traffic environment
+
+    :param edge_file_path:  file path of EDGE info
+    :param target_tl_id_list: id of target traffic light
+    :param target_tl_obj: an object to store constructed EDGE related info
+    :return:
+    '''
     tree = parse(edge_file_path)
     root = tree.getroot()
-    edge = root.findall("edge")
 
-    target_tl_id_list = list(target_tl_obj.keys())
+    edge = root.findall("edge")
 
     near_tl_obj = {}
     for i in target_tl_id_list:
@@ -244,6 +264,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         near_tl_obj[i]['in_edge_list'] = []
         near_tl_obj[i]['in_edge_list_0'] = []
         near_tl_obj[i]['in_edge_list_1'] = []
+        # near_tl_obj[i]['near_length_list'] = []
 
     for x in edge:
         if x.attrib['to'] in target_tl_id_list:
@@ -268,15 +289,25 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         target_tl_obj[n]['in_edge_list_1'] = near_tl_obj[n]['in_edge_list_1']
         _edge_len.append(len(near_tl_obj[n]['in_edge_list']))
 
+    return target_tl_obj
+
+def constructLaneRelatedInfo(args, salt_scenario, target_tl_obj):
+    '''
+    construct LANE related info from given traffic environment
+    :param salt_scenario: scenario file path
+    :param target_tl_obj: an object to store constructed LANE related info
+    :return:
+    '''
+    startStep = 0
 
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(startStep)
 
-    print("init", [libsalt.trafficsignal.getTLSConnectedLinkID(x) for x in target_tl_id_list])
-    print("init", [libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(x) for x in target_tl_id_list])
-    print("init", [libsalt.trafficsignal.getLastTLSPhaseSwitchingTimeByNodeID(x) for x in target_tl_id_list])
-    print("init", [len(libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(x).myPhaseVector) for x in target_tl_id_list])
-    print("init", [libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(x).myPhaseVector[0][1] for x in target_tl_id_list])
+    # print("init", [libsalt.trafficsignal.getTLSConnectedLinkID(x) for x in target_tl_id_list])
+    # print("init", [libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(x) for x in target_tl_id_list])
+    # print("init", [libsalt.trafficsignal.getLastTLSPhaseSwitchingTimeByNodeID(x) for x in target_tl_id_list])
+    # print("init", [len(libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(x).myPhaseVector) for x in target_tl_id_list])
+    # print("init", [libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(x).myPhaseVector[0][1] for x in target_tl_id_list])
 
     _lane_len = []
     for target in target_tl_obj:
@@ -287,6 +318,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                 _lane_id = "{}_{}".format(edge, lane)
                 _lane_list.append(_lane_id)
                 _lane_list_0.append((_lane_id))
+                # print(_lane_id, libsalt.lane.getLength(_lane_id))
         target_tl_obj[target]['in_lane_list_0'] = _lane_list_0
         _lane_list_1 = []
         for edge in target_tl_obj[target]['in_edge_list_1']:
@@ -294,6 +326,7 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
                 _lane_id = "{}_{}".format(edge, lane)
                 _lane_list.append(_lane_id)
                 _lane_list_1.append((_lane_id))
+                # print(_lane_id, libsalt.lane.getLength(_lane_id))
         target_tl_obj[target]['in_lane_list_1'] = _lane_list_1
         target_tl_obj[target]['in_lane_list'] = _lane_list
         if args.state == 'vd':
@@ -301,8 +334,24 @@ def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenar
         else:
             target_tl_obj[target]['state_space'] = len(_lane_list_0) + 1
         _lane_len.append(len(_lane_list))
+    # print(target_tl_obj)
 
     libsalt.close()
+
+    return target_tl_obj, _lane_len
+
+### 신호 최적화 대상 교차로 및 교차로 그룹에 대한 정보를 object로 생성
+def get_objs(args, trafficSignal, targetList_input2, edge_file_path, salt_scenario, startStep):
+    target_tl_obj = constructTSSRelatedInfo(args, trafficSignal, targetList_input2)
+
+    ## get the identifier of target intersection to optimize signal
+    target_tl_id_list = list(target_tl_obj.keys())
+
+    ## get EDGE info which are belong to the target intersection group for optimizing signal
+    target_tl_obj = constructEdgeRelatedInfo(edge_file_path, target_tl_id_list, target_tl_obj)
+
+    ## build incomming LANE related info by executing the simulator
+    target_tl_obj, _lane_len = constructLaneRelatedInfo(args, salt_scenario, target_tl_obj)
 
     print("target_tl_obj")
     pprint.pprint(target_tl_obj, width=200, compact=True)
