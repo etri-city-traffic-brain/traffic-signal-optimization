@@ -33,10 +33,10 @@ parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], de
 
 parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17')
 
-# parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
-#                     help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
-parser.add_argument('--target-TL', type=str, default="SA 6",
-                    help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
+parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
+                    help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
+# parser.add_argument('--target-TL', type=str, default="SA 6",
+#                     help="concatenate signal group with comma(ex. --targetTL SA 101,SA 104)")
 parser.add_argument('--start-time', type=int, default=25400)
 parser.add_argument('--end-time', type=int, default=32400)
 
@@ -79,7 +79,7 @@ parser.add_argument('--ppo_eps', type=float, default=0.1)
 parser.add_argument('--logstdI', type=float, default=0.5)
 parser.add_argument('--_lambda', type=float, default=0.95)
 parser.add_argument('--a-lr', type=float, default=0.005)
-parser.add_argument('--c-lr', type=float, default=0.05)
+parser.add_argument('--c-lr', type=float, default=0.005)
 parser.add_argument('--cp', type=float, default=0.0, help='action change penalty')
 parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
 parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 prob.(-1~1): Higher value_collection select more zeros')
@@ -473,8 +473,8 @@ def run_sappo():
                     episodic_reward += reward[i]
                     episodic_agent_reward[i] += reward[i]
             else:
-                if t % int(sa_cycle[i] * args.controlcycle) == 0:
-                    for i in range(agent_num):
+                for i in range(agent_num):
+                    if t % int(sa_cycle[i] * args.controlcycle) == 0:
                         if trial==0:
                             state_collection[i] = np.r_[state_collection[i], [cur_state[i]]] if t else [cur_state[i]]
                             actions_collection[i] = np.r_[actions_collection[i], [actions[i]]] if t else [actions[i]]
