@@ -147,6 +147,13 @@ class SALT_SAPPO_green_single(gym.Env):
             self.action_mask = np.append(self.action_mask, 0)
 
 
+        if self.args.mode=='test':
+            self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
+            f = open(self.fn_rl_phase_reward_output, mode='w+', buffering=-1, encoding='utf-8', errors=None,
+                     newline=None, closefd=True, opener=None)
+            f.write('step,tl_name,actions,phase,reward\n')
+            f.close()
+
         # print("self.lane_passed", self.lane_passed)
         # print(self.observations)
         # print("self.action_keep_time", self.action_keep_time)
@@ -230,6 +237,17 @@ class SALT_SAPPO_green_single(gym.Env):
                         current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
                         # print(currentStep, tlid, scheduleID, t_phase)
                         libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, t_phase)
+
+                    if self.args.mode == 'test':
+                        f = open(self.fn_rl_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                                 newline=None,
+                                 closefd=True, opener=None)
+                        for i in range(len(self.target_tl_id_list)):
+                            tlid = self.target_tl_id_list[i]
+                            f.write("{},{},{},{},{}\n".format(self.simulationSteps, self.target_tl_obj[tlid]['crossName'], 0,
+                                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), 0))
+                        f.close()
+
                     libsalt.simulationStep()
                     self.simulationSteps = libsalt.getCurrentStep()
 
@@ -361,11 +379,29 @@ class SALT_SAPPO_green_single(gym.Env):
         self.simulationSteps = libsalt.getCurrentStep()
 
         for _ in range(self.warmupTime):
+            if self.args.mode == 'test':
+                f = open(self.fn_rl_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                         newline=None,
+                         closefd=True, opener=None)
+                for i in range(len(self.target_tl_id_list)):
+                    tlid = self.target_tl_id_list[i]
+                    f.write("{},{},{},{},{}\n".format(self.simulationSteps, self.target_tl_obj[tlid]['crossName'], 0,
+                                                      libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), 0))
+                f.close()
             libsalt.simulationStep()
-        self.simulationSteps = libsalt.getCurrentStep()
+            self.simulationSteps = libsalt.getCurrentStep()
 
         for said in self.sa_obj:
             while(self.simulationSteps % (self.sa_obj[said]['cycle_list'][0]*self.control_cycle)!=0):
+                if self.args.mode == 'test':
+                    f = open(self.fn_rl_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                             newline=None,
+                             closefd=True, opener=None)
+                    for i in range(len(self.target_tl_id_list)):
+                        tlid = self.target_tl_id_list[i]
+                        f.write("{},{},{},{},{}\n".format(self.simulationSteps, self.target_tl_obj[tlid]['crossName'], 0,
+                                                          libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), 0))
+                    f.close()
                 libsalt.simulationStep()
                 self.simulationSteps = libsalt.getCurrentStep()
 
