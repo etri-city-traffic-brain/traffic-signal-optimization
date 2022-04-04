@@ -165,8 +165,7 @@ class SALT_SAPPO_green_single(gym.Env):
         self.done = False
         # print('step')
 
-        currentStep = libsalt.getCurrentStep()
-        self.simulationSteps = currentStep
+        self.simulationSteps = libsalt.getCurrentStep()
 
         sa_i = 0
         for sa in self.sa_obj:
@@ -230,10 +229,9 @@ class SALT_SAPPO_green_single(gym.Env):
                         scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
                         current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
                         # print(currentStep, tlid, scheduleID, t_phase)
-                        libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, t_phase)
+                        libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, t_phase)
                     libsalt.simulationStep()
                     self.simulationSteps = libsalt.getCurrentStep()
-                    currentStep = self.simulationSteps
 
                     if self.simulationSteps % self.sim_period == 0:
                     # if self.simulationSteps % (sa_cycle * self.control_cycle) == 0:
@@ -339,7 +337,6 @@ class SALT_SAPPO_green_single(gym.Env):
             else:
                 libsalt.simulationStep()
                 self.simulationSteps = libsalt.getCurrentStep()
-                currentStep = self.simulationSteps
 
             sa_i += 1
 

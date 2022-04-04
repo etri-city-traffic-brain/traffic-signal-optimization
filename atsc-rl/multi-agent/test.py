@@ -407,10 +407,16 @@ def sappo_test(args, model_num, problem_var):
 
         new_state, reward, done, _ = env.step(discrete_actions)
 
-        for i in range(agent_num):
-            # if t % int(sa_cycle[i] * args.controlcycle) == 0:
-            cur_state[i] = new_state[i]
-            episodic_reward += reward[i]
+        if len(args.target_TL.split(",")) == 1:
+            for i in range(agent_num):
+                # if t % int(sa_cycle[i] * args.controlcycle) == 0:
+                cur_state[i] = new_state[i]
+                episodic_reward += reward[i]
+        else:
+            for i in range(agent_num):
+                if t % int(sa_cycle[i] * args.controlcycle) == 0:
+                    cur_state[i] = new_state[i]
+                    episodic_reward += reward[i]
 
         if done:
             break

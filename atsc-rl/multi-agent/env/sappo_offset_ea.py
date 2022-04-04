@@ -167,8 +167,7 @@ class SALT_SAPPO_offset_EA(gym.Env):
         self.done = False
         # print('step')
 
-        currentStep = libsalt.getCurrentStep()
-        self.simulationSteps = currentStep
+        self.simulationSteps = libsalt.getCurrentStep()
 
         sa_i = 0
         for sa in self.sa_obj:
@@ -200,10 +199,9 @@ class SALT_SAPPO_offset_EA(gym.Env):
                 for tlid_i in range(len(tlid_list)):
                     t_phase = int(self.phase_arr[sa_i][tlid_i][self.simulationSteps % sa_cycle])
                     scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid_list[tlid_i])
-                    libsalt.trafficsignal.changeTLSPhase(currentStep, tlid_list[tlid_i], scheduleID, t_phase)
+                    libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid_list[tlid_i], scheduleID, t_phase)
                 libsalt.simulationStep()
-                currentStep = libsalt.getCurrentStep()
-                self.simulationSteps = currentStep
+                self.simulationSteps = libsalt.getCurrentStep()
 
             self.observations[sa_i] = self.get_state(sa)
 

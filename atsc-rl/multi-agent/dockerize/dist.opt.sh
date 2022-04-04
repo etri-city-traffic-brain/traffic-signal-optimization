@@ -8,7 +8,7 @@
 #
 #    sholud check the location of binaries to dockerize
 
-DEFAULT_VERSION="v0.1a.20220125" # "v0.0a"   # "v2.1a.0622"
+DEFAULT_VERSION="v0.1a.20220404" # "v0.0a"   # "v2.1a.0622"
 VERSION=${1:-$DEFAULT_VERSION}
 
 DEFAULT_DOCKERFILE="Dockerfile.opt"
@@ -32,7 +32,7 @@ if [ "$COPY_BINARY" = "yes" ]; then
     #OPT_HOME=/home/developer/PycharmProjects/z.uniq/traffic-signal-optimization/salt-rl
     #OPT_HOME=/home/developer/PycharmProjects/uniq.dockerize/dockerize.opt/to_install_uniq/optimizer_home/
     #OPT_HOME=/home/developer/PycharmProjects/z.uniq/traffic-signal-optimization/salt-rl
-    OPT_HOME=/home/pi/git_docker_test/traffic-signal-optimization/salt-rl
+    OPT_HOME=/home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent
 
     # 0.1 remove old binary & create empty directory
     # 0.1.1 remove old binary

@@ -153,8 +153,7 @@ class SALT_SAPPO_noConst(gym.Env):
         self.done = False
         # print('step')
 
-        currentStep = libsalt.getCurrentStep()
-        self.simulationSteps = currentStep
+        self.simulationSteps = libsalt.getCurrentStep()
         ### change to yellow or keep current green phase
         sa_i = 0
 
@@ -169,7 +168,7 @@ class SALT_SAPPO_noConst(gym.Env):
                     tlid = tlid_list[i]
                     scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
                     current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
-                    libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, current_phase)
+                    libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, current_phase)
 
         sa_i=0
         for sa in self.sa_obj:
@@ -183,7 +182,7 @@ class SALT_SAPPO_noConst(gym.Env):
 
                 current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
                 next_phase = (current_phase + actions[sa_i][i]) % phase_length
-                libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, int(next_phase))
+                libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, int(next_phase))
                 tmp_current_phase_list = np.append(tmp_current_phase_list, current_phase)
             # print(tmp_action_phase_list)
             current_phase_list.append(tmp_current_phase_list)
@@ -209,7 +208,7 @@ class SALT_SAPPO_noConst(gym.Env):
                 else:
                     next_phase = (current_phase + actions[sa_i][i]) % phase_length
 
-                libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, int(next_phase))
+                libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, int(next_phase))
 
                 tmp_next_phase_list = np.append(tmp_next_phase_list, next_phase)
             next_phase_list.append(tmp_next_phase_list)
@@ -609,8 +608,7 @@ class SALT_doan_multi_PSA_test(gym.Env):
         self.done = False
         # print('step')
 
-        currentStep = libsalt.getCurrentStep()
-        self.simulationSteps = currentStep
+        self.simulationSteps = libsalt.getCurrentStep()
         ### change to yellow or keep current green phase
         for i in range(len(self.target_tl_id_list)):
             tlid = self.target_tl_id_list[i]
@@ -626,9 +624,9 @@ class SALT_doan_multi_PSA_test(gym.Env):
                 yPhase = (action_phase + 2) % phase_length
             # print("tl_name {} before action {} current action {}".format(self.target_tl_obj[tlid]['crossName'], self.before_action[i], actions[i]))
             if self.before_action[i] == actions[i]:
-                libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, int(action_phase))
+                libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, int(action_phase))
             else:
-                libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, int(yPhase))
+                libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, int(yPhase))
 
             # currentPhase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
             # if self.target_tl_obj[tlid]['crossName'] == '진터네거리':
@@ -639,9 +637,8 @@ class SALT_doan_multi_PSA_test(gym.Env):
         for i in range(3):
             libsalt.simulationStep()
 
-        currentStep = libsalt.getCurrentStep()
-        self.simulationSteps = currentStep
-        setPhaseStep = currentStep
+        self.simulationSteps = self.simulationSteps
+        setPhaseStep = self.simulationSteps
         action_phase_list = []
         current_phase_list = []
         for i in range(len(self.target_tl_id_list)):
@@ -654,7 +651,7 @@ class SALT_doan_multi_PSA_test(gym.Env):
             action_phase = green_idx[actions[i]]
             action_phase_list = np.append(action_phase_list, int(action_phase))
 
-            libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, int(action_phase))
+            libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, int(action_phase))
             currPhase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
             current_phase_list = np.append(current_phase_list, currPhase)
 

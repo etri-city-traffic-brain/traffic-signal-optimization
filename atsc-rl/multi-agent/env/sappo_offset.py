@@ -68,6 +68,7 @@ class SALT_SAPPO_offset(gym.Env):
         self.cp = args.cp
         self.printOut = args.printOut
         self.sim_period = sim_period
+        self.warmupTime = args.warmupTime
 
         scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
         self.startStep = args.start_time if args.start_time > scenario_begin else scenario_begin
@@ -143,12 +144,11 @@ class SALT_SAPPO_offset(gym.Env):
         self.done = False
         # print('step')
 
-        currentStep = libsalt.getCurrentStep()
-        self.simulationSteps = currentStep
+        self.simulationSteps = libsalt.getCurrentStep()
 
         sa_i = 0
         for sa in self.sa_obj:
-            if self.simulationSteps % (self.sa_obj[sa]['cycle_list'][0]*self.control_cycle) == 0 and self.simulationSteps>300:
+            if self.simulationSteps % (self.sa_obj[sa]['cycle_list'][0]*self.control_cycle) == 0:
                 tlid_list = self.sa_obj[sa]['tlid_list']
                 tlid_i = 0
                 _phase_sum = []
@@ -226,7 +226,6 @@ class SALT_SAPPO_offset(gym.Env):
 
         sa_i = 0
         self.simulationSteps = libsalt.getCurrentStep()
-        currentStep = self.simulationSteps
         for sa in self.sa_obj:
             tlid_list = self.sa_obj[sa]['tlid_list']
             tlid_i = 0
@@ -234,7 +233,7 @@ class SALT_SAPPO_offset(gym.Env):
             for tlid in tlid_list:
                 t_phase = int(self.phase_arr[sa_i][tlid_i][self.simulationSteps % sa_cycle])
                 scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-                libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, t_phase)
+                libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, t_phase)
                 tlid_i += 1
             sa_i += 1
 
@@ -311,6 +310,12 @@ class SALT_SAPPO_offset(gym.Env):
         libsalt.setCurrentStep(self.startStep)
 
         self.simulationSteps = libsalt.getCurrentStep()
+
+        for _ in range(self.warmupTime):
+            libsalt.simulationStep()
+        self.simulationSteps = libsalt.getCurrentStep()
+
+        print(f"{self.simulationSteps} start")
 
         observations = []
         self.lane_passed = []
