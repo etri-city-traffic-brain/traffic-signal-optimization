@@ -22,6 +22,14 @@ from env.sappo_offset_ea import SALT_SAPPO_offset_EA, getScenarioRelatedBeginEnd
 from env.sappo_green_single import SALT_SAPPO_green_single, getScenarioRelatedBeginEndTime
 from env.sappo_green_offset_single import SALT_SAPPO_green_offset_single, getScenarioRelatedBeginEndTime
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
                     help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
@@ -40,7 +48,8 @@ parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
 parser.add_argument('--start-time', type=int, default=25400)
 parser.add_argument('--end-time', type=int, default=32400)
 
-parser.add_argument('--result-comp', type=bool, default=True)
+# parser.add_argument('--result-comp', type=bool, default=True)
+parser.add_argument("--result-comp", type=str2bool, default="TRUE")
 
 parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
                     help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
@@ -57,7 +66,7 @@ parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/')
 parser.add_argument('--epoch', type=int, default=3000)
 parser.add_argument('--warmupTime', type=int, default=600)
 parser.add_argument('--model-save-period', type=int, default=20)
-parser.add_argument('--printOut', type=bool, default=True, help='print result each step')
+parser.add_argument("--printOut", type=str2bool, default="TRUE", help='print result each step')
 
 ### common args
 parser.add_argument('--gamma', type=float, default=0.99)
@@ -88,7 +97,7 @@ parser.add_argument('--actionp', type=float, default=0.2, help='action 0 or 1 pr
 parser.add_argument('--gamma-i', type=float, default=0.11)
 
 ### PPO + RESNET
-parser.add_argument('--res', type=bool, default=True)
+parser.add_argument("--res", type=str2bool, default="TRUE")
 
 ### PPO + Memory
 parser.add_argument('--memLen', type=int, default=1000, help='memory length')
