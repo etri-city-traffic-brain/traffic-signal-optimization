@@ -165,24 +165,16 @@ class SALT_SAPPO_green_offset_single(gym.Env):
 
     def step(self, actions):
         self.done = False
-        # print('step')
 
-        currentStep = libsalt.getCurrentStep()
-        self.simulationSteps = currentStep
+        self.simulationSteps = libsalt.getCurrentStep()
 
         sa_i = 0
         for sa in self.sa_obj:
-
             discrete_action = []
-            # print(actions)
             for di in range(int(len(actions)/2)):
                 if self.args.action == 'gro':
                     discrete_action.append(int(np.round(actions[di*2] * self.sa_obj[sa]['cycle_list'][0]) / 2 / self.args.offsetrange))
                     discrete_action.append(np.digitize(actions[di*2+1], bins=np.linspace(-1, 1, len(self.sa_obj[sa]['action_list_list'][di]))) - 1)
-            # print(discrete_action)
-            # print("self.simulationSteps", self.simulationSteps)
-            # print("self.sa_obj[sa]['cycle_list'][0]", self.sa_obj[sa]['cycle_list'][0])
-            # print("self.control_cycle", self.control_cycle)
             if self.simulationSteps % (self.sa_obj[sa]['cycle_list'][0]*self.control_cycle) == 0:
                 tlid_list = self.sa_obj[sa]['tlid_list']
                 sa_cycle = self.sa_obj[sa]['cycle_list'][0]
@@ -193,8 +185,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                 for tlid_i in range(len(tlid_list)):
                     tlid = tlid_list[tlid_i]
                     green_idx = self.sa_obj[sa]['green_idx_list'][tlid_i][0]
-                    minDur = self.sa_obj[sa]['minDur_list'][tlid_i]
-                    maxDur = self.sa_obj[sa]['maxDur_list'][tlid_i]
                     currDur = self.sa_obj[sa]['duration_list'][tlid_i]
 
                     mpv = libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector
@@ -202,8 +192,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
 
                     action_list = self.sa_obj[sa]['action_list_list'][tlid_i]
                     action = action_list[discrete_action[tlid_i*2+1]]
-                    # print(action)
-                    # print("green_idx", green_idx)
 
                     for _i in range(len(green_idx)):
                         gi = green_idx[_i]
@@ -214,10 +202,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                     scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
                     libsalt.trafficsignal.setTLSPhaseVector(self.simulationSteps, tlid, scheduleID, mpv)
 
-                    # for i in range(len(currDur)):
-                    #     phase_arr = np.append(phase_arr, np.ones(currDur[i]) * i)
-
-                    # self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + actions[sa_i][tlid_i]))
                     __phase_sum = np.sum([x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector])
                     _phase_sum.append(__phase_sum)
                     __phase_list = [x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector if x[0] > 5]
@@ -230,20 +214,15 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                         phase_arr = np.append(phase_arr, np.ones(__phase_list_include_y[i]) * i)
 
                     self.phase_arr[sa_i].append(np.roll(phase_arr, self.sa_obj[sa]['offset_list'][tlid_i] + discrete_action[tlid_i*2]))
-                # print("sa_cycle, self.control_cycle", sa_cycle, self.control_cycle)
 
                 for _ in range(sa_cycle * self.control_cycle):
                     for tlid_i in range(len(tlid_list)):
                         tlid = tlid_list[tlid_i]
                         t_phase = int(self.phase_arr[sa_i][tlid_i][self.simulationSteps % sa_cycle])
-                        # print(sa, tlid, t_phase)
                         scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-                        current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
-                        # print(currentStep, tlid, scheduleID, t_phase)
-                        libsalt.trafficsignal.changeTLSPhase(currentStep, tlid, scheduleID, t_phase)
+                        libsalt.trafficsignal.changeTLSPhase(self.simulationSteps, tlid, scheduleID, t_phase)
                     libsalt.simulationStep()
                     self.simulationSteps = libsalt.getCurrentStep()
-                    currentStep = self.simulationSteps
 
                     if self.simulationSteps % self.sim_period == 0:
                     # if self.simulationSteps % (sa_cycle * self.control_cycle) == 0:
@@ -328,9 +307,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
                     if self.reward_func == 'wt_ABV':
                         self.rewards[sa_i] = -np.mean(self.lane_passed[sa_i])
                     if self.reward_func == 'tt':
-                        # self.lane_passed[sa_i] = self.lane_passed[sa_i] + np.finfo(float).eps
-                        # self.lane_passed[sa_i][self.lane_passed[sa_i]==0] = np.nan
-                        # self.rewards[sa_i] = -np.nanmean(self.lane_passed[sa_i] / np.nanmax(self.lane_passed[sa_i]))
                         self.rewards[sa_i] = -np.sum(self.lane_passed[sa_i])
                     if self.reward_func!='cwq':
                         self.lane_passed[sa_i] = []
@@ -350,7 +326,6 @@ class SALT_SAPPO_green_offset_single(gym.Env):
             else:
                 libsalt.simulationStep()
                 self.simulationSteps = libsalt.getCurrentStep()
-                currentStep = self.simulationSteps
 
             sa_i += 1
 
