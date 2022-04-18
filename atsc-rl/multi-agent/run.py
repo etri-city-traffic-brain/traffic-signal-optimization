@@ -556,12 +556,21 @@ def run_sappo():
         f.close()
 
         ### 가시화 서버에서 사용할 epoch별 agent별 reward 파일
-        for i in range(agent_num):
-            f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                     newline=None,
-                     closefd=True, opener=None)
-            f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
-            f.close()
+        if 0: # changed by hunsooni@20220418AM
+            for i in range(agent_num):
+                f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                        newline=None,
+                        closefd=True, opener=None)
+                f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
+                f.close()
+        else:
+            for i in range(agent_num):
+                target_sa = list(env.sa_obj.keys())[i]
+                f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                        newline=None,
+                        closefd=True, opener=None)
+                f.write('{},{},{},{}\n'.format(trial, target_sa, np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
+                f.close()
 
         ### model save
         if trial % args.model_save_period == 0:
@@ -826,12 +835,23 @@ def run_ppornd():
         f.write('{},{},{}\n'.format(trial, ma1_reward, ma40_reward))
         f.close()
 
-        for i in range(agent_num):
-            f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                     newline=None,
-                     closefd=True, opener=None)
-            f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
-            f.close()
+        ### 가시화 서버에서 사용할 epoch별 agent별 reward 파일
+        if 0: # changed by hunsooni@20220418AM
+            for i in range(agent_num):
+                f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                         newline=None,
+                         closefd=True, opener=None)
+                f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
+                f.close()
+        else:
+            for i in range(agent_num):
+                target_sa = list(env.sa_obj.keys())[i]
+                f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                         newline=None,
+                         closefd=True, opener=None)
+                f.write('{},{},{},{}\n'.format(trial, target_sa, np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
+                f.close()
+
 
         if trial % args.model_save_period == 0:
             fn = "{}/model/ppornd/PPORND-{}-trial".format(io_home, problem_var)
@@ -1053,12 +1073,22 @@ def run_ppoea():
         f.write('{},{},{}\n'.format(trial, ma1_reward, ma40_reward))
         f.close()
 
-        for i in range(agent_num):
-            f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-                     newline=None,
-                     closefd=True, opener=None)
-            f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
-            f.close()
+        ### 가시화 서버에서 사용할 epoch별 agent별 reward 파일
+        if 0: # changed by hunsooni@20220418AM
+            for i in range(agent_num):
+                f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                        newline=None,
+                        closefd=True, opener=None)
+                f.write('{},{},{},{}\n'.format(trial, agent_crossName[i], np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
+                f.close()
+        else:
+            for i in range(agent_num):
+                target_sa = list(env.sa_obj.keys())[i]
+                f = open(fn_train_epoch_tl_reward, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                        newline=None,
+                        closefd=True, opener=None)
+                f.write('{},{},{},{}\n'.format(trial, target_sa, np.mean(ep_agent_reward_list[i][-1:]), np.mean(ep_agent_reward_list[i][-40:])))
+                f.close()
 
         if trial % args.model_save_period == 0:
             fn = "{}/model/sappo/SAPPO-{}-trial".format(io_home, problem_var)
