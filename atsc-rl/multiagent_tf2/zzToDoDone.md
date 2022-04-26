@@ -6,6 +6,8 @@
 * make up the code which are related infer-TL argument
 * distributed traffic signal optimization
 * dockerize 
+* out of memory : python process terminated with "killed" message
+  * TF1.x version implemented by mgpi also has same problem 
 
 ### done history
 * Tag v1.0-20220426PM-dev-tf2
