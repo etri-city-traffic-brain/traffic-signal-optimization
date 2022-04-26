@@ -38,25 +38,21 @@ def parseArgument():
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
                         help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
-    parser.add_argument('--model-num', type=str, default='0',
-                        help='trained model number for test mode')
+
+    parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/', help='home directory of scenario; relative path')
+    parser.add_argument('--map', choices=['dj_all', 'doan', 'doan_20211207', 'sa_1_6_17'], default='sa_1_6_17',
+                        help='name of map')
+                # doan : SA 101, SA 104, SA 107, SA 111
+                # sa_1_6_17 : SA 1,SA 6,SA 17
+    parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
+                        help="target signal groups; multiple groups can be separated by comma(ex. --target-TL SA 101,SA 104)")
+    parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
+    parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
+
 
     # todo hunsooni should check ddqn, ppornd, ppoea
     # parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo', help='')
-    parser.add_argument('--method', choices=['sappo'], default='sappo', help='')
-
-    parser.add_argument('--map', choices=['dj_all', 'doan', 'doan_20211207', 'sa_1_6_17'], default='sa_1_6_17')
-                # doan : SA 101, SA 104, SA 107, SA 111
-                # sa_1_6_17 : SA 1,SA 6,SA 17
-
-    parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
-                        help="concatenate signal group with comma(ex. --target-TL SA 101,SA 104)")
-
-    parser.add_argument('--start-time', type=int, default=0) # 25400
-    parser.add_argument('--end-time', type=int, default=86400) # 32400
-
-    parser.add_argument("--result-comp", type=str2bool, default="TRUE")
-
+    parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
     parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
                         help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
     parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
@@ -65,29 +61,32 @@ def parseArgument():
                         default='cwq',
                         help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based')
 
+    parser.add_argument('--model-num', type=str, default='0', help='trained model number for inference')
+    parser.add_argument("--result-comp", type=str2bool, default="TRUE", help='whether compare simulation result or not')
+
+
     # dockerize
-    parser.add_argument('--io-home', type=str, default='.')
-    parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/')
+    parser.add_argument('--io-home', type=str, default='.', help='home directory of io; relative path')
 
     ### for train
-    parser.add_argument('--epoch', type=int, default=3000)
-    parser.add_argument('--warmup_time', type=int, default=600)
-    parser.add_argument('--model-save-period', type=int, default=20)
+    parser.add_argument('--epoch', type=int, default=3000, help='training epoch')
+    parser.add_argument('--warmup_time', type=int, default=600, help='warming-up time of simulation')
+    parser.add_argument('--model-save-period', type=int, default=20, help='how often to save the trained model')
     parser.add_argument("--print-out", type=str2bool, default="TRUE", help='print result each step')
 
     ### action
-    parser.add_argument('--action-t', type=int, default=12)  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
+    parser.add_argument('--action-t', type=int, default=12, help='the unit time of green phase allowance')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
 
 
     ### policy : common args
-    parser.add_argument('--gamma', type=float, default=0.99)
+    parser.add_argument('--gamma', type=float, default=0.99, help='gamma')
 
     ### polocy : PPO args
-    parser.add_argument('--ppo-epoch', type=int, default=10)
-    parser.add_argument('--ppo_eps', type=float, default=0.1)
-    parser.add_argument('--_lambda', type=float, default=0.95)
-    parser.add_argument('--a-lr', type=float, default=0.005)
-    parser.add_argument('--c-lr', type=float, default=0.005)
+    parser.add_argument('--ppo-epoch', type=int, default=10, help='model fit epoch')
+    parser.add_argument('--ppo_eps', type=float, default=0.1, help='')
+    parser.add_argument('--_lambda', type=float, default=0.95, help='')
+    parser.add_argument('--a-lr', type=float, default=0.005, help='learning rate of actor')
+    parser.add_argument('--c-lr', type=float, default=0.005, help='learning rate of critic')
 
     # todo hunsooni should check nout used argument
     ### currently not used : logstdI, cp, mmp
@@ -107,10 +106,10 @@ def parseArgument():
 
     ### SAPPO OFFSET
     parser.add_argument('--offset-range', type=int, default=2, help="offset side range")
-    parser.add_argument('--control-cycle', type=int, default=5)
+    parser.add_argument('--control-cycle', type=int, default=5, help='')
 
     ### GREEN RATIO args
-    parser.add_argument('--add-time', type=int, default=2)
+    parser.add_argument('--add-time', type=int, default=2, help='')
 
     ### currently not used : [for DDQN] replay-size, batch-size, tau, lr-update-period, lr-update-decay
     # parser.add_argument('--replay-size', type=int, default=2000) # dqn replay memory size

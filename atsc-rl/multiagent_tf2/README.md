@@ -1,7 +1,42 @@
 # ATSC-RL(MultiAgent TF2)
 
 ### How to use ###
-- change libsalt directory in config.py
+* change libsalt directory in config.py
+* run python program run.py with several arguments
+
+
+####  some important arguments
+    ``` 
+    --mode {train,test,simulate}
+      train - RL model training, test - trained model testing, simulate - fixed-time simulation before test
+
+    --scenario-file-path SCENARIO_FILE_PATH
+      home directory of scenario; relative path
+    --map {dj_all,doan,doan_20211207,sa_1_6_17}
+      name of map
+    --target-TL TARGET_TL
+      target signal groups; multiple groups can be separated by comma(ex. --target-TL SA 101,SA 104)
+    --start-time START_TIME
+      start time of traffic simulation; seconds
+    --end-time END_TIME
+      end time of traffic simulation; seconds
+
+    --method {sappo} 
+      optimizing method
+    --state  {v,d,vd,vdd}
+      v - volume, d - density, vd - volume + density, vdd - volume / density
+    --action {kc,offset,gr,gro}
+      kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset
+    --reward {pn,wt,wt_max,wq,wq_median,wq_min,wq_max,wt_SBV,wt_SBV_max,wt_ABV,tt,cwq}
+      pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based
+    
+    --model-num MODEL_NUM
+      trained model number for inference
+    --result-comp True or False
+      whether compare simulation result or not 
+    ```
+
+* you can find full arguments and more detailed sescription by typing "python run.py -h"
 
 
 
