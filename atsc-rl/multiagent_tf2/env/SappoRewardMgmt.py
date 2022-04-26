@@ -172,7 +172,9 @@ class SaltRewardMgmt :
         # clear gathered reward related info
         # cumulate the reward related info when reward func is cwq
         if self.reward_func != 'cwq':
-            self.reward_related_info[sa_idx].clear()
+            # self.reward_related_info[sa_idx].clear()
+            # todo hunsooni AttributeError: 'numpy.ndarray' object has no attribute 'clear'
+            self.reward_related_info[sa_idx] = []
 
 
     def calculateRewardV2(self, sa_idx, args):
