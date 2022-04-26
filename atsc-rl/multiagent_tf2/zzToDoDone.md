@@ -13,6 +13,6 @@
   * separate action/reward mgmt related code into independent class from env
   * multiple model(trained separately) load & test succ
   * single SA train/test succ
-  * implement env
+  * implement env : sappo
   * implement PPO with TF 2.x
 
