@@ -17,14 +17,13 @@ from tensorflow.keras.optimizers import Adam
 
 from config import TRAIN_CONFIG
 
-from TSOUtil import appendLine, str2bool, writeLine
 from env.SaltEnvUtil import getScenarioRelatedBeginEndTime
-
-from policy.ppoTF2 import PPOAgentTF2
-
 from env.SappoEnv import SaltSappoEnvV3
-
+from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
+from TSOUtil import appendLine, str2bool, writeLine
+from DebugConfiguration import DBG_OPTIONS
+from DebugConfiguration import waitForDebug
 
 import libsalt
 
@@ -319,19 +318,19 @@ def trainSappo(args):
 
         ## construct file name to store train results(reward statistics info)
         #     : fn_train_epoch_total_reward, fn_train_epoch_tl_reward
-        io_home = args.io_home
-        output_train_dir = '{}/output/train'.format(io_home)
+        output_train_dir = '{}/output/train'.format(args.io_home)
         fn_train_epoch_total_reward = "{}/train_epoch_total_reward.txt".format(output_train_dir)
         fn_train_epoch_tl_reward = "{}/train_epoch_tl_reward.txt".format(output_train_dir)
 
 
     ### for tensorboard
     time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
-    train_log_dir = '{}/logs/SAPPO/{}/{}'.format(io_home, problem_var, time_data)
+    train_log_dir = '{}/logs/SAPPO/{}/{}'.format(args.io_home, problem_var, time_data)
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
 
     ### 가시화 서버에서 사용할 epoch별 전체 보상 파일
+    #from TSOUtil import writeLine
     writeLine(fn_train_epoch_total_reward, 'epoch,reward,40ep_reward')
 
     ### 가시화 서버에서 사용할 epoch별 agent별 전체 보상 파일
@@ -503,15 +502,50 @@ def trainSappo(args):
 
         ### model save
         if trial % args.model_save_period == 0:
-            fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(io_home, problem_var, trial)
+            # fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, trial)
+            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, trial)
+
             for i in range(train_agent_num):
                 ppo_agent[i].saveModel(fn_prefix)
+
+
 
         #todo hunsooni it is to handle out of memory error... I'm not sure it can handle out of memory error
         import gc
         collected = gc.collect()
 
+    ## find optimal model number and store it
+    if DBG_OPTIONS.RunWithDistributed : # dist
+        from TSOConstants import _FN_PREFIX_
+        from TSOUtil import findOptimalModelNum
+        num_of_candidate = args.num_of_optimal_model_candidate  # default 3
+        model_save_period = args.model_save_period  # default 1
 
+        # -- get the trial number that gave the best performance
+        if  DBG_OPTIONS.SimpleDistTestToSaveTestTime:
+            optimal_model_num = 0
+        else:
+            optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
+
+        # -- make the prefix of file name which stores trained model
+        fn_optimal_model_prefix = "{}/model/{}/{}-{}-trial". \
+            format(args.io_home, args.method, args.method.upper(), problem_var)
+
+        # -- make the file name which stores trained model that gave the best performance
+        fn_optimal_model = "{}-{}".format(fn_optimal_model_prefix, optimal_model_num)
+
+        waitForDebug("run.py : return trainSappo() : fn_opt_model = {}".format(fn_optimal_model))
+
+        # todo hunsooni 만약 여러 교차로 그룹을 대상으로 했다면 확장해야 할까? 필요없다.
+        #      첫번째 그룹에 대한 정보가 전체에 대한 대표성을 가진다.
+        #      이를 이용해서 학습된 모델이 저장된 경로(path) 정보와 최적 모델 번호(trial) 정보를 추출한다.
+        #      실행 데몬에서 모든 target TLS에 적용하여 학습된 최적 모델을 공유 저장소에 복사한다.
+        #       (ref. LearningDaemonThread::copyTrainedModel() func )
+        fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, args.target_TL.split(",")[0])
+        #from TSOUtil import writeLine
+        writeLine(fn_opt_model_info, fn_optimal_model)
+
+        return optimal_model_num
 
 #### test.py
 def testSappo(args):
@@ -547,7 +581,9 @@ def testSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
-            fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, args.model_num)
+            # fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, args.model_num)
+            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, args.model_num)
+
             agent.loadModel(fn_prefix)
             ppo_agent.append(agent)
 

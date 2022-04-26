@@ -22,6 +22,9 @@ class DBG_OPTIONS :
     UseConfig = True    # use config dic instead of args
     WithNewCode = True  # run with new code
 
+    RunWithDistributed = True       # distributed learning
+    SimpleDistTestToSaveTestTime = True           # 시험 시간을 줄이기 위해 훈련 epoch를 1로한다.
+
 
 def waitForDebug(msg):
     if DBG_OPTIONS.RunWithWaitForDebug:

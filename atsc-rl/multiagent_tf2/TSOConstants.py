@@ -92,8 +92,8 @@ class _MSG_CONTENT_:
     '''
     element name of dictionary which construct msg_contents
     '''
-    TARGET_TLS = "targetTLs"
-    INFER_TLS = "inferTLs"
+    TARGET_TL = "targetTL"
+    INFER_TL = "inferTL"
     INFER_MODEL_NUMBER = "infer_model_number"
     CTRL_DAEMON_ARGS = "ctrl_daemon_args"
 

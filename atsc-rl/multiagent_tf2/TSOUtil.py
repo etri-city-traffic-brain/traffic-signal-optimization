@@ -188,7 +188,7 @@ def generateCommand(args):
             cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
 
             cmd = cmd + ' --infer-model-number {} '.format(args.infer_model_number)
-            ## todo 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
+            ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
 
         if args.mode == _MODE_.TEST:
