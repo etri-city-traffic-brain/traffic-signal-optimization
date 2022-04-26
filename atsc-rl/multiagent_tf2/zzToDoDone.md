@@ -8,9 +8,11 @@
 * dockerize 
 
 ### done history
-
 * Tag v1.0-20220426PM-dev-tf2
-  * PPO implementation with TF 2.x
-  * single SA train/test succ
-  * multiple model(trained separately) load & test succ
   * multiple SA train/test succ
+  * separate action/reward mgmt related code into independent class from env
+  * multiple model(trained separately) load & test succ
+  * single SA train/test succ
+  * implement env
+  * implement PPO with TF 2.x
+
