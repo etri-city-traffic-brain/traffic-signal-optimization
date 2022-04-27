@@ -12,6 +12,9 @@
 ### ing
 * distributed traffic signal optimization
   * make up code, esp., command generation 
+* make up the location of import stmt 
+* make LearningDaemonThread::__copyTrainedModel() work with various method
+  * currently only care sappo
 
 ### done history
 * Tag v1.0-20220426PM-dev-tf2

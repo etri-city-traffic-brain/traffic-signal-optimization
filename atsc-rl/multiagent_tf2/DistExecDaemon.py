@@ -4,6 +4,7 @@ import threading
 
 import os
 import argparse
+import glob
 
 from TSOUtil import doPickling, doUnpickling, Msg
 from TSOConstants import _MSG_TYPE_
@@ -94,10 +95,10 @@ class LearningDaemonThread(threading.Thread):
         # 1. TL 별로 관련 파일들을 가져온다  : SA 101-trial-0
         # 2. dot을 구분자로 분할하여 확장자를 얻어온다
         # 3. 해당 파일을 "TL명.확장자" 로 복사한다.
-        import glob
         opt_model_num = int(fn.split('-')[-1])
         trial = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].infer_model_number + 1
         method = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].method
+
         for tl in target_tl_list:
             # 0. caution
             #  we use target id after removing spaces at the beginning and at the end of the string(target name)
@@ -121,7 +122,6 @@ class LearningDaemonThread(threading.Thread):
                     extension = tokens[-1]
 
                     model_name = tokens[-2].split('_')[-1]  # actor or critic
-
                     # 3. make command
                     cmd = 'pwd; cp "{}" "{}/{}-trial_{}_{}_{}.{}"'.format(fname, model_store_path, method.upper(),
                                                                           trial, tl, model_name, extension)
