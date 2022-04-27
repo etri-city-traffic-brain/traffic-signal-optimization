@@ -23,7 +23,7 @@ class DBG_OPTIONS :
     WithNewCode = True  # run with new code
 
     RunWithDistributed = True       # distributed learning
-    SimpleDistTestToSaveTestTime = True           # 시험 시간을 줄이기 위해 훈련 epoch를 1로한다.
+    SimpleDistTestToSaveTestTime = False           # 시험 시간을 줄이기 위해 훈련 epoch를 1로 하며, 최적 모델을 항상 0으로 한다.
 
 
 def waitForDebug(msg):

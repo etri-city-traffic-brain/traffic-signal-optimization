@@ -9,6 +9,10 @@
 * out of memory : python process terminated with "killed" message
   * TF1.x version implemented by mgpi also has same problem 
 
+### ing
+* distributed traffic signal optimization
+  * make up code, esp., command generation 
+
 ### done history
 * Tag v1.0-20220426PM-dev-tf2
   * multiple SA train/test succ

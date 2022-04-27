@@ -56,7 +56,13 @@ done
 
 
 
-python CtrlDaemon.py --port 2727 --target "SA 101, SA 104" --num-of-learning-daemon 2 --validation-criteria 5.0
+python DistCtrlDaemon.py --port 2727 --map doan --target "SA 101" --num-of-learning-daemon 1 --validation-criteria 5.0
+python DistCtrlDaemon.py --port 2727 --map doan --target "SA 101, SA 104" --num-of-learning-daemon 2 --validation-criteria 5.0
+python DistCtrlDaemon.py --port 2727 --map doan  --target "SA 101, SA 104" --num-of-learning-daemon 2 --action gr --validation-criteria 5.0 --epoch 1 --model-save-period 1
 
-python ExecDaemon.py --ip_addr 129.254.182.176  --port 2727
+python DistExecDaemon.py --ip_addr 129.254.182.176  --port 2727
+
+
+
+
 

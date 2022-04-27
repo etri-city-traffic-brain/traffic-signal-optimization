@@ -165,16 +165,21 @@ def generateCommand(args):
     '''
     cmd = ' python run.py '
     cmd = cmd + ' --mode {} '.format(args.mode)
-    cmd = cmd + ' --method {} '.format(args.method)
+    cmd = cmd + ' --scenario-file-path {}'.format(args.scenario_file_path)
     cmd = cmd + ' --map {} '.format(args.map)
+    cmd = cmd + ' --target-TL "{}" '.format(args.target)
+    cmd = cmd + ' --start-time "{}" '.format(args.start_time)
+    cmd = cmd + ' --end-time "{}" '.format(args.end_time)
+
+    cmd = cmd + ' --method {} '.format(args.method)
     cmd = cmd + ' --state {} '.format(args.state)
     cmd = cmd + ' --action {} '.format(args.action)
     cmd = cmd + ' --reward-func {} '.format(args.reward_func)
+
     cmd = cmd + ' --epoch {} '.format(args.epoch)
-    cmd = cmd + ' --target-TL "{}" '.format(args.target)
+    cmd = cmd + ' --warmup-time {} '.format(args.warmup_time)
     cmd = cmd + ' --model-save-period {}'.format(args.model_save_period)
     cmd = cmd + ' --print-out {}'.format(args.print_out)
-    cmd = cmd + ' --scenario-file-path {}'.format(args.scenario_file_path)
 
 
     if args.mode == _MODE_.TRAIN:
@@ -182,12 +187,13 @@ def generateCommand(args):
 
     if args.infer_model_number >= 0: # we have trained model... do inference
         if args.mode == _MODE_.TRAIN:
-            cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TLs)
+            cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
 
         if ( (args.mode == _MODE_.TEST)  or (args.mode == _MODE_.TRAIN) ):
             cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
 
             cmd = cmd + ' --infer-model-number {} '.format(args.infer_model_number)
+
             ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
 
@@ -202,6 +208,8 @@ def generateCommand(args):
     return cmd
 
 
+def convertSaNameToId(in_sa_name):
+    return in_sa_name.strip().replace(' ', '_')
 
 '''
 methods for file io

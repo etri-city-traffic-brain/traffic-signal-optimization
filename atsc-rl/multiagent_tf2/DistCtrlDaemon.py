@@ -16,7 +16,7 @@ from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
 from TSOConstants import _FN_PREFIX_, _IMPROVEMENT_COMP_
 
-from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine
+from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, writeLine, appendLine
 from TSOUtil import str2bool
 
 
@@ -203,37 +203,45 @@ def getArgs():
     '''
     parser = argparse.ArgumentParser()
 
+    ### for distributed learning
     parser.add_argument("--port", type=int, default=2727)
+    parser.add_argument("--ground-zero",  type=str2bool, default=False,  help="whether do simulation with fixed signal to get ground zero performance")
     parser.add_argument("--validation-criteria", type=float, default=5.0)
     parser.add_argument("--num-of-learning-daemon", type=int, default=3)
     # parser.add_argument("--infer_model_root_path", type=str, default="/tmp/tso")
     parser.add_argument("--model-store-root-path", type=str, default="/tmp/tso")
-    parser.add_argument("--target", type=str, default="SA 101, SA 104, SA 107")
-    parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo',
-                        help='')
-    parser.add_argument('--map', choices=['dj', 'doan'], default='doan',
-                        help='dj - Daejeon all region, doan - doan 111 tss')
-    parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt'], default='wq',
-                        help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time')
+    parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
+                        help="number of candidate to compare reward to find optimal model")
 
-    parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
-                        help='v - volume, d - density, vd - volume + density, vdd - volume / density')
-    parser.add_argument('--action', choices=['ps', 'kc', 'pss', 'o', 'offset'], default='offset',
-                        help='ps - phase selection(no constraints), kc - keep or change(limit phase sequence), '
-                             'pss - phase-set selection, o - offset')
-    parser.add_argument('--epoch', type=int, default=1)
 
+    ### for single node learning
     parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt')
+    parser.add_argument('--map', choices=['dj_all', 'doan', 'doan_20211207', 'sa_1_6_17'], default='sa_1_6_17',
+                        help='name of map')
+                # doan : SA 101, SA 104, SA 107, SA 111
+                # sa_1_6_17 : SA 1,SA 6,SA 17
 
+    parser.add_argument("--target", type=str, default="SA 1,SA 6,SA 17")
     parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
-    parser.add_argument('--model-save-period', type=int, default=20)
+    parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
+    parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
+                        help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
+    parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
+                        help='v - volume, d - density, vd - volume + density, vdd - volume / density')
+    parser.add_argument('--reward-func',
+                        choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max',
+                                 'wt_ABV', 'tt', 'cwq'],
+                        default='cwq',
+                        help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based')
 
-    parser.add_argument('--print-out', type=str2bool, default=True, help='print result each step')
+    ### for train
+    parser.add_argument('--epoch', type=int, default=100, help='training epoch')
+    parser.add_argument('--warmup-time', type=int, default=600, help='warming-up time of simulation')
+    parser.add_argument('--model-save-period', type=int, default=5, help='how often to save the trained model')
+    parser.add_argument("--print-out", type=str2bool, default="TRUE", help='print result each step')
 
-    parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
-                        help="number of candidate to compare reward to find optimal model")
 
     args = parser.parse_args()
     return args
@@ -269,7 +277,7 @@ def getTheCurrentPerformance(args):
     return current_performance
 
 
-def validate(args, validation_trials):
+def validate(args, validation_trials, fn_dist_learning_history):
     '''
     check whether optimization criterior is satified
     :param args:
@@ -299,7 +307,7 @@ def validate(args, validation_trials):
     validation_cmd = generateCommand(args)
     args.epoch = local_learning_epoch
 
-    waitForDebug("before exec validation .... ")
+    #waitForDebug("before exec validation .... ")
 
     ## execute traffic signal optimization program
     result = execTrafficSignalOptimization(validation_cmd)
@@ -320,7 +328,7 @@ def validate(args, validation_trials):
         # and get the improvement rate
         # import pandas as pd
         # from TSOConstants import _FN_PREFIX_, _IMPROVEMENT_COMP_
-        fn_result = "{}.{}.csv".format(_FN_PREFIX_.RESULT_COMP, args.model_num)
+        fn_result = "{}/{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
         df = pd.read_csv(fn_result, index_col=0)
 
         if DBG_OPTIONS.PrintImprovementRate:
@@ -332,6 +340,8 @@ def validate(args, validation_trials):
         improvement_rate = df.at[_IMPROVEMENT_COMP_.ROW_NAME, _IMPROVEMENT_COMP_.COLUMN_NAME]
         success = _CHECK_.SUCCESS if improvement_rate >= args.validation_criteria else _CHECK_.FAIL
 
+        appendLine(fn_dist_learning_history, f"{args.model_num},{improvement_rate}")
+
         if DBG_OPTIONS.PrintImprovementRate:
             print("improvement_rate={} got from result comp file".format(improvement_rate))
 
@@ -341,7 +351,8 @@ def validate(args, validation_trials):
     return success
 
 ####
-# python CtrlDaemon.py --port 2727 --num_of_learning_daemon 3 --validation_criteria 6
+# python DistCtrlDaemon.py --port 2727 --num_of_learning_daemon 3 --validation_criteria 6 --ground-zero True
+# python DistCtrlDaemon.py --port 2727  --target "SA 101, SA 104"  --num_of_learning_daemon 2 --validation_criteria 6
 if __name__ == '__main__':
 
     if os.environ.get("UNIQ_OPT_HOME") is None:
@@ -351,6 +362,13 @@ if __name__ == '__main__':
     ## argument parsing
     args = getArgs()
 
+    ## create model_store_root directory if not exist
+    os.makedirs(args.model_store_root_path, exist_ok=True)
+
+    # to save the history of distributed learning
+    fn_dist_learning_history = "{}/{}".format(args.model_store_root_path, _FN_PREFIX_.DIST_LEARNING_HISTORY)
+    writeLine(fn_dist_learning_history, "trial, improvement_rate")
+
     # local_learning_epoch = args.epoch
     # args.epoch = local_learning_epoch
 
@@ -358,7 +376,7 @@ if __name__ == '__main__':
     #    xxx_test() funcs in test.py obtain the performance of simulation
     #       using fixed-time-based signal control for result comparison
     ##  so.. we do not do it here
-    if 0:
+    if args.ground_zero :
         ## first obtain the current performance
         #     so that we can use it to calculate the degree of improvement.
         current_performance = getTheCurrentPerformance(args)
@@ -429,7 +447,7 @@ if __name__ == '__main__':
         #     learned_result_dic[sc.target] = sc.learned_result
 
         ### check if re-learning is needed
-        checked_result = validate(args, validation_trials)
+        checked_result = validate(args, validation_trials, fn_dist_learning_history)
 
         ### set the checked result : state
         for sc in serving_client_dic.values():

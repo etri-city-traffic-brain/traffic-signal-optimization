@@ -9,7 +9,7 @@ import argparse
 
 import numpy as np
 import pandas as pd
-
+import shutil
 
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
@@ -22,8 +22,9 @@ from env.SappoEnv import SaltSappoEnvV3
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 from TSOUtil import appendLine, str2bool, writeLine
-from DebugConfiguration import DBG_OPTIONS
-from DebugConfiguration import waitForDebug
+from TSOUtil import convertSaNameToId
+from DebugConfiguration import DBG_OPTIONS, waitForDebug
+from TSOConstants import _FN_PREFIX_
 
 import libsalt
 
@@ -69,7 +70,7 @@ def parseArgument():
 
     ### for train
     parser.add_argument('--epoch', type=int, default=3000, help='training epoch')
-    parser.add_argument('--warmup_time', type=int, default=600, help='warming-up time of simulation')
+    parser.add_argument('--warmup-time', type=int, default=600, help='warming-up time of simulation')
     parser.add_argument('--model-save-period', type=int, default=20, help='how often to save the trained model')
     parser.add_argument("--print-out", type=str2bool, default="TRUE", help='print result each step')
 
@@ -82,7 +83,7 @@ def parseArgument():
 
     ### polocy : PPO args
     parser.add_argument('--ppo-epoch', type=int, default=10, help='model fit epoch')
-    parser.add_argument('--ppo_eps', type=float, default=0.1, help='')
+    parser.add_argument('--ppo-eps', type=float, default=0.1, help='')
     parser.add_argument('--_lambda', type=float, default=0.95, help='')
     parser.add_argument('--a-lr', type=float, default=0.005, help='learning rate of actor')
     parser.add_argument('--c-lr', type=float, default=0.005, help='learning rate of critic')
@@ -130,7 +131,7 @@ def parseArgument():
     ##     infer-model-path : to specify the path that model which will be used to inference was stored
     ##     num-of-optimal-model-candidate : number of optimal model candidate
     parser.add_argument('--infer-TL', type=str, default="",
-                        help="concatenate signal group with comma(ex. --infer_TLs SA 101,SA 104)")
+                        help="concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
 
     parser.add_argument('--infer-model-number', type=int, default=1,
                         help="model number which are use to discriminate the inference model")
@@ -291,6 +292,25 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
         agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
 
 
+def makeLoadModelFnPrefix(args, problem_var):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+    if args.infer_model_path == ".":  # default
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                        args.model_num)
+    else:  # when we test distributed learning
+        # /tmp/tso/SAPPO-trial_0_SA_101_actor.h5
+        fn_prefix = "{}/{}-trial_{}".format(args.infer_model_path, args.method.upper(), args.model_num)
+
+    return fn_prefix
+
+
+
 def trainSappo(args):
     '''
     model train
@@ -380,7 +400,13 @@ def trainSappo(args):
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
             if is_train_target == False:
-                fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, args.model_num)
+                # make a prefix of file name which indicates saved trained model parameters
+                fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+
+                if 0: # todo hunsooni should delete
+                    fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, args.model_num)
+                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
+
                 agent.loadModel(fn_prefix)
 
             ppo_agent.append(agent)
@@ -540,8 +566,9 @@ def trainSappo(args):
         #      첫번째 그룹에 대한 정보가 전체에 대한 대표성을 가진다.
         #      이를 이용해서 학습된 모델이 저장된 경로(path) 정보와 최적 모델 번호(trial) 정보를 추출한다.
         #      실행 데몬에서 모든 target TLS에 적용하여 학습된 최적 모델을 공유 저장소에 복사한다.
-        #       (ref. LearningDaemonThread::copyTrainedModel() func )
-        fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, args.target_TL.split(",")[0])
+        #       (ref. LearningDaemonThread::__copyTrainedModel() func )
+        # fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, args.target_TL.split(",")[0])  # strip & replace blank
+        fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(args.target_TL.split(",")[0]))
         #from TSOUtil import writeLine
         writeLine(fn_opt_model_info, fn_optimal_model)
 
@@ -579,10 +606,16 @@ def testSappo(args):
 
             action_size = action_space.shape[0]
             state_size = (state_space,)
-            agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
+            agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, convertSaNameToId(target_sa))
 
-            # fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, args.model_num)
-            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, args.model_num)
+            # make a prefix of file name which indicates saved trained model parameters
+            fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+            if 0:  # todo hunsooni should delete
+                if args.infer_model_path == ".": # default
+                    fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, args.model_num)
+                else: # when we test distributed learning
+                    fn_prefix = "{}/{}-trial_{}".format(args.infer_model_path, args.method.upper(), args.model_num)
+            waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
 
             agent.loadModel(fn_prefix)
             ppo_agent.append(agent)
@@ -666,7 +699,15 @@ def testSappo(args):
         rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
 
         total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num)
-        total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, args.model_num), encoding='utf-8-sig', index=False)
+
+        result_fn = "{}/output/test/{}_{}.csv".format(args.io_home, problem_var, args.model_num)
+        total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
+
+        if 1 : # args.dist
+            # todo hunsooni   Let's think about which path would be better to save it
+            #                 dist learning history
+            dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
+            shutil.copy2(result_fn, dst_fn)
 
     return avg_reward
 

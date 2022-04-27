@@ -12,6 +12,7 @@ from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _FN_PREFIX_, _MODE_
 from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine
+from TSOUtil import convertSaNameToId
 
 # Here's our thread:
 class LearningDaemonThread(threading.Thread):
@@ -63,7 +64,7 @@ class LearningDaemonThread(threading.Thread):
         args = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS]
         args.mode = _MODE_.TRAIN
         args.target = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
-        args.infer_TLs = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_TL]
+        args.infer_TL = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_TL]
         args.infer_model_number = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_MODEL_NUMBER]
 
         cmd = generateCommand(args)
@@ -72,7 +73,7 @@ class LearningDaemonThread(threading.Thread):
 
         return result
 
-    def copyTrainedModel(self, recv_msg_obj):
+    def __copyTrainedModel(self, recv_msg_obj):
         '''
         copy trained model into shared storage
 
@@ -80,9 +81,12 @@ class LearningDaemonThread(threading.Thread):
         :return:
         '''
         target = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
-        target_tls_list = target.split(",")
+        target_tl_list = target.split(",")
+        #waitForDebug("target={} target_tl_list={}".format(target, target_tl_list))
+
         model_store_path = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].model_store_root_path
-        fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, target_tls_list[0])
+        #todo hunsooni 현재 대상이 하나인 경우만 고려하고 있다. 여러 개인 경우에 대해 고려해야 한다.
+        fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(target_tl_list[0]))
         fn = readLine(fn_opt_model_info)
 
         # 파일명을  TL 명으로 변경하여 복사
@@ -94,9 +98,15 @@ class LearningDaemonThread(threading.Thread):
         opt_model_num = int(fn.split('-')[-1])
         trial = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].infer_model_number + 1
         method = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].method
-        for tl in target_tls_list:
+        for tl in target_tl_list:
+            # 0. caution
+            #  we use target id after removing spaces at the beginning and at the end of the string(target name)
+            #                        and replace blank(space) in the middle of a string with underline(_)
+            tl = tl.strip().replace(' ', '_')
+
             # 1. get related files
-            filter = "{}-trial-{}".format(tl, opt_model_num)
+            # filter = "{}-trial-{}".format(tl, opt_model_num)
+            filter = "-trial_{}_{}".format(opt_model_num, tl)
 
             tokens = fn.split('/')
             path = ('/').join(tokens[:-1])  # ./model/sappo
@@ -105,19 +115,31 @@ class LearningDaemonThread(threading.Thread):
             fl_tl = [fname for fname in filelist if filter in fname]
 
             for fname in fl_tl:
-                # 2. get file extension
-                tokens = fname.split('.')
-                extension = tokens[-1]
+                if method == 'sappo': # use PPOAgentTF2
+                    # 2. get file extension
+                    tokens = fname.split('.')
+                    extension = tokens[-1]
+
+                    model_name = tokens[-2].split('_')[-1]  # actor or critic
+
+                    # 3. make command
+                    cmd = 'pwd; cp "{}" "{}/{}-trial_{}_{}_{}.{}"'.format(fname, model_store_path, method.upper(),
+                                                                          trial, tl, model_name, extension)
+                else :
+                    print("Internal error : LearningDaemonThread::__copyTrainedModel()")
 
                 ##3. copy
-                if 1:
-                    cmd = 'pwd; cp "{}" "{}/{}-trial-{}.{}"'.format(fname, model_store_path, tl, trial, extension)
-                else:
-                    cmd = 'pwd; cp "{}" "{}/{}-{}-trial-{}.{}"'.format(fname, model_store_path, method.upper(), tl, trial, extension)
+                # if 1:
+                #     cmd = 'pwd; cp "{}" "{}/{}-trial-{}.{}"'.format(fname, model_store_path, tl, trial, extension)
+                # else:
+                #     cmd = 'pwd; cp "{}" "{}/{}-{}-trial-{}.{}"'.format(fname, model_store_path, method.upper(), tl, trial, extension)
 
-                print(cmd)
+                waitForDebug(cmd)
 
                 r = execTrafficSignalOptimization(cmd)
+
+                assert (r == 0) # subprocess.Popen() returns 0 if success
+                                # A negative value -N indicates that the child was terminated by signal N
 
         return True
 
@@ -143,7 +165,7 @@ class LearningDaemonThread(threading.Thread):
                 if DBG_OPTIONS.PrintExecDaemon:
                     print("## returned trained opt model number ={}".format(result))
 
-                result = self.copyTrainedModel(recv_msg_obj)
+                result = self.__copyTrainedModel(recv_msg_obj)
 
                 if DBG_OPTIONS.PrintExecDaemon:
                     print("## returned trained opt model number ={}".format(result))
@@ -166,7 +188,7 @@ class LearningDaemonThread(threading.Thread):
 
 ####
 #
-# python ExecDaemon.py --ip_addr 129.254.182.176 --port 2727
+# python DistExecDaemon.py --ip_addr 129.254.182.176 --port 2727
 if __name__ == '__main__':
     if os.environ.get("UNIQ_OPT_HOME") is None:
         os.environ["UNIQ_OPT_HOME"] = os.getcwd()

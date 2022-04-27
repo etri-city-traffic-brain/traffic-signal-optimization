@@ -387,13 +387,13 @@ class PPOAgentTF2:
         self.replay_count += 1
 
 
-    def loadModel(self, fn):
-        self.actor.model.load_weights(f"{fn}_{self.id}_actor.h5")
-        self.critic.model.load_weights(f"{fn}_{self.id}_critic.h5")
+    def loadModel(self, fn_prefix):
+        self.actor.model.load_weights(f"{fn_prefix}_{self.id}_actor.h5")
+        self.critic.model.load_weights(f"{fn_prefix}_{self.id}_critic.h5")
 
-    def saveModel(self, fn):
-        self.actor.model.save_weights(f"{fn}_{self.id}_actor.h5")
-        self.critic.model.save_weights(f"{fn}_{self.id}_critic.h5")
+    def saveModel(self, fn_prefix):
+        self.actor.model.save_weights(f"{fn_prefix}_{self.id}_actor.h5")
+        self.critic.model.save_weights(f"{fn_prefix}_{self.id}_critic.h5")
 
 
     pylab.figure(figsize=(18, 9))
