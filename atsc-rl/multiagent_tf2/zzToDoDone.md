@@ -3,6 +3,7 @@
 * [ing] distributed traffic signal optimization
   * check code
     * [d] command generation : generateCommand() at TSOUtil.py
+      * consider all arguments used to run a single node program(ref. parseArgument() at run.py)
     * [i] find optimal model num : findOptimalModelNum() at TSOUtil.py
       * when epoch is very small 
   * make LearningDaemonThread::__copyTrainedModel() work with various method
@@ -18,8 +19,8 @@
 * make experimental env in the cloud(PurpleStones)
   * 3 nodes and shared storage
 
-* solve questions :  todos in code
-  * find given questions in code
+* solve questions :  todos in the code
+  * can find given questions in the code
     * grep todo *
     
 * dockerize 
