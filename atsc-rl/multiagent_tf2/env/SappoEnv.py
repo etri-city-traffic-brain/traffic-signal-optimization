@@ -6,26 +6,26 @@ import sys
 import numpy as np
 
 
-import DebugConfiguration
+import libsalt
+
 
 from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
-import libsalt
 
-state_weight = 1
-reward_weight = 1
-
-sim_period = 30
-
-
-from env.SaltEnvUtil import getSimulationStartStepAndEndStep
-from env.SaltEnvUtil import makePosssibleSaNameList
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
+from env.SaltEnvUtil import getSimulationStartStepAndEndStep
+from env.SaltEnvUtil import makePosssibleSaNameList
 from env.SappoActionMgmt import SaltActionMgmt
 from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmt
-
+import DebugConfiguration
 from TSOUtil import writeLine
+
+
+#todo hunsooni : consider following CONST .... how about use TRAIN_CONFIG
+state_weight = 1
+reward_weight = 1
+sim_period = 30
 
 
 class SaltSappoEnvV3(gym.Env):

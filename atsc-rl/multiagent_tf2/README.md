@@ -2,7 +2,9 @@
 
 ### How to use ###
 * change libsalt directory in config.py
+* set DBG_OPTIONS in DebugConfiguration.py
 * run python program run.py with several arguments
+* see README_DIST.md if you want to do distributed learning for adaptive traffic signal control
 
 
 ####  some important arguments

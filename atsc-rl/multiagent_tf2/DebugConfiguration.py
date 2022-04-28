@@ -19,10 +19,10 @@ class DBG_OPTIONS :
 
     ## Other Options
     RunWithWaitForDebug = False      # wait for debug
-    UseConfig = True    # use config dic instead of args
-    WithNewCode = True  # run with new code
+    # UseConfig = True    # use config dic instead of args
+    # WithNewCode = True  # run with new code
 
-    RunWithDistributed = True       # distributed learning
+    RunWithDistributed = True       # for distributed learning
     SimpleDistTestToSaveTestTime = False           # 시험 시간을 줄이기 위해 훈련 epoch를 1로 하며, 최적 모델을 항상 0으로 한다.
 
 

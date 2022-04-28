@@ -9,14 +9,19 @@
 #  modified to make this can be work with traffic simulation(April. 2022)
 #
 # ================================================================
+import argparse
+import copy
 import os
-
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # -1:cpu, 0:first gpu
 
 import gym
-import pylab
 import numpy as np
+import pylab
 import tensorflow as tf
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.optimizers import Adam, RMSprop, Adagrad, Adadelta
 
 USE_TBX = False
 if USE_TBX:
@@ -25,12 +30,6 @@ if USE_TBX:
 tf.config.experimental_run_functions_eagerly(True) # used for debuging and development
 # tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
     # if this is SET, tensorboard does not work
-
-from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.layers import Input, Dense
-from tensorflow.keras.optimizers import Adam, RMSprop, Adagrad, Adadelta
-from tensorflow.keras import backend as K
-import copy
 
 
 gpus = tf.config.experimental.list_physical_devices('GPU')
@@ -538,7 +537,7 @@ def makePPOConfig(args):
 
 
 if __name__ == "__main__":
-    import argparse
+    # import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['train', 'test'], default='train',
                         help='train - RL model training, test - trained model testing')

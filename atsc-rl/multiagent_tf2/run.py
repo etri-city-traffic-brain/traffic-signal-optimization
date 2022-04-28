@@ -1,32 +1,41 @@
 # -*- coding: utf-8 -*-
 #
 #
-
-import os
-import time
-
 import argparse
-
+import gc
 import numpy as np
+import os
 import pandas as pd
 import shutil
-
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
+import time
+
+
+import libsalt
 
 
 from config import TRAIN_CONFIG
+from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
+from env.SaltEnvUtil import copyScenarioFiles
+from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getScenarioRelatedBeginEndTime
+from env.SaltEnvUtil import makePosssibleSaNameList
+
 from env.SappoEnv import SaltSappoEnvV3
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
-from TSOUtil import appendLine, str2bool, writeLine
-from TSOUtil import convertSaNameToId
-from DebugConfiguration import DBG_OPTIONS, waitForDebug
-from TSOConstants import _FN_PREFIX_
 
-import libsalt
+from TSOConstants import _FN_PREFIX_
+from TSOUtil import appendLine
+from TSOUtil import convertSaNameToId
+from TSOUtil import findOptimalModelNum
+from TSOUtil import str2bool
+from TSOUtil import writeLine
+
+
+
 
 
 def parseArgument():
@@ -146,6 +155,11 @@ def parseArgument():
     args = parser.parse_args()
 
     args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
+
+    if 1:
+        #todo hunsooni : think how often should we update actions
+        if args.action == 'gr':
+            args.control_cycle = 1
 
     return args
 
@@ -537,13 +551,13 @@ def trainSappo(args):
 
 
         #todo hunsooni it is to handle out of memory error... I'm not sure it can handle out of memory error
-        import gc
+        # import gc
         collected = gc.collect()
 
     ## find optimal model number and store it
     if DBG_OPTIONS.RunWithDistributed : # dist
-        from TSOConstants import _FN_PREFIX_
-        from TSOUtil import findOptimalModelNum
+        # from TSOConstants import _FN_PREFIX_
+        # from TSOUtil import findOptimalModelNum
         num_of_candidate = args.num_of_optimal_model_candidate  # default 3
         model_save_period = args.model_save_period  # default 1
 
@@ -569,7 +583,7 @@ def trainSappo(args):
         #       (ref. LearningDaemonThread::__copyTrainedModel() func )
         # fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, args.target_TL.split(",")[0])  # strip & replace blank
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(args.target_TL.split(",")[0]))
-        #from TSOUtil import writeLine
+
         writeLine(fn_opt_model_info, fn_optimal_model)
 
         return optimal_model_num
@@ -726,16 +740,12 @@ def fixedTimeSimulate(args):
     trial_len = end_time - start_time
 
     ### target tl object를 가져오기 위함
-    from env.SaltEnvUtil import makePosssibleSaNameList
-    from env.SaltEnvUtil import copyScenarioFiles
-    from env.SaltEnvUtil import getSaRelatedInfo
-
+    # from env.SaltEnvUtil import makePosssibleSaNameList
+    # from env.SaltEnvUtil import copyScenarioFiles
+    # from env.SaltEnvUtil import getSaRelatedInfo
     salt_scenario = copyScenarioFiles(args.scenario_file_path)
-
     target_sa_name_list = makePosssibleSaNameList(args.target_TL)
-
-    target_tl_obj, _, _ = \
-        getSaRelatedInfo(args, target_sa_name_list, salt_scenario)
+    target_tl_obj, _, _ = getSaRelatedInfo(args, target_sa_name_list, salt_scenario)
 
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'

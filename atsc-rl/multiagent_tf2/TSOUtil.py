@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
+import argparse
+import numpy as np
 import os
+import pickle
 import subprocess
 from DebugConfiguration import DBG_OPTIONS
 from TSOConstants import _MODE_
-import pickle
+from TSOConstants import _MSG_TYPE_
+
 # The pickle module implements binary protocols
 #   for serializing and de-serializing a Python object structure.
 
@@ -36,7 +40,7 @@ class Msg:
     '''
     a class to handle message
     '''
-    from TSOConstants import _MSG_TYPE_
+    # from TSOConstants import _MSG_TYPE_
 
     dic_msg_type_to_string = {
         _MSG_TYPE_.CONNECT_OK: "MSG_CONNECT_OK",
@@ -104,7 +108,6 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
     :param num_of_candidate: num of model to compare reward
     :return: episode number of optimal model
     '''
-    import numpy as np
 
     ##
     num_ep = len(ep_reward_list)
@@ -284,7 +287,7 @@ def writeLine(fn, contents):
 arguemnt parsing
 '''
 def str2bool(v):
-    import argparse
+    # import argparse
     if isinstance(v, bool):
         return v
 

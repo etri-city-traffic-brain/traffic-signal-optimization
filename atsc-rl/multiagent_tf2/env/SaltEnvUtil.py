@@ -1,8 +1,17 @@
+# -*- coding: utf-8 -*-
+import json
 import numpy as np
-from xml.etree.ElementTree import parse
-import sys
 import os
+import platform
 import pprint
+import shutil
+import sys
+import uuid
+import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import parse
+
+import libsalt
+
 
 from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
@@ -10,10 +19,6 @@ sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 import DebugConfiguration
 
 
-import libsalt
-
-import json
-import platform
 
 def getScenarioRelatedFilePath(scenario_file_path):
     '''
@@ -98,8 +103,8 @@ def copyScenarioFiles(scenario_file_path):
     :param scenario_file_path:
     :return:
     '''
-    import uuid
-    import shutil
+    # import uuid
+    # import shutil
     dir_path = os.path.dirname(os.path.realpath(__file__))
     uid = str(uuid.uuid4())
 
@@ -602,7 +607,7 @@ def startTimeConvert(f_path, f_name, start_hour):
     :param start_hour:
     :return:
     '''
-    import xml.etree.ElementTree as ET
+    # import xml.etree.ElementTree as ET
 
     start_time_second = float(start_hour * 60 * 60)
 

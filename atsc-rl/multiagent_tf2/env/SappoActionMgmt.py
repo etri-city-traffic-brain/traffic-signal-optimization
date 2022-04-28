@@ -3,11 +3,10 @@
 import numpy as np
 import sys
 
+import libsalt
+
 from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
-
-
-import libsalt
 
 
 class SaltActionMgmt:
