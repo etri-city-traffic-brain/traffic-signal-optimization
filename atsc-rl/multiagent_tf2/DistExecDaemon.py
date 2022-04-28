@@ -64,7 +64,7 @@ class LearningDaemonThread(threading.Thread):
         '''
         args = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS]
         args.mode = _MODE_.TRAIN
-        args.target = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
+        args.target_TL = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
         args.infer_TL = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_TL]
         args.infer_model_number = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_MODEL_NUMBER]
 
@@ -82,12 +82,12 @@ class LearningDaemonThread(threading.Thread):
         :return:
         '''
         target = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
-        target_tl_list = target.split(",")
-        #waitForDebug("target={} target_tl_list={}".format(target, target_tl_list))
+        target_list = target.split(",")
+        waitForDebug("target={} target_list={}".format(target, target_list))
 
         model_store_path = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].model_store_root_path
         #todo hunsooni 현재 대상이 하나인 경우만 고려하고 있다. 여러 개인 경우에 대해 고려해야 한다.
-        fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(target_tl_list[0]))
+        fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(target_list[0]))
         fn = readLine(fn_opt_model_info)
 
         # 파일명을  TL 명으로 변경하여 복사
@@ -99,7 +99,7 @@ class LearningDaemonThread(threading.Thread):
         trial = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].infer_model_number + 1
         method = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].method
 
-        for tl in target_tl_list:
+        for tl in target_list:
             # 0. caution
             #  we use target id after removing spaces at the beginning and at the end of the string(target name)
             #                        and replace blank(space) in the middle of a string with underline(_)

@@ -28,6 +28,7 @@ from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
 from TSOConstants import _FN_PREFIX_
+from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
 from TSOUtil import findOptimalModelNum
@@ -35,29 +36,31 @@ from TSOUtil import str2bool
 from TSOUtil import writeLine
 
 
-
-
-
 def parseArgument():
+    # return parseArgumentOne()
+    return parseArgumentWithAddArgumentFunc()
+
+def parseArgumentOne():
     '''
     argument parsing
     :return:
     '''
 
     parser = argparse.ArgumentParser()
+
     parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
                         help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
 
-    parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/', help='home directory of scenario; relative path')
+    parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/',
+                        help='home directory of scenario; relative path')
     parser.add_argument('--map', choices=['dj_all', 'doan', 'doan_20211207', 'sa_1_6_17'], default='sa_1_6_17',
                         help='name of map')
-                # doan : SA 101, SA 104, SA 107, SA 111
-                # sa_1_6_17 : SA 1,SA 6,SA 17
+    # doan : SA 101, SA 104, SA 107, SA 111
+    # sa_1_6_17 : SA 1,SA 6,SA 17
     parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
                         help="target signal groups; multiple groups can be separated by comma(ex. --target-TL SA 101,SA 104)")
-    parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
-    parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
-
+    parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds')  # 25400
+    parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds')  # 32400
 
     # todo hunsooni should check ddqn, ppornd, ppoea
     # parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo', help='')
@@ -66,13 +69,14 @@ def parseArgument():
                         help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
     parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                         help='v - volume, d - density, vd - volume + density, vdd - volume / density')
-    parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt', 'cwq'],
+    parser.add_argument('--reward-func',
+                        choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max',
+                                 'wt_ABV', 'tt', 'cwq'],
                         default='cwq',
                         help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based')
 
     parser.add_argument('--model-num', type=str, default='0', help='trained model number for inference')
     parser.add_argument("--result-comp", type=str2bool, default="TRUE", help='whether compare simulation result or not')
-
 
     # dockerize
     parser.add_argument('--io-home', type=str, default='.', help='home directory of io; relative path')
@@ -84,8 +88,8 @@ def parseArgument():
     parser.add_argument("--print-out", type=str2bool, default="TRUE", help='print result each step')
 
     ### action
-    parser.add_argument('--action-t', type=int, default=12, help='the unit time of green phase allowance')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
-
+    parser.add_argument('--action-t', type=int, default=12,
+                        help='the unit time of green phase allowance')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
 
     ### policy : common args
     parser.add_argument('--gamma', type=float, default=0.99, help='gamma')
@@ -107,7 +111,8 @@ def parseArgument():
     # parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
     #                             # currently not used
 
-    parser.add_argument('--actionp', type=float, default=0.2, help='[in KC] action 0 or 1 prob.(-1~1): Higher value_collection select more zeros')
+    parser.add_argument('--actionp', type=float, default=0.2,
+                        help='[in KC] action 0 or 1 prob.(-1~1): Higher value_collection select more zeros')
 
     ### PPO Replay Memory
     parser.add_argument('--mem-len', type=int, default=1000, help='memory length')
@@ -142,8 +147,8 @@ def parseArgument():
     parser.add_argument('--infer-TL', type=str, default="",
                         help="concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
 
-    parser.add_argument('--infer-model-number', type=int, default=1,
-                        help="model number which are use to discriminate the inference model")
+    # parser.add_argument('--infer-model-number', type=int, default=1,
+    #                     help="model number which are use to discriminate the inference model")
 
     parser.add_argument('--infer-model-path', type=str, default=".",
                         help="directory path which are use to find the inference model")
@@ -151,6 +156,28 @@ def parseArgument():
     parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
                         help="number of candidate to compare reward to find optimal model")
 
+    args = parser.parse_args()
+
+    args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
+
+    if 1:
+        # todo hunsooni : think how often should we update actions
+        if args.action == 'gr':
+            args.control_cycle = 1
+
+    return args
+
+
+
+def parseArgumentWithAddArgumentFunc():
+    '''
+    argument parsing
+    :return:
+    '''
+
+    parser = argparse.ArgumentParser()
+
+    parser = addArgumentsToParser(parser)
 
     args = parser.parse_args()
 
@@ -562,10 +589,13 @@ def trainSappo(args):
         model_save_period = args.model_save_period  # default 1
 
         # -- get the trial number that gave the best performance
-        if  DBG_OPTIONS.SimpleDistTestToSaveTestTime:
-            optimal_model_num = 0
-        else:
+        if DBG_OPTIONS.TestFindOptimalModelNum:
             optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
+        else:
+            if args.epoch == 1:
+                optimal_model_num = 0
+            else:
+                optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
 
         # -- make the prefix of file name which stores trained model
         fn_optimal_model_prefix = "{}/model/{}/{}-{}-trial". \

@@ -16,8 +16,14 @@ from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
 from TSOConstants import _FN_PREFIX_, _IMPROVEMENT_COMP_
 
-from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, writeLine, appendLine
+from TSOUtil import addArgumentsToParser
+from TSOUtil import appendLine
+from TSOUtil import execTrafficSignalOptimization
+from TSOUtil import generateCommand
+from TSOUtil import readLine
 from TSOUtil import str2bool
+from TSOUtil import writeLine
+
 
 
 class ServingClientThread(threading.Thread):
@@ -40,7 +46,7 @@ class ServingClientThread(threading.Thread):
         self.infer_model_number = -1
 
         self.infer_model_root_path = args.model_store_root_path
-        infer_tl_list = args.target.split(",")
+        infer_tl_list = args.target_TL.split(",")
         infer_tl_list.remove(self.target)
         if len(infer_tl_list):
             self.infer_tls = self.convertListToCommaSeperatedString(infer_tl_list)
@@ -197,6 +203,10 @@ class ServingClientThread(threading.Thread):
 
 
 def getArgs():
+    # return getArgsOne()
+    return getArgsWithAddArgumentFunc()
+
+def getArgsOne():
     '''
     do arguments parsing
     :return: parsed argument
@@ -221,7 +231,7 @@ def getArgs():
                 # doan : SA 101, SA 104, SA 107, SA 111
                 # sa_1_6_17 : SA 1,SA 6,SA 17
 
-    parser.add_argument("--target", type=str, default="SA 1,SA 6,SA 17")
+    parser.add_argument("--target-TL", type=str, default="SA 1,SA 6,SA 17")
     parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
@@ -244,8 +254,33 @@ def getArgs():
 
 
     args = parser.parse_args()
+
     return args
 
+
+def getArgsWithAddArgumentFunc():
+    '''
+    do arguments parsing
+    :return: parsed argument
+    '''
+    parser = argparse.ArgumentParser()
+
+    ### for distributed learning
+    parser.add_argument("--port", type=int, default=2727)
+    parser.add_argument("--ground-zero",  type=str2bool, default=False,  help="whether do simulation with fixed signal to get ground zero performance")
+    parser.add_argument("--validation-criteria", type=float, default=5.0)
+    parser.add_argument("--num-of-learning-daemon", type=int, default=3)
+    # parser.add_argument("--infer_model_root_path", type=str, default="/tmp/tso")
+    parser.add_argument("--model-store-root-path", type=str, default="/tmp/tso")
+    # parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
+    #                     help="number of candidate to compare reward to find optimal model")
+
+    ### add argument for single node learning
+    parser = addArgumentsToParser(parser)
+
+    args = parser.parse_args()
+
+    return args
 
 
 
@@ -394,7 +429,7 @@ if __name__ == '__main__':
     ## invoke serving threads & establish connection
     serving_client_dic = dict()
 
-    group_list = args.target.split(",")
+    group_list = args.target_TL.split(",")
 
     assert len(group_list)==args.num_of_learning_daemon,\
         "command error : # of group({}) should be equal to num_of_learning_daemon({}}".format(len(group_list), args.num_of_learning_daemon)

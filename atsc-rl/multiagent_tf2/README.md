@@ -38,7 +38,7 @@
       whether compare simulation result or not 
     ```
 
-* you can find full arguments and more detailed sescription by typing "python run.py -h"
+* you can find full arguments and more detailed description by typing "python run.py -h"
 
 
 

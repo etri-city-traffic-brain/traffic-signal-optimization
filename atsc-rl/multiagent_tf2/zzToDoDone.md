@@ -1,14 +1,17 @@
 ### todo 
 
 * [ing] distributed traffic signal optimization
-  * check code, esp., command generation 
+  * check code
+    * [d] command generation : generateCommand() at TSOUtil.py
+    * [i] find optimal model num : findOptimalModelNum() at TSOUtil.py
+      * when epoch is very small 
   * make LearningDaemonThread::__copyTrainedModel() work with various method
     * currently only care sappo
-  * make up the code
-    * infer-TL argument related code
-    * import stmt
-    * debugging related code 
-      * Print*, RunWithWaitForDebug, RunWithDistributed, SimpleDistTestToSaveTestTime
+* [ing] make up the code
+  * infer-TL argument related code
+  * [d] import stmt
+  * debugging related code 
+    * Print*, RunWithWaitForDebug, RunWithDistributed
 
 * generate info to be used by visualization tool : fn_rl_phase_reward_output
 
@@ -31,7 +34,7 @@
   
 ### done history
 * Tag v1.0-2022
-  * make up code 
+  * make up the code 
     * the location of import stmt 
   * distributed traffic signal optimization
     * ...
