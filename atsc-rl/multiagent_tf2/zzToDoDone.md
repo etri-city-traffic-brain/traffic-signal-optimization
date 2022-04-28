@@ -25,7 +25,11 @@
 * dockerize 
 
 * out of memory : python process terminated with "killed" message
-  * TF1.x version implemented by mgpi also has same problem 
+  * TF1.x version implemented by mgpi also has same problem
+  * **check what happens when we do simulate mode**
+    * if memory usage increase much slowly 
+      * can be confident that it is only optimizer's problem  
+      * no problems in the simulator 
 
 * cumulative learning(?)
   * learn after loading the previously learned model parameter in distributed learning
