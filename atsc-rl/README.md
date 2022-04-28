@@ -1,5 +1,4 @@
-### 인공지능 기반의 적응형 교통 신호 제어 모델 개발
-**A**daptive **T**raffic **S**ignal **C**ontrol with **R**einforcement **L**earning
+###Adaptive Traffic Signal Control with Reinforcement Learning
 
 #### multiagent_tf2
 * do multi-agent based adaptive traffic signal control
