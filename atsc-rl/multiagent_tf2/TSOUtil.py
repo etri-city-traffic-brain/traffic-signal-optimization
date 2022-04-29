@@ -561,25 +561,48 @@ def generateCommandV2(args):
     # infer-model-path ... below
     # num-of-optimal-model-candidate ... below
 
-    if args.mode == _MODE_.TRAIN:
-        cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
-
-    if args.infer_model_number >= 0: # we have trained model... do inference
+    if 0:
         if args.mode == _MODE_.TRAIN:
-            cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
+            cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
 
-        if ( (args.mode == _MODE_.TEST)  or (args.mode == _MODE_.TRAIN) ):
+        if args.infer_model_number >= 0: # we have trained model... do inference
+            if args.mode == _MODE_.TRAIN:
+                cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
+
+            if ( (args.mode == _MODE_.TEST)  or (args.mode == _MODE_.TRAIN) ):
+                cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
+
+                # cmd = cmd + ' --infer-model-number {} '.format(args.infer_model_number)
+
+                ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
+                cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
+
+            if args.mode == _MODE_.TEST:
+                # to compare results
+                cmd = cmd + ' --result-comp True '
+                
+    else:
+        if args.mode == _MODE_.TRAIN:
+            cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
+            
+            if args.infer_model_number >= 0: # we have trained model... do inference
+                cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
+                
+                cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
+
+                ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
+                cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
+                
+        elif args.mode == _MODE_.TEST:
+            assert args.infer_model_number >= 0, f"internal error : args.infer_model_number ({args.infer_model_number}) should greater than 0 "
+            # we have trained model... do inference
             cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
-
-            # cmd = cmd + ' --infer-model-number {} '.format(args.infer_model_number)
 
             ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
-
-        if args.mode == _MODE_.TEST:
+                
             # to compare results
             cmd = cmd + ' --result-comp True '
-
 
     if DBG_OPTIONS.PrintGeneratedCommand:
         print("{} constructed command={}".format("\n\n", cmd))
