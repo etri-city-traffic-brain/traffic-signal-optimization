@@ -8,6 +8,9 @@
       * when epoch is very small 
   * make LearningDaemonThread::__copyTrainedModel() work with various method
     * currently only care sappo
+  * assert stmt
+    * syntax : assert [condition], [error msg] 
+    * example : assert args.mode in ["train", "test", "simulate"], "mode should one of ['train', 'test', 'simulate']
 * [ing] make up the code
   * infer-TL argument related code
   * [d] import stmt
