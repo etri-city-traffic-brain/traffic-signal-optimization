@@ -7,9 +7,15 @@
   * infer-TL argument related code
   * debugging related code 
     * Print*, RunWithWaitForDebug, RunWithDistributed
+  * constants
+    * sim_period, state_weight, reward_weight in SappoEnv.py
 
-* generate info to be used by visualization tool : fn_rl_phase_reward_output
-
+* [ing] generate info to be used by visualization tool : fn_rl_phase_reward_output
+  * SaltSappoEnvV3::__appendPhaseRewards() at SappoEnv.py
+    * called in SaltSappoEnvV3::step(), SaltSappoEnvV3::reset() at SappoEnv.py
+  * fixedTimeSimulate() at run.py
+  보상 수집을 교차로 별로 하도록 수정하자.
+  
 * make experimental env in the cloud(PurpleStones)
   * 3 nodes and shared storage
 

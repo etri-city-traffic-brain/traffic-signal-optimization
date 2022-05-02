@@ -598,6 +598,48 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
 
 
 
+
+# appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
+#                    actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+#                    self.target_tl_id_list, self.tl_obj)
+def appendPhaseRewards(fn, sim_step, actions, rewards, sa_obj, sa_name_list, tl_id_list, tl_obj):
+    '''
+    write phase reward
+
+    :param fn:
+    :param sim_step:
+    :param actions:
+    :param rewards:
+    :param sa_obj:
+    :param sa_name_list:
+    :param tl_id_list:
+    :param tl_obj:
+    :return:
+    '''
+    # todo hunsooni : 시각화에서 사용하는 정보에 대해 정리해야 한다.
+
+    f = open(fn, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+             newline=None, closefd=True, opener=None)
+    for i in range(len(tl_id_list)):
+        tlid = tl_id_list[i]
+
+        sa_name = tl_obj[tlid]['signalGroup']
+        sa_idx = sa_name_list.index(sa_name)
+        tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
+        tl_action = actions[sa_idx][tl_idx]
+
+        sa_reward = rewards[sa_idx]
+
+        # step,tl_name,actions,phase,reward
+        f.write("{},{},{},{},{}\n".format(sim_step,
+                                          tl_obj[tlid]['crossName'],
+                                          tl_action,
+                                          libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
+                                          sa_reward))
+    f.close()
+
+
+
 def startTimeConvert(f_path, f_name, start_hour):
     '''
     convert start time

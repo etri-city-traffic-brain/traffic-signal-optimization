@@ -783,6 +783,7 @@ def fixedTimeSimulate(args):
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
 
 
+
     ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(start_time)
@@ -792,6 +793,8 @@ def fixedTimeSimulate(args):
 
     for i in range(trial_len):
         libsalt.simulationStep()
+        #todo hunsooni 일정 주기로 보상 값을 얻어와서 기록한다.
+
         for target_tl in list(target_tl_obj.keys()):
             tlid = target_tl
             #step, tl_name, actions, phase, reward
@@ -803,8 +806,7 @@ def fixedTimeSimulate(args):
     libsalt.close()
 
 
-
-def fixedTimeSimulate2(args):
+def fixedTimeSimulate_new(args):
     '''
     do traffic control with fixed signal
     :param args:
@@ -822,36 +824,59 @@ def fixedTimeSimulate2(args):
     # from env.SaltEnvUtil import getSaRelatedInfo
     salt_scenario = copyScenarioFiles(args.scenario_file_path)
     target_sa_name_list = makePosssibleSaNameList(args.target_TL)
-    target_tl_obj, _, _ = getSaRelatedInfo(args, target_sa_name_list, salt_scenario)
+    target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, target_sa_name_list, salt_scenario)
 
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
 
-    for epoch in range(args.epoch):
-        ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
-        libsalt.start(salt_scenario)
-        libsalt.setCurrentStep(start_time)
-        # f = open(fn_ft_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-        #          newline=None,
-        #          closefd=True, opener=None)
+    if 1: # todo hunsooni should check ...reward related things
+        from env.SappoRewardMgmt import  _REWARD_GATHER_UNIT_
+        from env.SappoRewardMgmt import SaltRewardMgmt
 
-        for i in range(trial_len):
-            libsalt.simulationStep()
-        #     for target_tl in list(target_tl_obj.keys()):
-        #         tlid = target_tl
-        #         #step, tl_name, actions, phase, reward
-        #         f.write("{},{},{},{},{}\n".format(libsalt.getCurrentStep(), target_tl_obj[target_tl]['crossName'], 0,
-        #                                           libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), 0))
-        # f.close()
+        gather_unit = _REWARD_GATHER_UNIT_.SA
+        num_target = len(target_sa_name_list)
+        reward_mgmt = SaltRewardMgmt(args.reward_func, gather_unit, target_sa_obj, target_sa_name_list, num_target)
 
-        print("ft_step {}".format(libsalt.getCurrentStep()))
-        libsalt.close()
-        #todo hunsooni it is to handle out of memory error... I'm not sure it can handle out of memory error
-        # import gc
-        collected = gc.collect()
-        print(f"\n##\n##{epoch}-th done\n##\n")
+
+    ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
+    libsalt.start(salt_scenario)
+    libsalt.setCurrentStep(start_time)
+    f = open(fn_ft_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+             newline=None,
+             closefd=True, opener=None)
+
+    for i in range(trial_len):
+        libsalt.simulationStep()
+        sim_step = libsalt.getCurrentStep()
+        # todo hunsooni 일정 주기로 보상 값을 얻어와서 기록한다.
+
+        if 1: # todo hunsooni should check ...reward related things
+            sim_period = 30  # should move TRAIN_CONFIG
+            reward_mgmt.gatherRewardRelatedInfo(args.action_t, sim_step, sim_period)
+            for sa_idx in range(num_target):
+                reward_mgmt.calculateReward(sa_idx)
+
+
+        for target_tl in list(target_tl_obj.keys()):
+            tlid = target_tl
+            if 0:
+                sa_reward = 0
+            else:
+                sa_name = tl_obj[tlid]['signalGroup']
+                sa_idx = sa_name_list.index(sa_name)
+                sa_reward = reward_mgmt.rewards[sa_idx]
+
+            # step, tl_name, actions, phase, reward
+            f.write("{},{},{},{},{}\n".format(sim_step, target_tl_obj[target_tl]['crossName'], 0,
+                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), sa_reward))
+    f.close()
+
+    print("ft_step {}".format(libsalt.getCurrentStep()))
+    libsalt.close()
+
+
 
 if __name__ == "__main__":
 

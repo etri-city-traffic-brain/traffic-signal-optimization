@@ -12,6 +12,7 @@ import libsalt
 from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
+from env.SaltEnvUtil import appendPhaseRewards
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getSimulationStartStepAndEndStep
@@ -164,7 +165,7 @@ class SaltSappoEnvV3(gym.Env):
 
 
 
-    def __appendPhaseRewards(self, fn, sim_step, tl_id_list, tl_obj):
+    def __appendPhaseRewards_org(self, fn, sim_step, tl_id_list, tl_obj):
         '''
         write rewards
         # todo hunsooni : 시각화에서 사용하는 정보에 대해 정리해야 한다.
@@ -186,6 +187,35 @@ class SaltSappoEnvV3(gym.Env):
                                           0))
         f.close()
 
+    def __appendPhaseRewards(self, fn, sim_step, actions, tl_id_list, tl_obj):
+        '''
+        write rewards
+        # todo hunsooni : 시각화에서 사용하는 정보에 대해 정리해야 한다.
+        :param fn:
+        :param sim_step:
+        :param tl_id_list:
+        :param tl_obj:
+        :return:
+        '''
+        f =  open(fn, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+                                 newline=None, closefd=True, opener=None)
+        for i in range(len(tl_id_list)):
+            tlid = tl_id_list[i]
+
+            sa_name = tl_obj[tlid]['signalGroup']
+            sa_idx = self.sa_name_list.index(sa_name)
+            tl_idx = self.sa_obj[sa_name]['tlid_list'].index(tlid)
+            tl_action = actions[sa_idx][tl_idx]
+
+            sa_reward = self.reward_mgmt.rewards[sa_idx]
+
+            # step,tl_name,actions,phase,reward
+            f.write("{},{},{},{},{}\n".format(sim_step,
+                                          tl_obj[tlid]['crossName'],
+                                          tl_action,
+                                          libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
+                                          sa_reward))
+        f.close()
 
 
     def __getNextTimeToAct(self, current_step, sa_cycle, control_cycle):
@@ -284,14 +314,6 @@ class SaltSappoEnvV3(gym.Env):
         '''
         self.done = False
 
-        # print("setp .. begin manual={} get={}".format(self.simulationSteps, libsalt.getCurrentStep()))
-
-        #self.simulationSteps = libsalt.getCurrentStep()
-
-        if self.args.mode=='test':  # todo hunsooni : 아래 매 스텝마다 하는 것과 중복일수 있다.
-            self.__appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps, self.target_tl_id_list,
-                                      self.tl_obj)
-
         # change phase array by applying action
         # 행동에 따라 신호 집합(self.action_mgmt.apply_phase_array_list)을 변경한다.
         #   지난 번 step에서 새로운 action을 적용할 시간이 도래한 것들에 대해
@@ -320,10 +342,15 @@ class SaltSappoEnvV3(gym.Env):
                     self.reward_mgmt.gatherRewardRelatedInfo(self.action_t, self.simulationSteps, self.sim_period)
 
                 # 4. gather visualization related info
-                if 0:
+                if 1:
                     # todo hunsooni : 용도가 있는지 확인할 것... 모두텍...시각화에 이용된다..매 스텝마다?
                     if self.args.mode == 'test':
-                        self.__appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps, self.target_tl_id_list, self.tl_obj)
+                        if 0:
+                            self.__appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps, actions, self.target_tl_id_list, self.tl_obj)
+                        else:
+                            appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
+                                               actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                               self.target_tl_id_list, self.tl_obj)
 
         elif self.args.action == "kc":
             idx_of_next_act_sa = list(range(self.agent_num))
@@ -337,10 +364,15 @@ class SaltSappoEnvV3(gym.Env):
             for i in range(3):  # todo hunsooni CONST 3
                 libsalt.simulationStep()
                 self.simulationSteps += 1
-                if 0:
+                if 1:
                     # todo hunsooni : 용도가 있는지 확인할 것... 모두텍...시각화에 이용된다..매 스텝마다?
                     if self.args.mode == 'test':
-                        self.__appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps, self.target_tl_id_list, self.tl_obj)
+                        if 0:
+                            self.__appendPhaseRewards_new(self.fn_rl_phase_reward_output, self.simulationSteps, actions, self.target_tl_id_list, self.tl_obj)
+                        else:
+                            appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
+                                               actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                               self.target_tl_id_list, self.tl_obj)
 
 
             ## apply keep-change actions : second step
@@ -352,10 +384,15 @@ class SaltSappoEnvV3(gym.Env):
             for i in range(self.action_t):
                 libsalt.simulationStep()
                 self.simulationSteps += 1
-                if 0:
+                if 1:
                     # todo hunsooni : 용도가 있는지 확인할 것... 모두텍...시각화에 이용된다..매 스텝마다?
                     if self.args.mode == 'test':
-                        self.__appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps, self.target_tl_id_list, self.tl_obj)
+                        if 0:
+                            self.__appendPhaseRewards_new(self.fn_rl_phase_reward_output, self.simulationSteps, actions, self.target_tl_id_list, self.tl_obj)
+                        else:
+                            appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
+                                               actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                               self.target_tl_id_list, self.tl_obj)
 
         # act을 변경할 것에 대해 보상 계산, 상태 정보 수집, 다음 act 시간 증가
         for sa_i in idx_of_next_act_sa:
@@ -394,18 +431,34 @@ class SaltSappoEnvV3(gym.Env):
         '''
         libsalt.start(self.salt_scenario)
         libsalt.setCurrentStep(self.start_step)
+        self.simulationSteps = libsalt.getCurrentStep()
 
         #-- warming up
+        ##--- make dummy actions to write output file
+        actions = []
+        for i in range(len(self.sa_name_list)):
+            target_sa = self.sa_name_list[i]
+            action_space = self.sa_obj[target_sa]['action_space']
+            action_size = action_space.shape[0]
+            actions.append(list(0 for _ in range(action_size)))
+
+        ##--- increase simulation steps
         for _ in range(self.warming_up_time):
+            libsalt.simulationStep()
 
             if 1:
                 if self.args.mode == 'test':
                     #todo hunsooni should check..... tl별 보상을 얻어올 수 있을까?
-                    self.__appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
-                                              self.target_tl_id_list,
-                                              self.tl_obj)
+                    if 0:
+                        self.__appendPhaseRewards_new(self.fn_rl_phase_reward_output, self.simulationSteps, actions,
+                                                      self.target_tl_id_list, self.tl_obj)
+                    else:
+                        appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
+                                           actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                           self.target_tl_id_list, self.tl_obj)
 
-            libsalt.simulationStep()
+                    self.simulationSteps += 1
+
         self.simulationSteps = libsalt.getCurrentStep()
 
         #-- initialize : reward, time_to_act_list, observation
