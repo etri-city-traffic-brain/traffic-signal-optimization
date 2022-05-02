@@ -130,24 +130,7 @@ class SaltActionMgmt:
         return phase_array_list
 
 
-    def __getGreenRatioOffsetAppliedPhaseArray(self, curr_sim_step, an_sa_obj, actions):
-        '''
-        get green-ratio and offset actions applied phase array list
-
-        :param curr_sim_step:
-        :param an_sa_obj:
-        :param actions:
-        :return:
-        '''
-        if 0:
-            v1 = self.__getGreenRatioOffsetAppliedPhaseArrayV1(curr_sim_step, an_sa_obj, actions)
-            v2 = self.__getGreenRatioOffsetAppliedPhaseArrayV2(curr_sim_step, an_sa_obj, actions)
-
-            assert(np.array_equal(v1, v2))
-
-        return self.__getGreenRatioOffsetAppliedPhaseArrayV2(curr_sim_step, an_sa_obj, actions)
-
-    def __getGreenRatioOffsetAppliedPhaseArrayV1(self, curr_sim_step, an_sa_obj, actions):
+    def __getGreenRatioOffsetAppliedPhaseArray_org(self, curr_sim_step, an_sa_obj, actions):
         '''
         get green-ratio and offset actions applied phase array list
 
@@ -202,7 +185,7 @@ class SaltActionMgmt:
 
 
 
-    def __getGreenRatioOffsetAppliedPhaseArrayV2(self, curr_sim_step, an_sa_obj, actions):
+    def __getGreenRatioOffsetAppliedPhaseArray(self, curr_sim_step, an_sa_obj, actions):
         '''
         get green-ratio and offset actions applied phase array list
         (code reuse version) it uses __getGreenRatioAppliedPhaseArray() and __getOffsetAppliedPhaseArray()

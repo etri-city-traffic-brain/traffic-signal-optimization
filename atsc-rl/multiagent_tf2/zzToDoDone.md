@@ -1,19 +1,10 @@
 ### todo 
 
-* [ing] distributed traffic signal optimization
-  * check code
-    * [d] command generation : generateCommand() at TSOUtil.py
-      * consider all arguments used to run a single node program(ref. parseArgument() at run.py)
-    * [i] find optimal model num : findOptimalModelNum() at TSOUtil.py
-      * when epoch is very small 
-    * assert stmt
-      * syntax : assert [condition], [error msg] 
-      * example : assert args.mode in ["train", "test", "simulate"], "mode should one of ['train', 'test', 'simulate']
+* distributed traffic signal optimization
   * make LearningDaemonThread::__copyTrainedModel() work with various method
     * currently only care sappo
-* [ing] make up the code
+* make up the code
   * infer-TL argument related code
-  * [d] import stmt
   * debugging related code 
     * Print*, RunWithWaitForDebug, RunWithDistributed
 
@@ -45,7 +36,13 @@
   * make up the code 
     * the location of import stmt 
   * distributed traffic signal optimization
-    * ...
+    * command generation : generateCommand() at TSOUtil.py
+      * considered all arguments used to run a single node program(ref. parseArgument() at run.py)
+    * finding optimal model num : findOptimalModelNum() at TSOUtil.py
+      * considered the case that epoch is very small 
+    * check syntax of assert stmt
+      * syntax : assert [condition], [error msg]
+      * 
 * Tag v1.0-20220426PM-dev-tf2
   * multiple SA train/test succ
   * separate action/reward mgmt related code into independent class from env

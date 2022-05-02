@@ -804,7 +804,54 @@ def fixedTimeSimulate(args):
 
 
 
+def fixedTimeSimulate2(args):
+    '''
+    do traffic control with fixed signal
+    :param args:
+    :return:
+    '''
 
+    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    trial_len = end_time - start_time
+
+    ### target tl object를 가져오기 위함
+    # from env.SaltEnvUtil import makePosssibleSaNameList
+    # from env.SaltEnvUtil import copyScenarioFiles
+    # from env.SaltEnvUtil import getSaRelatedInfo
+    salt_scenario = copyScenarioFiles(args.scenario_file_path)
+    target_sa_name_list = makePosssibleSaNameList(args.target_TL)
+    target_tl_obj, _, _ = getSaRelatedInfo(args, target_sa_name_list, salt_scenario)
+
+    ### 가시화 서버용 교차로별 고정 시간 신호 기록용
+    output_ft_dir = f'{args.io_home}/output/{args.mode}'
+    fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
+    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
+
+    for epoch in range(args.epoch):
+        ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
+        libsalt.start(salt_scenario)
+        libsalt.setCurrentStep(start_time)
+        # f = open(fn_ft_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
+        #          newline=None,
+        #          closefd=True, opener=None)
+
+        for i in range(trial_len):
+            libsalt.simulationStep()
+        #     for target_tl in list(target_tl_obj.keys()):
+        #         tlid = target_tl
+        #         #step, tl_name, actions, phase, reward
+        #         f.write("{},{},{},{},{}\n".format(libsalt.getCurrentStep(), target_tl_obj[target_tl]['crossName'], 0,
+        #                                           libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), 0))
+        # f.close()
+
+        print("ft_step {}".format(libsalt.getCurrentStep()))
+        libsalt.close()
+        #todo hunsooni it is to handle out of memory error... I'm not sure it can handle out of memory error
+        # import gc
+        collected = gc.collect()
+        print(f"\n##\n##{epoch}-th done\n##\n")
 
 if __name__ == "__main__":
 

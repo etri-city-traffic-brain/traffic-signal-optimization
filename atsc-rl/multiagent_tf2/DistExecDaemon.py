@@ -138,7 +138,7 @@ class LearningDaemonThread(threading.Thread):
 
                 r = execTrafficSignalOptimization(cmd)
 
-                assert (r == 0) # subprocess.Popen() returns 0 if success
+                assert r == 0, f"error in subprocess : subprocess returns {r}" # subprocess.Popen() returns 0 if success
                                 # A negative value -N indicates that the child was terminated by signal N
 
         return True

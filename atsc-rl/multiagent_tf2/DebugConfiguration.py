@@ -18,7 +18,7 @@ class DBG_OPTIONS :
     PrintMsg = True                 # print messages
 
     ## Other Options
-    RunWithWaitForDebug = True      # wait for debug
+    RunWithWaitForDebug = False      # wait for debug
     # UseConfig = True    # use config dic instead of args
     # WithNewCode = True  # run with new code
 
