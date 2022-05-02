@@ -9,7 +9,11 @@
     * Print*, RunWithWaitForDebug, RunWithDistributed
   * constants
     * sim_period, state_weight, reward_weight in SappoEnv.py
-
+* [next] add operation _REWARD_GATHER_UNIT_
+  * gather related info per TL
+  * calculate by _REWARD_GATHER_UNIT_
+    * calculateRewardByUnit(sa_idx, unit) returns calculated rewards
+    
 * [ing] generate info to be used by visualization tool : fn_rl_phase_reward_output
   * SaltSappoEnvV3::__appendPhaseRewards() at SappoEnv.py
     * called in SaltSappoEnvV3::step(), SaltSappoEnvV3::reset() at SappoEnv.py
