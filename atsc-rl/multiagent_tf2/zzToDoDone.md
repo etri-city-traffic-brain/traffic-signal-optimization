@@ -17,8 +17,11 @@
 * [ing] generate info to be used by visualization tool : fn_rl_phase_reward_output
   * SaltSappoEnvV3::__appendPhaseRewards() at SappoEnv.py
     * called in SaltSappoEnvV3::step(), SaltSappoEnvV3::reset() at SappoEnv.py
+    * **보상 수집을 교차로 별로 하도록**
+  * fingOptimalModel
+    * period * candidate 보다 작으면 준비된것만큼 풀스캔해서 찾자-->코딩이 단순해질까? 
   * fixedTimeSimulate() at run.py
-  보상 수집을 교차로 별로 하도록 수정하자.
+  
   
 * make experimental env in the cloud(PurpleStones)
   * 3 nodes and shared storage
