@@ -18,7 +18,7 @@ from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getSimulationStartStepAndEndStep
 from env.SaltEnvUtil import makePosssibleSaNameList
 from env.SappoActionMgmt import SaltActionMgmt
-from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmt
+from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmt, SaltRewardMgmtV2
 import DebugConfiguration
 from TSOUtil import writeLine
 
@@ -133,8 +133,13 @@ class SaltSappoEnvV3(gym.Env):
             ##-- initialize reward related things
             ##   reward mgmt : gather the reward related information and calculate reward
             ##   only needed to train/test target SA
-            gather_unit = _REWARD_GATHER_UNIT_.SA  # unit of reward gathering
-            self.reward_mgmt = SaltRewardMgmt(args.reward_func, gather_unit, self.sa_obj, self.sa_name_list, len(self.target_sa_name_list))
+            if 0:
+                gather_unit = _REWARD_GATHER_UNIT_.SA  # unit of reward gathering
+
+                self.reward_mgmt = SaltRewardMgmt(args.reward_func, gather_unit, self.sa_obj, self.sa_name_list, len(self.target_sa_name_list))
+            else:
+                gather_unit = _REWARD_GATHER_UNIT_.TL  # unit of reward gathering
+                self.reward_mgmt = SaltRewardMgmtV2(args.reward_func, gather_unit, self.sa_obj, self.tl_obj, self.sa_name_list, len(self.target_sa_name_list))
 
             ##-- initialize action related things
             ##   action mgmt : make phase array, convert model output into discrete action, apply action to env
@@ -349,7 +354,7 @@ class SaltSappoEnvV3(gym.Env):
                             self.__appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps, actions, self.target_tl_id_list, self.tl_obj)
                         else:
                             appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
-                                               actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                               actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
                                                self.target_tl_id_list, self.tl_obj)
 
         elif self.args.action == "kc":
@@ -371,7 +376,7 @@ class SaltSappoEnvV3(gym.Env):
                             self.__appendPhaseRewards_new(self.fn_rl_phase_reward_output, self.simulationSteps, actions, self.target_tl_id_list, self.tl_obj)
                         else:
                             appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
-                                               actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                               actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
                                                self.target_tl_id_list, self.tl_obj)
 
 
@@ -391,7 +396,7 @@ class SaltSappoEnvV3(gym.Env):
                             self.__appendPhaseRewards_new(self.fn_rl_phase_reward_output, self.simulationSteps, actions, self.target_tl_id_list, self.tl_obj)
                         else:
                             appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
-                                               actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                               actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
                                                self.target_tl_id_list, self.tl_obj)
 
         # act을 변경할 것에 대해 보상 계산, 상태 정보 수집, 다음 act 시간 증가
@@ -454,7 +459,7 @@ class SaltSappoEnvV3(gym.Env):
                                                       self.target_tl_id_list, self.tl_obj)
                     else:
                         appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
-                                           actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
+                                           actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
                                            self.target_tl_id_list, self.tl_obj)
 
                     self.simulationSteps += 1

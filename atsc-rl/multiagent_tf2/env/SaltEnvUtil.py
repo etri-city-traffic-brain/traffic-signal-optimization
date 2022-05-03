@@ -17,6 +17,7 @@ from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import DebugConfiguration
+from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_
 
 
 
@@ -602,7 +603,7 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
 # appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
 #                    actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
 #                    self.target_tl_id_list, self.tl_obj)
-def appendPhaseRewards(fn, sim_step, actions, rewards, sa_obj, sa_name_list, tl_id_list, tl_obj):
+def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_id_list, tl_obj):
     '''
     write phase reward
 
@@ -628,14 +629,17 @@ def appendPhaseRewards(fn, sim_step, actions, rewards, sa_obj, sa_name_list, tl_
         tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
         tl_action = actions[sa_idx][tl_idx]
 
-        sa_reward = rewards[sa_idx]
+        if reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.SA:
+            reward = reward_mgmt.rewards[sa_idx]
+        else: #reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.TL
+            reward = reward_mgmt.tl_reward_dic[tlid]
 
         # step,tl_name,actions,phase,reward
         f.write("{},{},{},{},{}\n".format(sim_step,
                                           tl_obj[tlid]['crossName'],
                                           tl_action,
                                           libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                          sa_reward))
+                                          reward))
     f.close()
 
 

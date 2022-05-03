@@ -604,7 +604,8 @@ def trainSappo(args):
         # -- make the file name which stores trained model that gave the best performance
         fn_optimal_model = "{}-{}".format(fn_optimal_model_prefix, optimal_model_num)
 
-        waitForDebug("run.py : return trainSappo() : fn_opt_model = {}".format(fn_optimal_model))
+        if DBG_OPTIONS.PrintFindOptimalModel:
+            waitForDebug("run.py : return trainSappo() : fn_opt_model = {}".format(fn_optimal_model))
 
         # todo hunsooni 만약 여러 교차로 그룹을 대상으로 했다면 확장해야 할까? 필요없다.
         #      첫번째 그룹에 대한 정보가 전체에 대한 대표성을 가진다.

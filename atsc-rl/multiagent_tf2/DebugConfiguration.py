@@ -7,11 +7,11 @@ class DBG_OPTIONS :
     ## Options which are related to print message
     PrintCtrlDaemon = True          # print messages which are related to operations of CtrlDaemon
     PrintExecDaemon = True          # print messages which are related to operations of CtrlDaemon
-    PrintFindOptimalModel = True    # print messages which are related to find optimal model
+    PrintFindOptimalModel = False    # print messages which are related to find optimal model
     PrintGeneratedCommand = True    # print messages which are related to generate command
     PrintImprovementRate = True     # print messages which are related to improvement rate
     PrintServingThread = True       # print messages which are related to serving thread
-
+    PrintRewardMgmt = False          # print messages which are related to reward mgmt
     PrintSaRelatedInfo = False      # print SA related info
     PrintStep = False               # print progress msgs every step : inferred actions
 
