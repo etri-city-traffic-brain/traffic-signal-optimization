@@ -314,7 +314,7 @@ def execTrafficSignalOptimization(cmd):
     return r
 
 
-def findOptimalModelNum_org(ep_reward_list, model_save_period, num_of_candidate):
+def findOptimalModelNumV1(ep_reward_list, model_save_period, num_of_candidate):
     '''
     scan episode rewards and find an episode number of optimal model
     the found episode number should indicate stored model
@@ -373,7 +373,11 @@ def findOptimalModelNum_org(ep_reward_list, model_save_period, num_of_candidate)
                   format(i, next_candidate, ep_reward_list[next_candidate], optimal_model_num, max_ep_reward))
     return optimal_model_num
 
+
 def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
+    return findOptimalModelNumV3(ep_reward_list, model_save_period, num_of_candidate)
+
+def findOptimalModelNumV2(ep_reward_list, model_save_period, num_of_candidate):
     '''
     scan episode rewards and find an episode number of optimal model
     the found episode number should indicate stored model
@@ -385,6 +389,8 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
     '''
 
     ##
+    print('V2')
+
     num_ep = len(ep_reward_list)
     num_of_candidate = num_ep if num_of_candidate > num_ep else num_of_candidate
     sz_slice = model_save_period * num_of_candidate
@@ -411,8 +417,8 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
             print("i={} current_mean({})={} opt_model_hint={} max_mean_reward={}".
                   format(i, current_slice, np.mean(current_slice), opt_model_hint, current_slice_mean_reward))
     if DBG_OPTIONS.PrintFindOptimalModel:
-        print("opt_model_hint={} ... i.e., optimal model is in range({}, {})".
-              format(opt_model_hint, opt_model_hint, opt_model_hint + sz_slice))
+        print("num_ep={} opt_model_hint={} ... i.e., optimal model is in range({}, {})".
+              format(num_ep, opt_model_hint, opt_model_hint, opt_model_hint + sz_slice))
 
     ## 2. decide which one is optimal
     ## Here we know that episode number of optimal model is in range (opt_model_hint, opt_model_hint+sz_slice)
@@ -420,7 +426,7 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
     first_candidate = int(np.ceil(opt_model_hint / model_save_period) * model_save_period)
 
     if DBG_OPTIONS.PrintFindOptimalModel:
-        print("first_candidate={}  num_of_candidate={}".format(first_candidate, num_of_candidate))
+        print("num_ep={} first_candidate={}  num_of_candidate={}".format(num_ep, first_candidate, num_of_candidate))
 
     ##-- 2.2 initialize value using first candidate
     max_ep_reward = ep_reward_list[first_candidate]
@@ -439,6 +445,73 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
     if DBG_OPTIONS.PrintFindOptimalModel:
         print("ZZZZZZZZZZZZZZZ found optimal_model_num={}".format(optimal_model_num))
     return optimal_model_num
+
+
+
+def findOptimalModelNumV3(ep_reward_list, model_save_period, num_of_candidate):
+    '''
+    scan episode rewards and find an episode number of optimal model
+    the found episode number should indicate stored model
+
+    :param ep_reward_list: a list which has episode reward
+    :param model_save_period: interval which indicates how open model was stored
+    :param num_of_candidate: num of model to compare reward
+    :return: episode number of optimal model
+    '''
+
+    ##
+    print('V3')
+    num_ep = len(ep_reward_list)
+    sz_slice = model_save_period * num_of_candidate
+    opt_model_hint = 0
+
+    if num_ep > sz_slice:
+        loop_limit = num_ep - sz_slice
+
+        ## 1. find some candidate of optimal model
+        ##-- 1.2 initialize variables
+        max_mean_reward = np.min(ep_reward_list)
+
+        ##-- 1.2 find the range whose mean reward is maximum
+        for i in range(loop_limit + 1):
+            current_slice = ep_reward_list[i:i + sz_slice]
+            current_slice_mean_reward = np.mean(current_slice)
+            if max_mean_reward < current_slice_mean_reward:
+                opt_model_hint = i # start idx of range
+                max_mean_reward = current_slice_mean_reward
+            if DBG_OPTIONS.PrintFindOptimalModel:
+                print("i={} current_mean({})={} opt_model_hint={} max_mean_reward={}".
+                      format(i, current_slice, np.mean(current_slice), opt_model_hint, current_slice_mean_reward))
+        if DBG_OPTIONS.PrintFindOptimalModel:
+            print("num_ep={} opt_model_hint={} ... i.e., optimal model is in range({}, {})".
+                  format(num_ep, opt_model_hint, opt_model_hint, opt_model_hint + sz_slice))
+    else:
+        num_of_candidate = int((num_ep + 1) / model_save_period)
+
+    ## 2. decide which one is optimal
+    ## Here we know that episode number of optimal model is in range (opt_model_hint, opt_model_hint+sz_slice)
+    ##-- 2.1 calculate the first epsoide number which indicates stored model
+    first_candidate = int(np.ceil(opt_model_hint / model_save_period) * model_save_period)
+
+    if DBG_OPTIONS.PrintFindOptimalModel:
+        print("num_ep={} first_candidate={}  num_of_candidate={}".format(num_ep, first_candidate, num_of_candidate))
+
+    ##-- 2.2 initialize value using first candidate
+    max_ep_reward = ep_reward_list[first_candidate]
+    optimal_model_num = first_candidate
+    ##-- 2.3 compare rewards to find optimal model
+    for i in range(1, num_of_candidate):
+        next_candidate = first_candidate + model_save_period * i
+        if max_ep_reward < ep_reward_list[next_candidate]:
+            optimal_model_num = next_candidate
+            max_ep_reward = ep_reward_list[next_candidate]
+        if DBG_OPTIONS.PrintFindOptimalModel:
+            print("i={}  next_candidate={} next_cand_reward={}  optimal_model_num={} max_ep_reward={}".
+                  format(i, next_candidate, ep_reward_list[next_candidate], optimal_model_num, max_ep_reward))
+    if DBG_OPTIONS.PrintFindOptimalModel:
+        print("ZZZZZZZZZZZZZZZ found optimal_model_num={}".format(optimal_model_num))
+    return optimal_model_num
+
 
 
 
@@ -574,17 +647,23 @@ def test_findOptimalModelNum():
     ep_reward_list.append([0, 1, -2, 3, -4, 5, 6])
     ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7])
     ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7, -8])
+    ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7, -8, 3])
+    ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7, -8, 3, 5])
+    ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7, -8, 3, -5, 1])
+    ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7, -8, 3, 5, -1, 2])
+    ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7, -8, 3, -5, -1, 2, 5])
+    ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, -7, -8, -3, 5, 1, -2, 5, 4])
+
                          # 0  1   2  3   4  5  6  7   8  9  0  1  2  3  4
     ep_reward_list.append([0, 1, -2, 3, -4, 5, 6, 7, -8, 3, 5, 1, 2, 5, 4])
     ep_reward_list.append([-51, -38, -49, -23, -11, -58, -50, -21, -33, -17, -11, -14, -15, -21, -23, -28])
 
 
     model_save_period = 2
-    num_of_candidate = 3
+    num_of_candidate = 5
     for i in range(len(ep_reward_list)):
-        opt_model_num = findOptimalModelNum_new(ep_reward_list[i], model_save_period, num_of_candidate)
+        opt_model_num = findOptimalModelNum(ep_reward_list[i], model_save_period, num_of_candidate)
         print("## rewards = {} opt_model_num={}\n#\n".format(ep_reward_list[i], opt_model_num))
-
 
 
 if __name__ == '__main__':
