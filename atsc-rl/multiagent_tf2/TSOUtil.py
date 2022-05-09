@@ -140,6 +140,8 @@ def addArgumentsToParser(parser):
     ### action
     parser.add_argument('--action-t', type=int, default=12, help='the unit time of green phase allowance')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
 
+    ## reward
+    parser.add_argument('--reward-info-collection-cycle', type=int, default=30, help='Information collection cycle for reward calculation')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
 
     ### policy : common args
     parser.add_argument('--gamma', type=float, default=0.99, help='gamma')
