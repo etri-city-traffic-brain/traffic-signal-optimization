@@ -17,7 +17,7 @@ from config import TRAIN_CONFIG
 sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import DebugConfiguration
-from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_
+from TSOConstants import _REWARD_GATHER_UNIT_
 
 
 
@@ -311,6 +311,7 @@ def getScheduleID(traffic_signal, given_start_time):
 def constructTSSRelatedInfo(args, tss_file_path, sa_name_list):
     '''
     construce TSS related info from given traffic environment
+    :paran args : parsed argument
     :param tss_file_path: file path of TSS
     :param sa_name_list: target signal group info
     :return:  an object which contains TSS related info
@@ -430,6 +431,7 @@ def constructEdgeRelatedInfo(edge_file_path, target_tl_id_list, target_tl_obj):
 def constructLaneRelatedInfo(args, salt_scenario, target_tl_obj):
     '''
     construct LANE related info from given traffic environment
+    :param atgs : parsed argument
     :param salt_scenario: scenario file path
     :param target_tl_obj: an object to store constructed LANE related info
     :return:
@@ -482,9 +484,9 @@ def constructLaneRelatedInfo(args, salt_scenario, target_tl_obj):
 def getSaRelatedInfo(args, sa_name_list, salt_scenario):
     '''
     gather SA related info such as contained TLs, TSS, lane, link,....
-    :param args:
-    :param sa_name_list:
-    :param salt_scenario:
+    :param args: parsed argument
+    :param sa_name_list: list of name of SA which are interesting
+    :param salt_scenario: scenario file path
     :return:
     '''
     _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args.scenario_file_path)
@@ -600,48 +602,77 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
 
 
 
-# appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulationSteps,
-#                    actions, self.reward_mgmt.rewards, self.sa_obj, self.sa_name_list,
-#                    self.target_tl_id_list, self.tl_obj)
-def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_id_list, tl_obj):
+def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list):
     '''
-    write phase reward
+    write reward to given file
+    this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool
 
-    :param fn:
-    :param sim_step:
-    :param actions:
-    :param rewards:
-    :param sa_obj:
-    :param sa_name_list:
-    :param tl_id_list:
-    :param tl_obj:
+    :param fn: file name to store reward
+    :param sim_step: simulation step
+    :param actions: applied actions
+    :param reward_mgmt: object for reward mgmt
+    :param sa_obj: object which holds information about SAs
+    :param sa_name_list:  list of name of SA
+    :param tl_obj: object which holds information about TLs
+    :param tl_id_list: list of TL id
     :return:
     '''
-    # todo hunsooni : 시각화에서 사용하는 정보에 대해 정리해야 한다.
 
     f = open(fn, mode='a+', buffering=-1, encoding='utf-8', errors=None,
              newline=None, closefd=True, opener=None)
-    for i in range(len(tl_id_list)):
-        tlid = tl_id_list[i]
 
-        sa_name = tl_obj[tlid]['signalGroup']
-        sa_idx = sa_name_list.index(sa_name)
-        tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
-        tl_action = actions[sa_idx][tl_idx]
+    num_target = len(sa_name_list)
+    sa_reward_related_info_list = []
+    if reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.SA:
+        sa_reward_list = []
+        for sa_idx in range(num_target):
+            sa_reward = reward_mgmt.calculateSARewardInstantly(sa_idx, sim_step)
+            sa_reward_list.append(sa_reward)
 
-        if reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.SA:
-            reward = reward_mgmt.rewards[sa_idx]
-        else: #reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.TL
-            reward = reward_mgmt.tl_reward_dic[tlid]
+        for i in  range(len(tl_id_list)):
+            tlid = tl_id_list[i]
 
-        # step,tl_name,actions,phase,reward
-        f.write("{},{},{},{},{}\n".format(sim_step,
-                                          tl_obj[tlid]['crossName'],
-                                          tl_action,
-                                          libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                          reward))
+            sa_name = tl_obj[tlid]['signalGroup']
+            sa_idx = sa_name_list.index(sa_name)
+
+            reward = sa_reward_list[sa_idx]
+
+            tl_action = 0
+            if len(actions) != 0:
+                tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
+                tl_action = actions[sa_idx][tl_idx]
+
+            # step,tl_name,actions,phase,reward
+            f.write("{},{},{},{},{}\n".format(sim_step,
+                                              tl_obj[tlid]['crossName'],
+                                              tl_action,
+                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
+                                              reward))
+        sa_reward_list.clear()
+
+    else: # reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.TL
+        for i in range(len(tl_id_list)):
+            tlid = tl_id_list[i]
+
+            sa_name = tl_obj[tlid]['signalGroup']
+            sa_idx = sa_name_list.index(sa_name)
+
+            reward = reward_mgmt.calculateTLRewardInstantly(sa_idx, tlid, sim_step)
+
+            tl_action = 0
+            if len(actions) != 0:
+                tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
+                tl_action = actions[sa_idx][tl_idx]
+
+
+            # step,tl_name,actions,phase,reward
+            f.write("{},{},{},{},{}\n".format(sim_step,
+                                              tl_obj[tlid]['crossName'],
+                                              tl_action,
+                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
+                                              reward))
+
     f.close()
-
 
 
 def startTimeConvert(f_path, f_name, start_hour):
