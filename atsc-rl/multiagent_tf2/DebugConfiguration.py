@@ -11,6 +11,7 @@ class DBG_OPTIONS :
     PrintGeneratedCommand = True    # print messages which are related to generate command
     PrintImprovementRate = True     # print messages which are related to improvement rate
     PrintServingThread = True       # print messages which are related to serving thread
+    PrintResultCompare = True       # print messages which are related to result comparison
     PrintRewardMgmt = False          # print messages which are related to reward mgmt
     PrintSaRelatedInfo = False      # print SA related info
     PrintStep = False               # print progress msgs every step : inferred actions
