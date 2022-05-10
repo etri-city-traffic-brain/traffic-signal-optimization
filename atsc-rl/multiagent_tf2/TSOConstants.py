@@ -101,10 +101,4 @@ class _MSG_CONTENT_:
     CTRL_DAEMON_ARGS = "ctrl_daemon_args"
 
 
-class _REWARD_GATHER_UNIT_:
-    '''
-    reward gathering unit 보상을 어떤 단위로 수집할 것인가... 교차로, 교차로 그룹, ...
-    '''
-    TL = 'TL'    # gather only target & gathering unit is TL
-    SA = 'SA'    # gather only target & gathering unit is SA
-    ENV = 'ENV'   # gather whole traffic env & gathering unit is env
+
