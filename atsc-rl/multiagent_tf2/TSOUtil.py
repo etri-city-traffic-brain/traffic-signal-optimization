@@ -142,6 +142,8 @@ def addArgumentsToParser(parser):
 
     ## reward
     parser.add_argument('--reward-info-collection-cycle', type=int, default=30, help='Information collection cycle for reward calculation')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
+    parser.add_argument('--reward-gather-unit', choices=['sa', 'tl', 'env'], default='sa',
+                            help='sa: sub-area, tl : traffic light, env : traffic environment ')
 
     ### policy : common args
     parser.add_argument('--gamma', type=float, default=0.99, help='gamma')
@@ -190,16 +192,12 @@ def addArgumentsToParser(parser):
     # parser.add_argument("--res", type=str2bool, default="TRUE")
 
     # --------- begin of addition
-    ## todo hunsooni  add 4 arguments
+    ## add 3 arguments for distributed learning
     ##     infer-TL : TLs to infer using trained model
-    ##     infer-model-number : to indicate models which will be used to inference
     ##     infer-model-path : to specify the path that model which will be used to inference was stored
     ##     num-of-optimal-model-candidate : number of optimal model candidate
     parser.add_argument('--infer-TL', type=str, default="",
                         help="concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
-
-    # parser.add_argument('--infer-model-number', type=int, default=1,
-    #                     help="model number which are use to discriminate the inference model")
 
     parser.add_argument('--infer-model-path', type=str, default=".",
                         help="directory path which are use to find the inference model")
@@ -316,73 +314,11 @@ def execTrafficSignalOptimization(cmd):
     return r
 
 
-def findOptimalModelNumV1(ep_reward_list, model_save_period, num_of_candidate):
-    '''
-    scan episode rewards and find an episode number of optimal model
-    the found episode number should indicate stored model
-
-    :param ep_reward_list: a list which has episode reward
-    :param model_save_period: interval which indicates how open model was stored
-    :param num_of_candidate: num of model to compare reward
-    :return: episode number of optimal model
-    '''
-
-   # not considered the case that epoch is very small
-
-    ##
-    num_ep = len(ep_reward_list)
-    sz_slice = model_save_period * num_of_candidate
-
-    loop_limit = num_ep - sz_slice
-
-    ## 1. find some candidate of optimal model
-    ##-- 1.1 initialize variables
-    max_mean_reward = np.min(ep_reward_list)
-    opt_model_hint = -1
-
-    ##-- 1.2 find the range whose mean reward is maximum
-    for i in range(loop_limit + 1):
-        current_slice = ep_reward_list[i:i + sz_slice]
-        current_slice_mean_reward = np.mean(current_slice)
-        if max_mean_reward < current_slice_mean_reward:
-            opt_model_hint = i # start idx of range
-            max_mean_reward = current_slice_mean_reward
-        if DBG_OPTIONS.PrintFindOptimalModel:
-            print("i={} current_mean({})={} opt_model_hint={} max_mean_reward={}".
-                  format(i, current_slice, np.mean(current_slice), opt_model_hint, current_slice_mean_reward))
-    if DBG_OPTIONS.PrintFindOptimalModel:
-        print("opt_model_hint={} ... i.e., optimal model is in range({}, {})".
-              format(opt_model_hint, opt_model_hint, opt_model_hint + sz_slice))
-
-    ## 2. decide which one is optimal
-    ## Here we know that episode number of optimal model is in range (opt_model_hint, opt_model_hint+sz_slice)
-    ##-- 2.1 calculate the first epsoide number which indicates stored model
-    first_candidate = int(np.ceil(opt_model_hint / model_save_period) * model_save_period)
-
-    if DBG_OPTIONS.PrintFindOptimalModel:
-        print("\n\nfirst_candidate={}".format(first_candidate))
-    ##-- 2.2 initialize value using first candidate
-    max_ep_reward = ep_reward_list[first_candidate]
-    optimal_model_num = first_candidate
-    ##-- 2.3 compare rewards to find optimal model
-    for i in range(1, num_of_candidate):
-        next_candidate = first_candidate + model_save_period * (i)
-        if max_ep_reward < ep_reward_list[next_candidate]:
-            optimal_model_num = next_candidate
-            max_ep_reward = ep_reward_list[next_candidate]
-        if DBG_OPTIONS.PrintFindOptimalModel:
-            print("i={}  next_candidate={} next_cand_reward={}  optimal_model_num={} max_ep_reward={}".
-                  format(i, next_candidate, ep_reward_list[next_candidate], optimal_model_num, max_ep_reward))
-    return optimal_model_num
-
-
 def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
-    return findOptimalModelNumV3(ep_reward_list, model_save_period, num_of_candidate)
-
-def findOptimalModelNumV2(ep_reward_list, model_save_period, num_of_candidate):
     '''
     scan episode rewards and find an episode number of optimal model
     the found episode number should indicate stored model
+    version : v3
 
     :param ep_reward_list: a list which has episode reward
     :param model_save_period: interval which indicates how open model was stored
@@ -391,78 +327,6 @@ def findOptimalModelNumV2(ep_reward_list, model_save_period, num_of_candidate):
     '''
 
     ##
-    print('V2')
-
-    num_ep = len(ep_reward_list)
-    num_of_candidate = num_ep if num_of_candidate > num_ep else num_of_candidate
-    sz_slice = model_save_period * num_of_candidate
-    sz_slice = num_ep if sz_slice > num_ep else sz_slice
-
-    # num_of_candidate = num_ep if num_of_candidate > num_ep else num_of_candidate
-
-    loop_limit = num_ep - sz_slice
-
-    ## 1. find some candidate of optimal model
-    ##-- 1.2 initialize variables
-    max_mean_reward = np.min(ep_reward_list)
-    # opt_model_hint = -1
-
-    opt_model_hint = 0
-    ##-- 1.2 find the range whose mean reward is maximum
-    for i in range(loop_limit + 1):
-        current_slice = ep_reward_list[i:i + sz_slice]
-        current_slice_mean_reward = np.mean(current_slice)
-        if max_mean_reward < current_slice_mean_reward:
-            opt_model_hint = i # start idx of range
-            max_mean_reward = current_slice_mean_reward
-        if DBG_OPTIONS.PrintFindOptimalModel:
-            print("i={} current_mean({})={} opt_model_hint={} max_mean_reward={}".
-                  format(i, current_slice, np.mean(current_slice), opt_model_hint, current_slice_mean_reward))
-    if DBG_OPTIONS.PrintFindOptimalModel:
-        print("num_ep={} opt_model_hint={} ... i.e., optimal model is in range({}, {})".
-              format(num_ep, opt_model_hint, opt_model_hint, opt_model_hint + sz_slice))
-
-    ## 2. decide which one is optimal
-    ## Here we know that episode number of optimal model is in range (opt_model_hint, opt_model_hint+sz_slice)
-    ##-- 2.1 calculate the first epsoide number which indicates stored model
-    first_candidate = int(np.ceil(opt_model_hint / model_save_period) * model_save_period)
-
-    if DBG_OPTIONS.PrintFindOptimalModel:
-        print("num_ep={} first_candidate={}  num_of_candidate={}".format(num_ep, first_candidate, num_of_candidate))
-
-    ##-- 2.2 initialize value using first candidate
-    max_ep_reward = ep_reward_list[first_candidate]
-    optimal_model_num = first_candidate
-    ##-- 2.3 compare rewards to find optimal model
-    for i in range(1, num_of_candidate):
-        next_candidate = first_candidate + model_save_period * (i)
-        if next_candidate >= num_ep:
-            break
-        if max_ep_reward < ep_reward_list[next_candidate]:
-            optimal_model_num = next_candidate
-            max_ep_reward = ep_reward_list[next_candidate]
-        if DBG_OPTIONS.PrintFindOptimalModel:
-            print("i={}  next_candidate={} next_cand_reward={}  optimal_model_num={} max_ep_reward={}".
-                  format(i, next_candidate, ep_reward_list[next_candidate], optimal_model_num, max_ep_reward))
-    if DBG_OPTIONS.PrintFindOptimalModel:
-        print("ZZZZZZZZZZZZZZZ found optimal_model_num={}".format(optimal_model_num))
-    return optimal_model_num
-
-
-
-def findOptimalModelNumV3(ep_reward_list, model_save_period, num_of_candidate):
-    '''
-    scan episode rewards and find an episode number of optimal model
-    the found episode number should indicate stored model
-
-    :param ep_reward_list: a list which has episode reward
-    :param model_save_period: interval which indicates how open model was stored
-    :param num_of_candidate: num of model to compare reward
-    :return: episode number of optimal model
-    '''
-
-    ##
-    print('V3')
     num_ep = len(ep_reward_list)
     sz_slice = model_save_period * num_of_candidate
     opt_model_hint = 0
@@ -558,6 +422,15 @@ def generateCommand(args):
     cmd = cmd + ' --print-out {}'.format(args.print_out)
 
     cmd = cmd + ' --action-t {}'.format(args.action_t)
+    cmd = cmd + ' --reward-info-collection-cycle {}'.format(args.reward_info_collection_cycle)
+
+    cmd = cmd + ' --reward-gather-unit {}'.format(args.reward_gather_unit)
+    # if args.mode == _MODE_.TRAIN:
+    #     cmd = cmd + ' --reward-gather-unit sa '
+    # else:
+    #     cmd = cmd + ' --reward-gather-unit tl '
+
+
     cmd = cmd + ' --gamma {}'.format(args.gamma)
 
     cmd = cmd + ' --ppo-epoch {}'.format(args.ppo_epoch)
@@ -578,48 +451,27 @@ def generateCommand(args):
     # infer-model-path ... below
     # num-of-optimal-model-candidate ... below
 
-    if 0:
-        if args.mode == _MODE_.TRAIN:
-            cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
+    if args.mode == _MODE_.TRAIN:
+        cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
 
-        if args.infer_model_number >= 0: # we have trained model... do inference
-            if args.mode == _MODE_.TRAIN:
-                cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
+        if args.infer_model_number >= 0:  # we have trained model... do inference
+            cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
 
-            if ( (args.mode == _MODE_.TEST)  or (args.mode == _MODE_.TRAIN) ):
-                cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
-
-                # cmd = cmd + ' --infer-model-number {} '.format(args.infer_model_number)
-
-                ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
-                cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
-
-            if args.mode == _MODE_.TEST:
-                # to compare results
-                cmd = cmd + ' --result-comp True '
-                
-    else:
-        if args.mode == _MODE_.TRAIN:
-            cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
-            
-            if args.infer_model_number >= 0: # we have trained model... do inference
-                cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
-                
-                cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
-
-                ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
-                cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
-                
-        elif args.mode == _MODE_.TEST:
-            assert args.infer_model_number >= 0, f"internal error : args.infer_model_number ({args.infer_model_number}) should greater than 0 "
-            # we have trained model... do inference
             cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
 
             ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
-                
-            # to compare results
-            cmd = cmd + ' --result-comp True '
+
+    elif args.mode == _MODE_.TEST:
+        assert args.infer_model_number >= 0, f"internal error : args.infer_model_number ({args.infer_model_number}) should greater than 0 "
+        # we have trained model... do inference
+        cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
+
+        ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
+        cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
+
+        # to compare results
+        cmd = cmd + ' --result-comp True '
 
     if DBG_OPTIONS.PrintGeneratedCommand:
         print("{} constructed command={}".format("\n\n", cmd))
