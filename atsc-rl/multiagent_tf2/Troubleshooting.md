@@ -2,8 +2,12 @@
 ## Troubleshooting
 * Increase the # of max open file
 * Python comment : Python Integrated Tools
-* When tensorboard does not work
+* when class member function __funcFoo() is not called
 * when python process terminated with "killed" message
+* When tensorboard does not work
+* when training time becomes longer
+
+
 
 <hr>
 
@@ -46,7 +50,12 @@
          @return:
         ```
   
+### when class member function __funcFoo() is not called
+* be careful when you use double underscore as a start of func name  
+  * can not be called outside of defined class 
+    * if name of member function is start with double underscode(i.e., __funcFoo )
 
+  
 
 ### when python process terminated with "killed" message
 * reason :  out of memory
@@ -75,3 +84,15 @@
     tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
               # if this code for fast performance is executed, tensorboard does not work
     ``` 
+
+
+
+### when training time becomes longer
+* training time become longer multiple times when we use config.py 
+  * more then 5 ~ 10 times longer 
+  * example :
+     ```
+     sim_period = TRAIN_CONFIG['sim_period] 
+     ```
+* use argument passing instead of configuration file
+  * sim_period = args.sim_period

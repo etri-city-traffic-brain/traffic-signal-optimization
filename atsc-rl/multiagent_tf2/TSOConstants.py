@@ -17,7 +17,7 @@ class _INTERVAL_:
 
 
 
-#todo hunsooni  change _FN_PREFIX_ --> _FN_, OPT_MODEL_INFO --> PREFIX_OPT_MODEL_INFO, RESULT_COMP -->PREFIX_RESULT_COMP
+#todo  change _FN_PREFIX_ --> _FN_, OPT_MODEL_INFO --> PREFIX_OPT_MODEL_INFO, RESULT_COMP -->PREFIX_RESULT_COMP
 class _FN_PREFIX_ :
     '''
     file name prefix

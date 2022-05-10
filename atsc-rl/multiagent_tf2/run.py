@@ -18,12 +18,16 @@ import libsalt
 from config import TRAIN_CONFIG
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
+from env.SaltEnvUtil import appendPhaseRewards
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getScenarioRelatedBeginEndTime
 from env.SaltEnvUtil import makePosssibleSaNameList
 
 from env.SappoEnv import SaltSappoEnvV3
+
+from env.SappoRewardMgmt import SaltRewardMgmtV3
+
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
@@ -32,144 +36,11 @@ from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
 from TSOUtil import findOptimalModelNum
-from TSOUtil import str2bool
 from TSOUtil import writeLine
 
 
+
 def parseArgument():
-    # return parseArgumentOne()
-    return parseArgumentWithAddArgumentFunc()
-
-def parseArgumentOne():
-    '''
-    argument parsing
-    :return:
-    '''
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
-                        help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
-
-    parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/',
-                        help='home directory of scenario; relative path')
-    parser.add_argument('--map', choices=['dj_all', 'doan', 'doan_20211207', 'sa_1_6_17'], default='sa_1_6_17',
-                        help='name of map')
-    # doan : SA 101, SA 104, SA 107, SA 111
-    # sa_1_6_17 : SA 1,SA 6,SA 17
-    parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
-                        help="target signal groups; multiple groups can be separated by comma(ex. --target-TL SA 101,SA 104)")
-    parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds')  # 25400
-    parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds')  # 32400
-
-    # todo hunsooni should check ddqn, ppornd, ppoea
-    # parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo', help='')
-    parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
-    parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
-                        help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
-    parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
-                        help='v - volume, d - density, vd - volume + density, vdd - volume / density')
-    parser.add_argument('--reward-func',
-                        choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max',
-                                 'wt_ABV', 'tt', 'cwq'],
-                        default='cwq',
-                        help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based')
-
-    parser.add_argument('--model-num', type=str, default='0', help='trained model number for inference')
-    parser.add_argument("--result-comp", type=str2bool, default="TRUE", help='whether compare simulation result or not')
-
-    # dockerize
-    parser.add_argument('--io-home', type=str, default='.', help='home directory of io; relative path')
-
-    ### for train
-    parser.add_argument('--epoch', type=int, default=3000, help='training epoch')
-    parser.add_argument('--warmup-time', type=int, default=600, help='warming-up time of simulation')
-    parser.add_argument('--model-save-period', type=int, default=20, help='how often to save the trained model')
-    parser.add_argument("--print-out", type=str2bool, default="TRUE", help='print result each step')
-
-    ### action
-    parser.add_argument('--action-t', type=int, default=12,
-                        help='the unit time of green phase allowance')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
-
-    ### policy : common args
-    parser.add_argument('--gamma', type=float, default=0.99, help='gamma')
-
-    ### polocy : PPO args
-    parser.add_argument('--ppo-epoch', type=int, default=10, help='model fit epoch')
-    parser.add_argument('--ppo-eps', type=float, default=0.1, help='')
-    parser.add_argument('--_lambda', type=float, default=0.95, help='')
-    parser.add_argument('--a-lr', type=float, default=0.005, help='learning rate of actor')
-    parser.add_argument('--c-lr', type=float, default=0.005, help='learning rate of critic')
-
-    # todo hunsooni should check nout used argument
-    ### currently not used : logstdI, cp, mmp
-    # parser.add_argument('--logstdI', type=float, default=0.5)
-    #                              # currently not used : from policy/ppo.py
-    # parser.add_argument('--cp', type=float, default=0.0, help='[in KC] action change penalty')
-    #                             # currently not used : from env/sappo_noConst.py
-    #                             # todo hunsooni  check.. SaltRewardMgmt::calculateRewardV2()
-    # parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
-    #                             # currently not used
-
-    parser.add_argument('--actionp', type=float, default=0.2,
-                        help='[in KC] action 0 or 1 prob.(-1~1): Higher value_collection select more zeros')
-
-    ### PPO Replay Memory
-    parser.add_argument('--mem-len', type=int, default=1000, help='memory length')
-    parser.add_argument('--mem-fr', type=float, default=0.9, help='memory forget ratio')
-
-    ### SAPPO OFFSET
-    parser.add_argument('--offset-range', type=int, default=2, help="offset side range")
-    parser.add_argument('--control-cycle', type=int, default=5, help='')
-
-    ### GREEN RATIO args
-    parser.add_argument('--add-time', type=int, default=2, help='')
-
-    ### currently not used : [for DDQN] replay-size, batch-size, tau, lr-update-period, lr-update-decay
-    # parser.add_argument('--replay-size', type=int, default=2000) # dqn replay memory size
-    # parser.add_argument('--batch-size', type=int, default=32)    # sampling size for model (batch) update
-    # parser.add_argument('--tau', type=float, default=0.1)        # dqn model update ratio
-    # parser.add_argument('--lr-update-period', type=int, default=5)
-    # parser.add_argument('--lr-update-decay', type=float, default=0.9) # dqn : lr update decay
-
-    ### currently not used : [for PPO RND] gamma-i
-    # parser.add_argument('--gamma-i', type=float, default=0.11)
-
-    ### currently not used : PPO + RESNET
-    # parser.add_argument("--res", type=str2bool, default="TRUE")
-
-    # --------- begin of addition
-    ## todo hunsooni  add 4 arguments
-    ##     infer-TL : TLs to infer using trained model
-    ##     infer-model-number : to indicate models which will be used to inference
-    ##     infer-model-path : to specify the path that model which will be used to inference was stored
-    ##     num-of-optimal-model-candidate : number of optimal model candidate
-    parser.add_argument('--infer-TL', type=str, default="",
-                        help="concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
-
-    # parser.add_argument('--infer-model-number', type=int, default=1,
-    #                     help="model number which are use to discriminate the inference model")
-
-    parser.add_argument('--infer-model-path', type=str, default=".",
-                        help="directory path which are use to find the inference model")
-
-    parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
-                        help="number of candidate to compare reward to find optimal model")
-
-    args = parser.parse_args()
-
-    args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
-
-    if 1:
-        # todo hunsooni : think how often should we update actions
-        if args.action == 'gr':
-            args.control_cycle = 1
-
-    return args
-
-
-
-def parseArgumentWithAddArgumentFunc():
     '''
     argument parsing
     :return:
@@ -184,7 +55,7 @@ def parseArgumentWithAddArgumentFunc():
     args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
 
     if 1:
-        #todo hunsooni : think how often should we update actions
+        #todo : think how often should we update actions
         if args.action == 'gr':
             args.control_cycle = 1
 
@@ -390,11 +261,10 @@ def trainSappo(args):
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
 
-    ### 가시화 서버에서 사용할 epoch별 전체 보상 파일
-    #from TSOUtil import writeLine
+    ### reward file for each epoch to be used by the visualization server : total
     writeLine(fn_train_epoch_total_reward, 'epoch,reward,40ep_reward')
 
-    ### 가시화 서버에서 사용할 epoch별 agent별 전체 보상 파일
+    ### reward file for each epoch to be used in the visualization server : per TL
     writeLine(fn_train_epoch_tl_reward, 'epoch,tl_name,reward,40ep_reward')
 
     ep_agent_reward_list = []
@@ -405,7 +275,7 @@ def trainSappo(args):
     # To store average reward history of last few episodes
     ma40_reward_list = []
 
-    agent_crossName = []  # todo hunsooni should check :  currently not used
+    agent_crossName = []  # todo should check :  currently not used
     agent_reward1, agent_reward40 = [], []
 
     total_reward = 0
@@ -418,9 +288,6 @@ def trainSappo(args):
 
         for i in range(agent_num):
             target_sa = env.sa_name_list[i]
-            # if 0:
-            #     print("list(env.sa_obj.keys())={}".format(list(env.sa_obj.keys())))
-            #     printnt("env.sa_name_list={}".format(env.sa_name_list))
 
             is_train_target = env.isTrainTarget(target_sa)
             ppo_config["is_train"] = is_train_target
@@ -444,16 +311,14 @@ def trainSappo(args):
                 # make a prefix of file name which indicates saved trained model parameters
                 fn_prefix = makeLoadModelFnPrefix(args, problem_var)
 
-                if 0: # todo hunsooni should delete
-                    fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, args.model_num)
-                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
+                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
 
                 agent.loadModel(fn_prefix)
 
             ppo_agent.append(agent)
 
             ep_agent_reward_list.append([])
-            agent_crossName.append(env.sa_obj[target_sa]['crossName_list'])  # todo hunsooni should check : currently not used
+            agent_crossName.append(env.sa_obj[target_sa]['crossName_list'])  # todo should check : currently not used
 
             agent_reward1.append(0)
             agent_reward40.append(0)
@@ -463,7 +328,7 @@ def trainSappo(args):
         actions, logp_ts = [], []
         discrete_actions = []
 
-        # 초기화
+        # initialization
         if 1:
             for i in range(agent_num):
                 target_sa = env.sa_name_list[i]
@@ -473,7 +338,7 @@ def trainSappo(args):
 
                 logp_ts.append([0])
                 discrete_actions.append(list(0 for _ in range(action_size)))
-                    # 고정신호의 offset을 그대로 이용하므로 0
+                    # zero because the offset of the fixed signal is used as it is
 
             episodic_reward = 0
             episodic_agent_reward = [0] * agent_num
@@ -525,9 +390,10 @@ def trainSappo(args):
         # Mean of last 40 episodes
         ma1_reward = np.mean(ep_reward_list[-1:])
         ma40_reward = np.mean(ep_reward_list[-40:])
-        # print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, ma40_reward, len(state_collection[0])))
-        print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, ma40_reward, ppo_agent[0].memory.getSize()))
-        print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
+
+        if DBG_OPTIONS.PrintTrain:
+            print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, ma40_reward, ppo_agent[0].memory.getSize()))
+            print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
 
         ### 전체 평균 보상 tensorboard에 추가
         ma40_reward_list.append(ma40_reward)
@@ -577,7 +443,7 @@ def trainSappo(args):
 
 
 
-        #todo hunsooni it is to handle out of memory error... I'm not sure it can handle out of memory error
+        #todo  it is to handle out of memory error... I'm not sure it can handle out of memory error
         # import gc
         collected = gc.collect()
 
@@ -607,19 +473,17 @@ def trainSappo(args):
         if DBG_OPTIONS.PrintFindOptimalModel:
             waitForDebug("run.py : return trainSappo() : fn_opt_model = {}".format(fn_optimal_model))
 
-        # todo hunsooni 만약 여러 교차로 그룹을 대상으로 했다면 확장해야 할까? 필요없다.
+        # 만약 여러 교차로 그룹을 대상으로 했다면 확장해야 할까? 필요없다.
         #      첫번째 그룹에 대한 정보가 전체에 대한 대표성을 가진다.
         #      이를 이용해서 학습된 모델이 저장된 경로(path) 정보와 최적 모델 번호(trial) 정보를 추출한다.
         #      실행 데몬에서 모든 target TLS에 적용하여 학습된 최적 모델을 공유 저장소에 복사한다.
         #       (ref. LearningDaemonThread::__copyTrainedModel() func )
-        # fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, args.target_TL.split(",")[0])  # strip & replace blank
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(args.target_TL.split(",")[0]))
 
         writeLine(fn_opt_model_info, fn_optimal_model)
 
         return optimal_model_num
 
-#### test.py
 def testSappo(args):
 
     ## load environment
@@ -655,17 +519,11 @@ def testSappo(args):
 
             # make a prefix of file name which indicates saved trained model parameters
             fn_prefix = makeLoadModelFnPrefix(args, problem_var)
-            if 0:  # todo hunsooni should delete
-                if args.infer_model_path == ".": # default
-                    fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, args.model_num)
-                else: # when we test distributed learning
-                    fn_prefix = "{}/{}-trial_{}".format(args.infer_model_path, args.method.upper(), args.model_num)
+
             waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
 
             agent.loadModel(fn_prefix)
             ppo_agent.append(agent)
-
-
 
 
     # initialize variables which will be used to store informations when we do TEST
@@ -685,6 +543,7 @@ def testSappo(args):
             logp_ts.append([0])
             discrete_actions.append(list(0 for _ in range(action_size)))
                 #-- this value is zero to express fixed signal as it is
+                #---- zero because the offset of the fixed signal is used as it is
 
         ep_reward_list = []  # To store reward history of each episode
         episodic_reward = 0
@@ -749,12 +608,13 @@ def testSappo(args):
         total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
         if 1 : # args.dist
-            # todo hunsooni   Let's think about which path would be better to save it
+            # todo   Let's think about which path would be better to save it
             #                 dist learning history
             dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
             shutil.copy2(result_fn, dst_fn)
 
     return avg_reward
+
 
 
 
@@ -770,112 +630,93 @@ def fixedTimeSimulate(args):
     end_time = args.end_time if args.end_time < scenario_end else scenario_end
     trial_len = end_time - start_time
 
-    ### target tl object를 가져오기 위함
-    # from env.SaltEnvUtil import makePosssibleSaNameList
-    # from env.SaltEnvUtil import copyScenarioFiles
-    # from env.SaltEnvUtil import getSaRelatedInfo
     salt_scenario = copyScenarioFiles(args.scenario_file_path)
-    target_sa_name_list = makePosssibleSaNameList(args.target_TL)
-    target_tl_obj, _, _ = getSaRelatedInfo(args, target_sa_name_list, salt_scenario)
+    possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
+    target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, possible_sa_name_list, salt_scenario)
+    target_sa_name_list = list(target_sa_obj.keys())
+    target_tl_id_list = list(target_tl_obj.keys())
+
 
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
 
+    reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
+                                       args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
+                                       target_sa_name_list, len(target_sa_name_list))
 
 
     ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(start_time)
-    f = open(fn_ft_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-             newline=None,
-             closefd=True, opener=None)
+
+    actions = []
+
+    sim_step = libsalt.getCurrentStep()
 
     for i in range(trial_len):
         libsalt.simulationStep()
-        #todo hunsooni 일정 주기로 보상 값을 얻어와서 기록한다.
+        sim_step += 1
 
-        for target_tl in list(target_tl_obj.keys()):
-            tlid = target_tl
-            #step, tl_name, actions, phase, reward
-            f.write("{},{},{},{},{}\n".format(libsalt.getCurrentStep(), target_tl_obj[target_tl]['crossName'], 0,
-                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), 0))
-    f.close()
+        # todo 일정 주기로 보상 값을 얻어와서 기록한다.
+        appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
+                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list)
 
-    print("ft_step {}".format(libsalt.getCurrentStep()))
+
+    print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
     libsalt.close()
 
 
-def fixedTimeSimulate_new(args):
-    '''
-    do traffic control with fixed signal
-    :param args:
-    :return:
-    '''
-
+def testOutOfMemory(num_epoch, args):
     scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
     start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
     end_time = args.end_time if args.end_time < scenario_end else scenario_end
     trial_len = end_time - start_time
 
-    ### target tl object를 가져오기 위함
-    # from env.SaltEnvUtil import makePosssibleSaNameList
-    # from env.SaltEnvUtil import copyScenarioFiles
-    # from env.SaltEnvUtil import getSaRelatedInfo
     salt_scenario = copyScenarioFiles(args.scenario_file_path)
-    target_sa_name_list = makePosssibleSaNameList(args.target_TL)
-    target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, target_sa_name_list, salt_scenario)
+    possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
+    target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, possible_sa_name_list, salt_scenario)
+    target_sa_name_list = list(target_sa_obj.keys())
+    target_tl_id_list = list(target_tl_obj.keys())
+
 
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
 
-    if 1: # todo hunsooni should check ...reward related things
-        from env.SappoRewardMgmt import  _REWARD_GATHER_UNIT_
-        from env.SappoRewardMgmt import SaltRewardMgmt
+    # reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
+    #                                    args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
+    #                                    target_sa_name_list, len(target_sa_name_list))
 
-        gather_unit = _REWARD_GATHER_UNIT_.SA
-        num_target = len(target_sa_name_list)
-        reward_mgmt = SaltRewardMgmt(args.reward_func, gather_unit, target_sa_obj, target_sa_name_list, num_target)
+    for ep in range(num_epoch):
 
+        ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
+        libsalt.start(salt_scenario)
+        libsalt.setCurrentStep(start_time)
 
-    ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
-    libsalt.start(salt_scenario)
-    libsalt.setCurrentStep(start_time)
-    f = open(fn_ft_phase_reward_output, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-             newline=None,
-             closefd=True, opener=None)
+        actions = []
 
-    for i in range(trial_len):
-        libsalt.simulationStep()
         sim_step = libsalt.getCurrentStep()
-        # todo hunsooni 일정 주기로 보상 값을 얻어와서 기록한다.
 
-        if 1: # todo hunsooni should check ...reward related things
-            sim_period = 30  # should move TRAIN_CONFIG
-            reward_mgmt.gatherRewardRelatedInfo(args.action_t, sim_step, sim_period)
-            for sa_idx in range(num_target):
-                reward_mgmt.calculateReward(sa_idx)
+        for i in range(trial_len):
+            libsalt.simulationStep()
+            sim_step += 1
+
+            # #  i>= args.warmup_time:
+            # # todo 일정 주기로 보상 값을 얻어와서 기록한다.
+            # appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
+            #                        target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list)
 
 
-        for target_tl in list(target_tl_obj.keys()):
-            tlid = target_tl
-            if 0:
-                sa_reward = 0
-            else:
-                sa_name = tl_obj[tlid]['signalGroup']
-                sa_idx = sa_name_list.index(sa_name)
-                sa_reward = reward_mgmt.rewards[sa_idx]
+        # print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
+        libsalt.close()
 
-            # step, tl_name, actions, phase, reward
-            f.write("{},{},{},{},{}\n".format(sim_step, target_tl_obj[target_tl]['crossName'], 0,
-                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid), sa_reward))
-    f.close()
-
-    print("ft_step {}".format(libsalt.getCurrentStep()))
-    libsalt.close()
+        time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
+        import gc
+        gc.collect()
+        print(f'{ep}-th done : {time_data}\n\n')
 
 
 
@@ -909,3 +750,11 @@ if __name__ == "__main__":
 
     elif args.mode == 'simulate':
         fixedTimeSimulate(args)
+        # test_out_of_memory = True
+        # if test_out_of_memory:
+        #     num_epoch = 200
+        #     testOutOfMemory(200, args)
+        # else:
+        #     fixedTimeSimulate(args)
+
+

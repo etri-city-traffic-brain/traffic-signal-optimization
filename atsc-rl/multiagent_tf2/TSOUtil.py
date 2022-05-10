@@ -113,7 +113,7 @@ def addArgumentsToParser(parser):
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
 
-    # todo hunsooni should check ddqn, ppornd, ppoea
+    # todo should check ddqn, ppornd, ppoea
     # parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo', help='')
     parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
     parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
@@ -155,13 +155,13 @@ def addArgumentsToParser(parser):
     parser.add_argument('--a-lr', type=float, default=0.005, help='learning rate of actor')
     parser.add_argument('--c-lr', type=float, default=0.005, help='learning rate of critic')
 
-    # todo hunsooni should check nout used argument
+    # todo should check nout used argument
     ### currently not used : logstdI, cp, mmp
     # parser.add_argument('--logstdI', type=float, default=0.5)
     #                              # currently not used : from policy/ppo.py
     # parser.add_argument('--cp', type=float, default=0.0, help='[in KC] action change penalty')
     #                             # currently not used : from env/sappo_noConst.py
-    #                             # todo hunsooni  check.. SaltRewardMgmt::calculateRewardV2()
+    #                             # todo  check.. SaltRewardMgmt::calculateRewardV2()
     # parser.add_argument('--mmp', type=float, default=1.0, help='min max penalty')
     #                             # currently not used
 
@@ -459,7 +459,7 @@ def generateCommand(args):
 
             cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
 
-            ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
+            ## todo  만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
 
     elif args.mode == _MODE_.TEST:
@@ -467,7 +467,7 @@ def generateCommand(args):
         # we have trained model... do inference
         cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
 
-        ## todo hunsooni 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
+        ## todo 만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
         cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
 
         # to compare results

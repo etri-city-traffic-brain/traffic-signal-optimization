@@ -15,7 +15,7 @@ class DBG_OPTIONS :
     PrintRewardMgmt = False          # print messages which are related to reward mgmt
     PrintSaRelatedInfo = False      # print SA related info
     PrintStep = False               # print progress msgs every step : inferred actions
-
+    PrintTrain = True               # print messages which are related to train
     PrintMsg = True                 # print messages
 
     ## Other Options

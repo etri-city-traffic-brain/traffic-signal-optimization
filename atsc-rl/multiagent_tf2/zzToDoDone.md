@@ -1,5 +1,15 @@
-### todo 
 
+
+python run.py --mode test --map doan --target "SA 101,SA 104"  --action offset --model-num 0
+
+python run.py --mode test --map doan --target "SA 101,SA 104"  --action gr --model-num 0
+python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func cwq
+python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func pn
+
+
+
+
+### todo
 * distributed traffic signal optimization
   * make LearningDaemonThread::__copyTrainedModel() work with various method
     * currently only care sappo
@@ -7,19 +17,22 @@
   * infer-TL argument related code
   * debugging related code 
     * Print*, RunWithWaitForDebug, RunWithDistributed
-  * constants
+  * [d] constants
     * sim_period, state_weight, reward_weight in SappoEnv.py
-* [next] add operation _REWARD_GATHER_UNIT_
+* [d] add operation _REWARD_GATHER_UNIT_
   * gather related info per TL
   * calculate by _REWARD_GATHER_UNIT_
     * calculateRewardByUnit(sa_idx, unit) returns calculated rewards
     
-* [ing] generate info to be used by visualization tool : fn_rl_phase_reward_output
+* [d] generate info to be used by visualization tool : fn_rl_phase_reward_output
   * SaltSappoEnvV3::__appendPhaseRewards() at SappoEnv.py
     * called in SaltSappoEnvV3::step(), SaltSappoEnvV3::reset() at SappoEnv.py
     * **보상 수집을 교차로 별로 하도록**
   * fixedTimeSimulate() at run.py
   
+* change to use not only zero-hop info but also 1-hop info
+  * currently we use only zero-hop info
+  * use_zero_hop_only == True or False
   
 * make experimental env in the cloud(PurpleStones)
   * 3 nodes and shared storage

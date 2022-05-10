@@ -30,7 +30,7 @@ def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, in
     # except Warning:
     #     print("30  rl_passed={}, ft_passed={}".format(rl_passed, ft_passed))
 
-    #todo hunsooni should care when ft_passed is 0
+    #todo should care when ft_passed is 0
     #               how about adding very small value(0.00000001)
     #               ft_passed += 0.00000001
     if ft_passed == 0.0:
@@ -60,7 +60,7 @@ def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, in
     # except Warning:
     #     print("52  rl_passed={}, ft_passed={}".format(rl_passed, ft_passed))
 
-    #todo hunsooni should care when ft_passed is 0
+    #todo should care when ft_passed is 0
     #               how about adding very small value(0.00000001)
     #               ft_passed += 0.00000001
     if ft_passed == 0.0:

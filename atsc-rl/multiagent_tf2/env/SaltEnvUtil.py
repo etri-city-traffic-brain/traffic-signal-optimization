@@ -5,16 +5,11 @@ import os
 import platform
 import pprint
 import shutil
-import sys
 import uuid
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import parse
 
 import libsalt
-
-
-from config import TRAIN_CONFIG
-sys.path.append(TRAIN_CONFIG['libsalt_dir'])
 
 import DebugConfiguration
 from TSOConstants import _REWARD_GATHER_UNIT_
@@ -551,7 +546,7 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
         if args.action=='gro':
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 2
 
-            # todo hunsooni should check correctness of value : 0..1,   .. (# of green phase  -1)
+            # todo should check correctness of value : 0..1,   .. (# of green phase  -1)
             # for offset
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'].append(0)
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)

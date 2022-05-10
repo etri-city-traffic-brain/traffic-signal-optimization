@@ -370,7 +370,7 @@ def validate(args, validation_trials, fn_dist_learning_history):
             print("### index={}".format(df.index.values))
             print("### column={}".format(df.columns.values))
 
-        # todo hunsooni : should change hard-coding : "total", "imp_SumTravelTime_sum_0hop'
+        # todo : should change hard-coding : "total", "imp_SumTravelTime_sum_0hop'
         improvement_rate = df.at['total', 'imp_SumTravelTime_sum_0hop']
         improvement_rate = df.at[_IMPROVEMENT_COMP_.ROW_NAME, _IMPROVEMENT_COMP_.COLUMN_NAME]
         success = _CHECK_.SUCCESS if improvement_rate >= args.validation_criteria else _CHECK_.FAIL
