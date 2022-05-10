@@ -107,4 +107,4 @@ class _REWARD_GATHER_UNIT_:
     '''
     TL = 'TL'    # gather only target & gathering unit is TL
     SA = 'SA'    # gather only target & gathering unit is SA
-    ENV = 'ENV'   # gather whole traffic env & gathering unit is env
+    ENV = 'ENV'  # gather whole traffic env & gathering unit is env
