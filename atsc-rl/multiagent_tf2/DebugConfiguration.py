@@ -16,7 +16,7 @@ class DBG_OPTIONS :
     PrintSaRelatedInfo = False      # print SA related info
     PrintStep = False               # print progress msgs every step : inferred actions
     PrintTrain = True               # print messages which are related to train
-    PrintMsg = True                 # print messages
+    PrintMsg = False                 # print messages
 
     ## Other Options
     RunWithWaitForDebug = False      # wait for debug

@@ -36,6 +36,7 @@ from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
 from TSOUtil import findOptimalModelNum
+from TSOUtil import makeConfigAndProblemVar
 from TSOUtil import writeLine
 
 
@@ -62,44 +63,6 @@ def parseArgument():
     return args
 
 
-def makePPOProblemVar(conf):
-    '''
-    make string by concatenating configuration
-    this will be used as a prefix of file/path name to store log, model, ...
-
-    :param conf:
-    :return:
-    '''
-
-    problem_var = ""
-    problem_var += "_state_{}".format(conf["state"])
-    problem_var += "_action_{}".format(conf["action"])
-    problem_var += "_reward_{}".format(conf["reward"])
-
-    problem_var += "_gamma_{}".format(conf["gamma"])
-    problem_var += "_lambda_{}".format(conf["lambda"])
-    problem_var += "_alr_{}".format(conf["actor_lr"])
-    problem_var += "_clr_{}".format(conf["critic_lr"])
-
-    problem_var += "_mLen_{}".format(conf["memory_size"])
-    problem_var += "_mFR_{}".format(conf["forget_ratio"])
-    problem_var += "_netSz_{}".format(conf["network_layers"])
-    problem_var += "_offset_range_{}".format(conf["offset_range"])
-    problem_var += "_control_cycle_{}".format(conf["control_cycle"])
-    # if args.method=='ppornd':
-    #     problem_var += "_gammai_{}".format(args.gamma_i)
-    #     problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])
-    # if args.method=='ppoea':
-    #     problem_var += "_ppo_epoch_{}".format(args.ppo_epoch)
-    #     problem_var += "_ppoeps_{}".format(args.ppo_eps)
-    # if len(args.target_TL.split(","))==1:
-    #     problem_var += "_{}".format(args.target_TL.split(",")[0])
-    #
-    # if args.action == 'gr' or args.action == 'gro':
-    #     problem_var += "_addTime_{}".format(args.add_time)
-
-    return problem_var
-
 
 def makeDirectories(dir_name_list):
     '''
@@ -111,41 +74,6 @@ def makeDirectories(dir_name_list):
         os.makedirs(dir_name, exist_ok=True)
     return
 
-
-def makePPOConfig(args):
-    '''
-    make configuration dictionary for PPO
-    :param args: argument
-    :return:
-    '''
-
-    cfg = {}
-
-    cfg["state"] = args.state
-    cfg["action"] = args.action
-    cfg["reward"] = args.reward_func
-
-    # cfg["lr"] = args.lr  # 0.005
-    cfg["gamma"] = args.gamma  # 0.99
-    cfg["lambda"] = args._lambda  # 0.95
-    cfg["actor_lr"] = args.a_lr  # 0.005
-    cfg["critic_lr"] = args.c_lr  # 0.005
-    cfg["ppo_epoch"] = args.ppo_epoch  # 10
-    cfg["ppo_eps"] = args.ppo_eps  # 0.1  # used for ppoea
-
-    cfg["memory_size"] = args.mem_len
-    cfg["forget_ratio"] = args.mem_fr
-
-    cfg["offset_range"] = args.offset_range  # 2
-    cfg["control_cycle"] = args.control_cycle  # 5
-    cfg["add_time"] = args.add_time  # 2
-
-    # cfg["network_layers"] = [512, 256, 128, 64, 32]  # TRAIN_CONFIG['network_size']
-    cfg["network_layers"] = TRAIN_CONFIG['network_size']
-
-    # cfg["optimizer"] = Adam
-    cfg["optimizer"] = TRAIN_CONFIG['optimizer']
-    return cfg
 
 
 
@@ -204,9 +132,25 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
         agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
 
 
+
 def makeLoadModelFnPrefix(args, problem_var):
     '''
     make a prefix of file name which indicates saved trained model parameters
+
+    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
+
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+    return makeLoadModelFnPrefixV2(args, problem_var)
+
+def makeLoadModelFnPrefixV1(args, problem_var):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    use simple name
+    it should be consistent with LearningDaemonThread::__copyTrainedModelV1() at DistExecDaemon.py
 
     :param args:
     :param problem_var:
@@ -218,6 +162,27 @@ def makeLoadModelFnPrefix(args, problem_var):
     else:  # when we test distributed learning
         # /tmp/tso/SAPPO-trial_0_SA_101_actor.h5
         fn_prefix = "{}/{}-trial_{}".format(args.infer_model_path, args.method.upper(), args.model_num)
+
+    return fn_prefix
+
+
+def makeLoadModelFnPrefixV2(args, problem_var):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    use complicate name : contains learning env info
+    it should be consistent with LearningDaemonThread::__copyTrainedModelV2() at DistExecDaemon.py
+
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+    if args.infer_model_path == ".":  # default
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                        args.model_num)
+    else:  # when we test distributed learning
+        # /tmp/tso/SAPPO-trial_0_SA_101_actor.h5
+        fn_prefix = "{}/{}-{}-trial_{}".format(args.infer_model_path, args.method.upper(), problem_var, args.model_num)
 
     return fn_prefix
 
@@ -245,8 +210,8 @@ def trainSappo(args):
 
         ## make configuration dictionary
         #    and construct problem_var string to be used to create file name
-        ppo_config = makePPOConfig(args)
-        problem_var = makePPOProblemVar(ppo_config)
+        ppo_config, problem_var = makeConfigAndProblemVar(args)
+
 
         ## construct file name to store train results(reward statistics info)
         #     : fn_train_epoch_total_reward, fn_train_epoch_tl_reward
@@ -493,13 +458,8 @@ def testSappo(args):
     trial_len = calculateTrialLength(args)
 
 
-    ## make configuration dictionary & make some string variables
-    if 1:
-        ##-- 1. make configuration dictionary
-        ppo_config = makePPOConfig(args)
-
-        ##-- 2. construct problem_var string to be used to create file name
-        problem_var = makePPOProblemVar(ppo_config)
+    ## make configuration dictionary & construct problem_var string to be used to create file names
+    ppo_config, problem_var = makeConfigAndProblemVar(args)
 
     ## create PPO Agents & load trained model parameters
     if 1:
