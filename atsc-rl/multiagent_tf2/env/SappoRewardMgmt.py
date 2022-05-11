@@ -951,10 +951,13 @@ class SaltRewardMgmtV3:
         :param sa_idx:
         :return:
         '''
+
+        assert sa_idx < self.num_target, f"internal error : SA indicated by sa_idx({sa_idx}) is not target of training : all SA={self.sa_obj.keys()}"
+
         if self.reward_unit == _REWARD_GATHER_UNIT_.SA:
-            return self.__calculateRewardPerSA(sa_idx)
+            self.__calculateRewardPerSA(sa_idx)
         else: # self.reward_unit == _REWARD_GATHER_UNIT_.TL
-            return self.__calculateRewardPerTL(sa_idx)
+            self.__calculateRewardPerTL(sa_idx)
 
 
 

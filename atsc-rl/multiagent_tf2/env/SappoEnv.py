@@ -340,10 +340,13 @@ class SaltSappoEnvV3(gym.Env):
         #   1) calculate reward, 2) gather state info, 3) increase time to act
         for sa_i in idx_of_next_act_sa:
             said = self.sa_name_list[sa_i] # ...signal group name을  sa_i로 얻어온다.
-            ##-- 1. calculate reward
-            self.reward_mgmt.calculateReward(sa_i) # 보상 계산
+            ##-- 1. calculate reward : only for target SA; do not gather reward for infer SA
+            if said in self.target_sa_name_list:
+                self.reward_mgmt.calculateReward(sa_i) # 보상 계산
+
             ##-- 2. gather state info
             self.observations[sa_i] = self.__getState(self.sa_obj[said], self.tl_obj)
+
             ##-- 3. increase time to act
             self.time_to_act_list[sa_i] = self.__getNextTimeToAct(self.simulation_steps, self.sa_cycle_list[sa_i], self.control_cycle)
 
