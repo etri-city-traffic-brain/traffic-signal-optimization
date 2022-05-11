@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 #
 #
+
+#
+#  python run.py --mode train --map doan --target "SA 101,SA 104" --action offset --epoch 2 --model-num 0 --reward-func pn --reward-gather-unit sa
+#  python run.py --mode train --map doan --target "SA 101,SA 104" --action offset   --reward-func pn --reward-gather-unit sa   --model-save-period 10  --epoch 1000
+#
 import argparse
 import gc
 import numpy as np
