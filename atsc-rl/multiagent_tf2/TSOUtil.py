@@ -352,12 +352,20 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
             print("num_ep={} opt_model_hint={} ... i.e., optimal model is in range({}, {})".
                   format(num_ep, opt_model_hint, opt_model_hint, opt_model_hint + sz_slice))
     else:
-        num_of_candidate = int((num_ep + 1) / model_save_period)
+        if model_save_period > 1:
+            num_of_candidate = int((num_ep-1)/model_save_period) + 1
+        else:
+            num_of_candidate = num_ep
+
+        if DBG_OPTIONS.PrintFindOptimalModel:
+            print(f"too samll ....num_ep={num_ep} model_save_period={model_save_period} num_of_candidate={num_of_candidate}  ep_reward_list={ep_reward_list}")
 
     ## 2. decide which one is optimal
     ## Here we know that episode number of optimal model is in range (opt_model_hint, opt_model_hint+sz_slice)
     ##-- 2.1 calculate the first epsoide number which indicates stored model
     first_candidate = int(np.ceil(opt_model_hint / model_save_period) * model_save_period)
+
+    # print(f"num_ep={num_ep} num_of_candidate={num_of_candidate} first_candidate={first_candidate}  ep_reward_list={ep_reward_list}")
 
     if DBG_OPTIONS.PrintFindOptimalModel:
         print("num_ep={} first_candidate={}  num_of_candidate={}".format(num_ep, first_candidate, num_of_candidate))
@@ -368,12 +376,16 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
     ##-- 2.3 compare rewards to find optimal model
     for i in range(1, num_of_candidate):
         next_candidate = first_candidate + model_save_period * i
+
         if max_ep_reward < ep_reward_list[next_candidate]:
             optimal_model_num = next_candidate
             max_ep_reward = ep_reward_list[next_candidate]
         if DBG_OPTIONS.PrintFindOptimalModel:
             print("i={}  next_candidate={} next_cand_reward={}  optimal_model_num={} max_ep_reward={}".
                   format(i, next_candidate, ep_reward_list[next_candidate], optimal_model_num, max_ep_reward))
+
+        # print(f"i={i} num_of_candidate={num_of_candidate} next_candidate={next_candidate}  ep_reward_list={ep_reward_list} ==> opt_model_num = {optimal_model_num}")
+
     if DBG_OPTIONS.PrintFindOptimalModel:
         print("ZZZZZZZZZZZZZZZ found optimal_model_num={}".format(optimal_model_num))
     return optimal_model_num
@@ -520,9 +532,26 @@ def test_findOptimalModelNum():
         print("## rewards = {} opt_model_num={}\n#\n".format(ep_reward_list[i], opt_model_num))
 
 
+def test_findOptimalModelNumV2():
+    '''
+    test findOptimalModelNum() func
+    :return:
+    '''
+    ep_reward_list = [0, 1, -2, 3, -4, 5, 6, -7, 8, 9, -1, 1, 2, -3, 4, 5]
+    ep_reward_list = [-51, -38, -49, -23, -11, -58, -50, -21, -33, -17, -11, -14, -15, -21, -23, -28]
+
+
+    model_save_period = 1
+    num_of_candidate = 5
+    for i in range(len(ep_reward_list)):
+        in_list = ep_reward_list[:i+1]
+        opt_model_num = findOptimalModelNum(in_list, model_save_period, num_of_candidate)
+        print("## in_list = {} opt_model_num={}\n#\n".format(in_list, opt_model_num))
+
+
 if __name__ == '__main__':
 
-    test_findOptimalModelNum()
+    test_findOptimalModelNumV2()
 
     if 0:
         # writeLine("zzzzz.1", 1) # TypeError : write() argument must be str, not int
