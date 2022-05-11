@@ -33,6 +33,8 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 * out of memory problem
   * should deallocate memory
     * delete ndarray in PPOAgentTF2::replay() --> replayWithDel()
+      * As # of replay memory entry grows, so does the incrememt of memory  재현 메모리 상의 엔트리 수가 커짐에 따라 메모리 증가도 커진다.
+      * adjust maximum replay memory size
     
 * change to use not only zero-hop info but also 1-hop info
   * currently we use only zero-hop info
