@@ -29,7 +29,11 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
     * called in SaltSappoEnvV3::step(), SaltSappoEnvV3::reset() at SappoEnv.py
     * **보상 수집을 교차로 별로 하도록**
   * fixedTimeSimulate() at run.py
-  
+
+* out of memory problem
+  * should deallocate memory
+    * delete ndarray in PPOAgentTF2::replay() --> replayWithDel()
+    
 * change to use not only zero-hop info but also 1-hop info
   * currently we use only zero-hop info
   * use_zero_hop_only == True or False

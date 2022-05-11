@@ -389,6 +389,65 @@ class PPOAgentTF2:
             self.writer.add_scalar('Data/approx_ent_per_replay', approx_ent, self.replay_count)
         self.replay_count += 1
 
+    def replayWithDel(self):
+
+        if not self.is_train:  # no need to replay if it is not the target of training
+            return
+
+        states = self.memory.states
+        actions = self.memory.actions
+        rewards = self.memory.rewards
+        dones = self.memory.dones
+        next_states = self.memory.next_states
+        logp_ts = self.memory.logp_ts
+
+        # reshape memory to appropriate shape for training
+        states = np.vstack(states)
+        next_states = np.vstack(next_states)
+        actions = np.vstack(actions)
+        logp_ts = np.vstack(logp_ts)
+
+        # Get Critic network predictions
+        values = self.critic.predict(states)
+        next_values = self.critic.predict(next_states)
+
+        # Compute discounted rewards and advantages
+        # discounted_r = self.discount_rewards(rewards)
+        # advantages = np.vstack(discounted_r - values)
+        advantages, target = self.get_gaes(rewards, dones, np.squeeze(values), np.squeeze(next_values))
+
+        # stack everything to numpy array
+        # pack all advantages, predictions and actions to y_true and when they are received
+        # in custom loss function we unpack it
+        y_true = np.hstack([advantages, actions, logp_ts])
+
+        # training Actor and Critic networks
+        a_loss = self.actor.model.fit(states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
+        c_loss = self.critic.model.fit([states, values], target, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
+
+        # calculate loss parameters (should be done in loss, but couldn't find working way how to do that with disabled eager execution)
+        pred = self.actor.predict(states)
+        log_std = -0.5 * np.ones(self.action_size, dtype=np.float32)
+        logp = self.gaussian_likelihood(actions, pred, log_std)
+        approx_kl = np.mean(logp_ts - logp)
+        approx_ent = np.mean(-logp)
+
+        if 1:
+            del states
+            del next_states
+            del actions
+            del logp_ts
+            del y_true
+        
+
+        if USE_TBX:
+            self.writer.add_scalar('Data/actor_loss_per_replay', np.sum(a_loss.history['loss']), self.replay_count)
+            self.writer.add_scalar('Data/critic_loss_per_replay', np.sum(c_loss.history['loss']), self.replay_count)
+            self.writer.add_scalar('Data/approx_kl_per_replay', approx_kl, self.replay_count)
+            self.writer.add_scalar('Data/approx_ent_per_replay', approx_ent, self.replay_count)
+
+        self.replay_count += 1
+
 
     def loadModel(self, fn_prefix):
         self.actor.model.load_weights(f"{fn_prefix}_{self.id}_actor.h5")
