@@ -74,6 +74,8 @@
        ```
     * disadvantage : can be slower
   * use del obj
+* consider python magic method
+  * __delete__ / __del__ / __delattr__ / __delitem__
 
 
 

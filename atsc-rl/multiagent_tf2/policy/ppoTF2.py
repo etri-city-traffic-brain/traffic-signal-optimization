@@ -11,7 +11,9 @@
 # ================================================================
 import argparse
 import copy
+import gc
 import os
+
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # -1:cpu, 0:first gpu
 
 import gym
@@ -43,6 +45,7 @@ if len(gpus) > 0:
 
 
 from config import TRAIN_CONFIG
+from DebugConfiguration import DBG_OPTIONS
 
 
 class ActorModel:
@@ -338,8 +341,10 @@ class PPOAgentTF2:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
         return np.vstack(gaes), np.vstack(target)
 
-
     def replay(self):
+        return self.replayWithDel()
+
+    def replayWithoutDel(self):
 
         if not self.is_train :  # no need to replay if it is not the target of training
             return
@@ -401,6 +406,22 @@ class PPOAgentTF2:
         next_states = self.memory.next_states
         logp_ts = self.memory.logp_ts
 
+
+        # if DBG_OPTIONS.PrintReplayMemory :
+        #     sz_states = sys.getsizeof(states)
+        #     sz_next_states = sys.getsizeof(next_states)
+        #     sz_actions = sys.getsizeof(actions)
+        #     sz_logp_ts = sys.getsizeof(logp_ts)
+        #     sz_rewards = sys.getsizeof(rewards)
+        #
+        #     num_entry = len(states)
+        #
+        #     print(f"num_entry={num_entry} sz_states={sz_states} sz_n_states={sz_next_states} sz_act={sz_actions} sz_logp_ts={sz_logp_ts} sz_rewards={sz_rewards}")
+        #     print(f"states={states}")
+        #     print(f"actions={actions}")
+        #     print(f"rewards={rewards}")
+
+
         # reshape memory to appropriate shape for training
         states = np.vstack(states)
         next_states = np.vstack(next_states)
@@ -433,12 +454,20 @@ class PPOAgentTF2:
         approx_ent = np.mean(-logp)
 
         if 1:
+            from TSOUtil import total_size
+            num_entry = len(states)
+            sz_states = total_size(states, verbose=False)
+            sz_next_states = total_size(next_states, verbose=False)
+            sz_actions = total_size(actions, verbose=False)
+            sz_logp_ts = total_size(logp_ts, verbose=False)
+            sz_y_true= total_size(y_true)
+            print(f"num_entry={num_entry} sz_states={sz_states} sz_n_states={sz_next_states} sz_act={sz_actions} sz_logp_ts={sz_logp_ts} sz_y_true={sz_y_true}")
             del states
             del next_states
             del actions
             del logp_ts
             del y_true
-        
+            gc.collect()
 
         if USE_TBX:
             self.writer.add_scalar('Data/actor_loss_per_replay', np.sum(a_loss.history['loss']), self.replay_count)

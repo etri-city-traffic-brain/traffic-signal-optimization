@@ -30,11 +30,15 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
     * **보상 수집을 교차로 별로 하도록**
   * fixedTimeSimulate() at run.py
 
-* out of memory problem
+* [ing] out of memory problem
   * should deallocate memory
     * delete ndarray in PPOAgentTF2::replay() --> replayWithDel()
       * As # of replay memory entry grows, so does the incrememt of memory  재현 메모리 상의 엔트리 수가 커짐에 따라 메모리 증가도 커진다.
       * adjust maximum replay memory size
+    * 최대 개수 초과시 엔트리 삭제하는 경우 확인 ... 메모리 반납
+  * use memory_profiler
+    * ref. https://pypi.org/project/memory-profiler/
+    * ref. https://code.tutsplus.com/tutorials/understand-how-much-memory-your-python-objects-use--cms-25609
     
 * change to use not only zero-hop info but also 1-hop info
   * currently we use only zero-hop info

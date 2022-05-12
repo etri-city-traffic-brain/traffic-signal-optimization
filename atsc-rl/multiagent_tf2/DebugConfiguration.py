@@ -10,13 +10,15 @@ class DBG_OPTIONS :
     PrintFindOptimalModel = False    # print messages which are related to find optimal model
     PrintGeneratedCommand = True    # print messages which are related to generate command
     PrintImprovementRate = True     # print messages which are related to improvement rate
-    PrintServingThread = True       # print messages which are related to serving thread
+    PrintMsg = False                 # print messages
+    PrintReplayMemory = True              # print messages which are related to replay memory
     PrintResultCompare = True       # print messages which are related to result comparison
     PrintRewardMgmt = False          # print messages which are related to reward mgmt
     PrintSaRelatedInfo = False      # print SA related info
+    PrintServingThread = True       # print messages which are related to serving thread
     PrintStep = False               # print progress msgs every step : inferred actions
     PrintTrain = True               # print messages which are related to train
-    PrintMsg = False                 # print messages
+
 
     ## Other Options
     RunWithWaitForDebug = False      # wait for debug
