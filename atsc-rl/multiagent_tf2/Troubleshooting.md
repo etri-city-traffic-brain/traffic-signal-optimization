@@ -1,5 +1,6 @@
 
 ## Troubleshooting
+* do remove simulator msg 
 * Increase the # of max open file
 * Python comment : Python Integrated Tools
 * when class member function __funcFoo() is not called
@@ -9,7 +10,12 @@
 
 
 
+
 <hr>
+
+### do remove simulator mgs 
+* comment couts
+  * traffic-simulator/src/Object/TrafficSignal/TrafficSignal.cpp
 
 ### Increase the number of max open file
 * /etc/security/limits.conf 에 다음 내용 추가
