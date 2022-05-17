@@ -6,6 +6,7 @@
 * when class member function __funcFoo() is not called
 * when python process terminated with "killed" message
 * When tensorboard does not work
+* when the simulation/learning is too slow
 * when training time becomes longer
 
 
@@ -93,7 +94,12 @@
               # if this code for fast performance is executed, tensorboard does not work
     ``` 
 
-
+### when the simulation/learning is too slow
+* check the version of python : python version should be equal
+  * Python version used to create the libsalt library
+  * Python version used to execute the application
+* recommended that you should make the libsalt library using the environment for the reinforcement learning program execution
+  * After creating the reinforcement learning program execution environment
 
 ### when training time becomes longer
 * training time become longer multiple times when we use config.py 
