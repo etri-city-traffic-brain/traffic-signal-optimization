@@ -6,6 +6,7 @@ class DBG_OPTIONS :
 
     RunWithDistributed = True  # find & store optimal model info  for distributed learning
     TestFindOptimalModelNum = True  # todo should remove after test
+    PrintTrain = True  # print messages which are related to train
 
     if WITH_DBG_MSG :
         ## Options which are related maintaining states
@@ -24,7 +25,7 @@ class DBG_OPTIONS :
         PrintSaRelatedInfo = False      # print SA related info
         PrintServingThread = True       # print messages which are related to serving thread
         PrintStep = False               # print progress msgs every step : inferred actions
-        PrintTrain = True               # print messages which are related to train
+        # PrintTrain = True               # print messages which are related to train
 
 
         ## Other Options
@@ -49,7 +50,7 @@ class DBG_OPTIONS :
         PrintSaRelatedInfo = False  # print SA related info
         PrintServingThread = False  # print messages which are related to serving thread
         PrintStep = False  # print progress msgs every step : inferred actions
-        PrintTrain = False  # print messages which are related to train
+        # PrintTrain = True  # print messages which are related to train
 
         ## Other Options
         RunWithWaitForDebug = False  # wait for debug

@@ -362,8 +362,9 @@ def trainSappo(args):
         ma40_reward = np.mean(ep_reward_list[-40:])
 
         if DBG_OPTIONS.PrintTrain:
+            train_end = time.time()
             print("Episode * {} * Avg Reward is ==> {} MemoryLen {}".format(trial, ma40_reward, ppo_agent[0].memory.getSize()))
-            print("episode time :", time.time() - start)  # 현재시각 - 시작시간 = 실행 시간
+            print("episode time :", train_end - start)  # 현재시각 - 시작시간 = 실행 시간
 
         ### 전체 평균 보상 tensorboard에 추가
         ma40_reward_list.append(ma40_reward)
@@ -416,6 +417,10 @@ def trainSappo(args):
         #todo  it is to handle out of memory error... I'm not sure it can handle out of memory error
         # import gc
         collected = gc.collect()
+
+        if DBG_OPTIONS.PrintTrain:
+            replay_gc_end = time.time()
+            print("replay and gc time :", replay_gc_end - train_end)  # 현재시각 - 시작시간 = 실행 시간
 
     ## find optimal model number and store it
     if DBG_OPTIONS.RunWithDistributed : # dist

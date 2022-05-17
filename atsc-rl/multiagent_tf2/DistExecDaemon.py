@@ -289,14 +289,14 @@ class LearningDaemonThread(threading.Thread):
 
 ####
 #
-# python DistExecDaemon.py --ip_addr 129.254.182.176 --port 2727
+# python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
 if __name__ == '__main__':
     if os.environ.get("UNIQ_OPT_HOME") is None:
         os.environ["UNIQ_OPT_HOME"] = os.getcwd()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=2727)
-    parser.add_argument("--ip_addr", type=str, default="129.254.182.176")
+    parser.add_argument("--ip-addr", type=str, default="129.254.182.176")
     args = parser.parse_args()
 
     ct = LearningDaemonThread(args.ip_addr, args.port)
