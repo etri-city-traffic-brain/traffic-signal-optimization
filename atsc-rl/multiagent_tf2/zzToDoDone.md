@@ -25,12 +25,12 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
   * [d] constants
     * sim_period, state_weight, reward_weight in SappoEnv.py
 * [d] add operation _REWARD_GATHER_UNIT_
-  * gather related info per TL
+  * gather reward related info per TL
   * calculate by _REWARD_GATHER_UNIT_
     * calculateRewardByUnit(sa_idx, unit) returns calculated rewards
     
 * [d] generate info to be used by visualization tool : fn_rl_phase_reward_output
-  * SaltSappoEnvV3::__appendPhaseRewards() at SappoEnv.py
+  * appendPhaseRewards() at SappoEnvUtil.py
     * called in SaltSappoEnvV3::step(), SaltSappoEnvV3::reset() at SappoEnv.py
     * **보상 수집을 교차로 별로 하도록**
   * fixedTimeSimulate() at run.py
