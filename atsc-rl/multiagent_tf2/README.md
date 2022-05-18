@@ -54,7 +54,10 @@
     
     # train SA 104 and SA 107 : control other intersecctions using fixed signal
     python run.py --mode train --method sappo --target-TL "SA 104,SA 107"  --map doan  --epoch 1 --action gro --start-time 25200 --end-time 32400 
-    
+
+    # train SA 1, SA 6 and SA 17 : control other intersecctions using fixed signal
+    python run.py --mode train --map sa_1_6_17 --target-TL "SA 1, SA 6, SA 17" --method sappo --state vdd --action offset --reward-func cwq --epoch 1 --model-save-period 5
+
     # train SA 101 and SA 111  : control SA 104 and SA 107 with the inference of the trained model and control the rest of the intersections using fixed signal 
     python run.py --mode train --method sappo --target-TL "SA 101,SA 111"  --map doan  --epoch 1 --action gro --start-time 25200 --end-time 32400 --infer-TL "SA 104, SA 107"  --model-num 0
     ``` 
