@@ -1,17 +1,30 @@
 
 ## Troubleshooting
 * do remove simulator msg 
-* Increase the # of max open file
+* how to increase the # of max open file
 * Python comment : Python Integrated Tools
 * when class member function __funcFoo() is not called
 * when python process terminated with "killed" message
+* when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
 * When tensorboard does not work
 * when the simulation/learning is too slow
 * when training time becomes longer
 
 
-
-
+### when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
+* client_loop: send disconnect: Broken pipe
+* add following to the SSH configuration 
+  * .ssh/config  or /etc/ssh/ssh_config
+  ```text
+  Host *
+  ServerAliveInterval 120
+  TCPKeepAlive no
+  ```
+  * directive “ServerAliveInterval“ will send a null packet to the server at 120-second intervals to keep the session alive and thus prevent it from closing abruptly.
+  * directive "TCPKeepAlive" specifies whether the system should send TCP keepalive messages to the other side
+* ref
+  * https://en.stealthsettings.com/fix-ssh-error-terminal-linux-client_loop-send-disconnect-broken-pipe.html
+  * http://egloos.zum.com/mcchae/v/11382363
 <hr>
 
 ### do remove simulator mgs 

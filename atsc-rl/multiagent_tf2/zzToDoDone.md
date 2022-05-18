@@ -13,6 +13,11 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 * distributed traffic signal optimization
   * make LearningDaemonThread::__copyTrainedModel() work with various method
     * currently only care sappo
+  * add action of adjacent TL(SA) to state
+    * I wonder
+      * it is possible?
+      * it has meaning?
+
 * make up the code
   * infer-TL argument related code
   * debugging related code 
