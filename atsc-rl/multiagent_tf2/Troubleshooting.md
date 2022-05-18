@@ -1,11 +1,35 @@
 
 ## Troubleshooting
-* Increase the # of max open file
+* do remove simulator msg 
+* how to increase the # of max open file
 * Python comment : Python Integrated Tools
-* When tensorboard does not work
+* when class member function __funcFoo() is not called
 * when python process terminated with "killed" message
+* when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
+* When tensorboard does not work
+* when the simulation/learning is too slow
+* when training time becomes longer
 
+
+### when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
+* client_loop: send disconnect: Broken pipe
+* add following to the SSH configuration 
+  * .ssh/config  or /etc/ssh/ssh_config
+  ```text
+  Host *
+  ServerAliveInterval 120
+  TCPKeepAlive no
+  ```
+  * directive “ServerAliveInterval“ will send a null packet to the server at 120-second intervals to keep the session alive and thus prevent it from closing abruptly.
+  * directive "TCPKeepAlive" specifies whether the system should send TCP keepalive messages to the other side
+* ref
+  * https://en.stealthsettings.com/fix-ssh-error-terminal-linux-client_loop-send-disconnect-broken-pipe.html
+  * http://egloos.zum.com/mcchae/v/11382363
 <hr>
+
+### do remove simulator mgs 
+* comment couts
+  * traffic-simulator/src/Object/TrafficSignal/TrafficSignal.cpp
 
 ### Increase the number of max open file
 * /etc/security/limits.conf 에 다음 내용 추가
@@ -46,7 +70,12 @@
          @return:
         ```
   
+### when class member function __funcFoo() is not called
+* be careful when you use double underscore as a start of func name  
+  * can not be called outside of defined class 
+    * if name of member function is start with double underscode(i.e., __funcFoo )
 
+  
 
 ### when python process terminated with "killed" message
 * reason :  out of memory
@@ -65,6 +94,8 @@
        ```
     * disadvantage : can be slower
   * use del obj
+* consider python magic method
+  * __delete__ / __del__ / __delattr__ / __delitem__
 
 
 
@@ -75,3 +106,20 @@
     tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
               # if this code for fast performance is executed, tensorboard does not work
     ``` 
+
+### when the simulation/learning is too slow
+* check the version of python : python version should be equal
+  * Python version used to create the libsalt library
+  * Python version used to execute the application
+* recommended that you should make the libsalt library using the environment for the reinforcement learning program execution
+  * After creating the reinforcement learning program execution environment
+
+### when training time becomes longer
+* training time become longer multiple times when we use config.py 
+  * more then 5 ~ 10 times longer 
+  * example :
+     ```
+     sim_period = TRAIN_CONFIG['sim_period] 
+     ```
+* use argument passing instead of configuration file
+  * sim_period = args.sim_period

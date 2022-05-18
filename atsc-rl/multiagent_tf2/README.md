@@ -1,8 +1,16 @@
 # ATSC-RL(MultiAgent TF2)
 
 ### How to use ###
-* change libsalt directory in config.py
+* should declare SALT_HOME and PYTHONPATH as an environment variable
+    ```shell
+    export SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator
+    export PYTHONPATH="$SALT_HOME/tools:$PYTHONPATH"
+    export PYTHONPATH="$SALT_HOME/tools/libsalt:$PYTHONPATH"
+    ```
+* change configurations in config.py 
+* set DBG_OPTIONS in DebugConfiguration.py
 * run python program run.py with several arguments
+* see README_DIST.md if you want to do distributed learning for adaptive traffic signal control
 
 
 ####  some important arguments
@@ -36,7 +44,7 @@
       whether compare simulation result or not 
     ```
 
-* you can find full arguments and more detailed sescription by typing "python run.py -h"
+* you can find full arguments and more detailed description by typing "python run.py -h"
 
 
 

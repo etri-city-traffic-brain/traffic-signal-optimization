@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 
 import pprint
+from DebugConfiguration import DBG_OPTIONS
 
 
 def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, individual_output):
@@ -29,7 +30,7 @@ def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, in
     # except Warning:
     #     print("30  rl_passed={}, ft_passed={}".format(rl_passed, ft_passed))
 
-    #todo hunsooni should care when ft_passed is 0
+    #todo should care when ft_passed is 0
     #               how about adding very small value(0.00000001)
     #               ft_passed += 0.00000001
     if ft_passed == 0.0:
@@ -40,7 +41,8 @@ def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, in
     rl_passed = np.round(rl_passed, 2)
     imp = np.round(imp, 2)
 
-    print("0-hop lanes Fixed Time {} {} {} RL {} {} {} Imp {}".format(field, op2, ft_passed,
+    if DBG_OPTIONS.PrintResultCompare:
+        print("0-hop lanes Fixed Time {} {} {} RL {} {} {} Imp {}".format(field, op2, ft_passed,
                                                                       field, op2, rl_passed, imp))
     individual_output = pd.concat(
         [individual_output, pd.DataFrame({'ft_{}_{}_0hop'.format(field, op2): [ft_passed],
@@ -58,7 +60,7 @@ def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, in
     # except Warning:
     #     print("52  rl_passed={}, ft_passed={}".format(rl_passed, ft_passed))
 
-    #todo hunsooni should care when ft_passed is 0
+    #todo should care when ft_passed is 0
     #               how about adding very small value(0.00000001)
     #               ft_passed += 0.00000001
     if ft_passed == 0.0:
@@ -67,7 +69,8 @@ def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, in
         imp = op * (rl_passed - ft_passed) / ft_passed * 100
     imp = np.round(imp, 2)
 
-    print("1-hop lanes Fixed Time {} {} {} RL {} {} {} Imp {}".format(field, op2, ft_passed,
+    if DBG_OPTIONS.PrintResultCompare:
+        print("1-hop lanes Fixed Time {} {} {} RL {} {} {} Imp {}".format(field, op2, ft_passed,
                                                                       field, op2, rl_passed, imp))
     individual_output = pd.concat(
         [individual_output, pd.DataFrame({'ft_{}_{}_1hop'.format(field, op2, ): [ft_passed],
@@ -112,8 +115,8 @@ def compareResult(args, target_tl_obj, ft_output, rl_output, model_num):
     :return:
     '''
 
-    print("target_tl_obj")
-    pprint.pprint(target_tl_obj, width=200, compact=True)
+    # print("target_tl_obj")
+    # pprint.pprint(target_tl_obj, width=200, compact=True)
 
     ##
     ## Various statistical information related to intersections is extracted from the DataFrame object
@@ -150,8 +153,9 @@ def compareResult(args, target_tl_obj, ft_output, rl_output, model_num):
         in_edge_list_0 = []
         in_edge_list = np.append(in_edge_list, target_tl_obj[tl]['in_edge_list'])
         in_edge_list_0 = np.append(in_edge_list_0, target_tl_obj[tl]['in_edge_list_0'])
-        print(target_tl_obj[tl]['crossName'], target_tl_obj[tl]['in_edge_list_0'])
-        # print(target_tl_obj[tl]['in_edge_list_0'])
+
+        if DBG_OPTIONS.PrintResultCompare:
+            print(target_tl_obj[tl]['crossName'], target_tl_obj[tl]['in_edge_list_0'])
 
         ft_output2, ft_output3, rl_output2, rl_output3 = getStatisticsInformationAboutGivenEdgeList(ft_output, rl_output, in_edge_list_0, in_edge_list, cut_interval)
 
@@ -173,8 +177,11 @@ def compareResult(args, target_tl_obj, ft_output, rl_output, model_num):
     for tl in target_tl_obj:
         in_edge_list = np.append(in_edge_list, target_tl_obj[tl]['in_edge_list'])
         in_edge_list_0 = np.append(in_edge_list_0, target_tl_obj[tl]['in_edge_list_0'])
-        print(target_tl_obj[tl]['crossName'], target_tl_obj[tl]['in_edge_list_0'])
-        # print(target_tl_obj[tl]['in_edge_list_0'])
+        # if DBG_OPTIONS.PrintResultCompare:
+        #     print(target_tl_obj[tl]['crossName'], target_tl_obj[tl]['in_edge_list_0'])
+
+    if DBG_OPTIONS.PrintResultCompare:
+        print("\nAll Target TL summary.....")
 
     ft_output2, ft_output3, rl_output2, rl_output3 = getStatisticsInformationAboutGivenEdgeList(ft_output, rl_output, in_edge_list_0, in_edge_list, cut_interval)
 

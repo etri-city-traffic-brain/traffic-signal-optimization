@@ -17,7 +17,7 @@ class _INTERVAL_:
 
 
 
-
+#todo  change _FN_PREFIX_ --> _FN_, OPT_MODEL_INFO --> PREFIX_OPT_MODEL_INFO, RESULT_COMP -->PREFIX_RESULT_COMP
 class _FN_PREFIX_ :
     '''
     file name prefix
@@ -27,6 +27,9 @@ class _FN_PREFIX_ :
 
     # (a prefix of) file name to save a comparison of result
     RESULT_COMP = "zz.result_comp"
+
+    # file name to save the history of distributed learning
+    DIST_LEARNING_HISTORY = 'zz.dist_learning_history.txt'
 
 
 
@@ -92,8 +95,16 @@ class _MSG_CONTENT_:
     '''
     element name of dictionary which construct msg_contents
     '''
-    TARGET_TLS = "targetTLs"
-    INFER_TLS = "inferTLs"
+    TARGET_TL = "targetTL"
+    INFER_TL = "inferTL"
     INFER_MODEL_NUMBER = "infer_model_number"
     CTRL_DAEMON_ARGS = "ctrl_daemon_args"
 
+
+class _REWARD_GATHER_UNIT_:
+    '''
+    reward gathering unit 보상을 어떤 단위로 수집할 것인가... 교차로, 교차로 그룹, ...
+    '''
+    TL = 'TL'    # gather only target & gathering unit is TL
+    SA = 'SA'    # gather only target & gathering unit is SA
+    ENV = 'ENV'  # gather whole traffic env & gathering unit is env

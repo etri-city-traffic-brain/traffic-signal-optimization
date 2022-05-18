@@ -1,11 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import sys
-
-from config import TRAIN_CONFIG
-sys.path.append(TRAIN_CONFIG['libsalt_dir'])
-
 
 import libsalt
 
@@ -25,9 +20,9 @@ class SaltActionMgmt:
         self.sa_obj = sa_obj
         self.sa_name_list = sa_name_list
 
-        #-- 고정 신호 페이즈 정보 : [0,0, ,,,0, 1, 1, 1, 2, 2, 2,,,,,2, 3, 3, 3, 4,...]
+        #-- to save phase info for given fixed signal : [0,0, ,,,0, 1, 1, 1, 2, 2, 2,,,,,2, 3, 3, 3, 4,...]
         self.initial_phase_array_list = []
-        #-- 학습 결과(offset 조정)가 적용된 페이즈 정보
+        #-- to save phase info which are action applied
         self.apply_phase_array_list = []  # env.sa_phase_arr_list
 
         for sa in self.sa_name_list:
@@ -58,8 +53,8 @@ class SaltActionMgmt:
 
             phase_arr_list.append(phase_arr)
 
-        # phase_arr_list.append(inner_list)
         return phase_arr_list
+
 
 
     def __getOffsetAppliedPhaseArray(self, in_phase_arr_list, offset_list):
@@ -81,9 +76,9 @@ class SaltActionMgmt:
         '''
         get green-ratio actions applied phase array list
 
-        :param curr_sim_step:
-        :param an_sa_obj:
-        :param actions:
+        :param curr_sim_step: current sumulation step
+        :param an_sa_obj: object which holds information about an SA
+        :param actions: actions to apply
         :return:
         '''
         tlid_list = an_sa_obj["tlid_list"]
@@ -118,7 +113,7 @@ class SaltActionMgmt:
             phase_sum_list.append(phase_sum)
             tl_phase_list = [x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector if
                              x[0] > 5]
-                    # todo hunsooni : should care CONSTANT 5... it reduce readibility
+                    # todo : should avoid CONSTANT 5... it reduce readibility
             phase_list.append(tl_phase_list)
             tl_phase_list_include_y = [x[0] for x in
                                        libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector]
@@ -131,24 +126,8 @@ class SaltActionMgmt:
         return phase_array_list
 
 
-    def __getGreenRatioOffsetAppliedPhaseArray(self, curr_sim_step, an_sa_obj, actions):
-        '''
-        get green-ratio and offset actions applied phase array list
 
-        :param curr_sim_step:
-        :param an_sa_obj:
-        :param actions:
-        :return:
-        '''
-        if 0:
-            v1 = self.__getGreenRatioOffsetAppliedPhaseArrayV1(curr_sim_step, an_sa_obj, actions)
-            v2 = self.__getGreenRatioOffsetAppliedPhaseArrayV2(curr_sim_step, an_sa_obj, actions)
-
-            assert(np.array_equal(v1, v2))
-
-        return self.__getGreenRatioOffsetAppliedPhaseArrayV2(curr_sim_step, an_sa_obj, actions)
-
-    def __getGreenRatioOffsetAppliedPhaseArrayV1(self, curr_sim_step, an_sa_obj, actions):
+    def __getGreenRatioOffsetAppliedPhaseArray_org(self, curr_sim_step, an_sa_obj, actions):
         '''
         get green-ratio and offset actions applied phase array list
 
@@ -203,7 +182,7 @@ class SaltActionMgmt:
 
 
 
-    def __getGreenRatioOffsetAppliedPhaseArrayV2(self, curr_sim_step, an_sa_obj, actions):
+    def __getGreenRatioOffsetAppliedPhaseArray(self, curr_sim_step, an_sa_obj, actions):
         '''
         get green-ratio and offset actions applied phase array list
         (code reuse version) it uses __getGreenRatioAppliedPhaseArray() and __getOffsetAppliedPhaseArray()
@@ -237,28 +216,27 @@ class SaltActionMgmt:
 
     def applyCurrentTrafficSignalPhaseToEnv(self, current_sim_step):
         '''
-        apply actions : offset, gr, gro
+        apply actions for all TLs : offset, gr, gro
 
         :param current_sim_step:
         :return:
         '''
-        # 모든 대상 교차로에 대해 신호 변경을 적용한다.
         num_sa = len(self.sa_name_list)
         for sa_i in range(num_sa):
             sa = self.sa_name_list[sa_i]
             tlid_list = self.sa_obj[sa]['tlid_list']
-            # print(tlid_list)
+
             tlid_i = 0
             sa_cycle = self.sa_obj[sa]['cycle_list'][0]
             phase_arr = self.apply_phase_array_list[sa_i]
-            # print(self.phase_arr[sa_i])
+
             for tlid in tlid_list:
-                # print(tlid, self.phase_arr[sa_i][tlid_i])
-                # t_phase = int(self.apply_phase_array_list[sa_i][tlid_i][current_sim_step % sa_cycle])
                 t_phase = int(phase_arr[tlid_i][current_sim_step % sa_cycle])
                 scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
                 libsalt.trafficsignal.changeTLSPhase(current_sim_step, tlid, scheduleID, t_phase)
                 tlid_i += 1
+
+        return 0
 
 
     def applyKeepChangeActionFirstStep(self, current_sim_step, all_actions, target_tl_obj):
@@ -320,6 +298,7 @@ class SaltActionMgmt:
         return phase_list
 
 
+
     def changePhaseArray(self, curr_sim_step, sa_idx, actions):
         '''
         change phase array based on given action
@@ -346,6 +325,8 @@ class SaltActionMgmt:
 
         elif self.args.action == 'gro':  # green ratio+offset : ref. step() at sappo_green_offset_single.py
             self.apply_phase_array_list[sa_idx] = self.__getGreenRatioOffsetAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
+
+        return 0
 
 
 
