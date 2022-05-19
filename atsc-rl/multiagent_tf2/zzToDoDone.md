@@ -13,7 +13,7 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 * distributed traffic signal optimization
   * cumulative learning
     * Cumulative training based on a previously trained model
-    * --cumulative
+    * --cumulative 
   * add action of adjacent TL(SA) to state
     * I wonder
       * it is possible?
