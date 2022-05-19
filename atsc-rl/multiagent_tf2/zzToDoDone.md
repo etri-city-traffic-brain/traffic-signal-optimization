@@ -57,9 +57,7 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 <hr>
   
 ### done history
-* Tag v1.0-2022
-  * make up the code 
-    * the location of import stmt 
+* v1.5-20220519AM-dist
   * distributed traffic signal optimization
     * command generation : generateCommand() at TSOUtil.py
       * considered all arguments used to run a single node program(ref. parseArgument() at run.py)
