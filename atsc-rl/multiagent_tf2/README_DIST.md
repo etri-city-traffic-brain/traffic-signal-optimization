@@ -10,7 +10,7 @@
 * change configurations in config.py 
 * set DBG_OPTIONS in DebugConfiguration.py
 * run python program as follows
-  * launch controler daemon
+  * launch controller daemon on the node responsible for controlling whole learning
     * usage
       ```shell
       usage: DistCtrlDaemon.py [-h] [--port PORT]  [--validation-criteria VALIDATION_CRITERIA]
@@ -39,7 +39,7 @@
       python DistCtrlDaemon.py --port 2727 --map doan  --target "SA 101, SA 104" --num-of-learning-daemon 2 --action gr --validation-criteria 5.0 --epoch 100 --model-save-period 10
       ```
     
-  * launch execution daemons
+  * launch execution daemons in every node responsible for training execution
     * usage
       ```shell
       usage: DistExecDaemon.py [-h] [--port PORT] [--ip-addr IP_ADDR]
