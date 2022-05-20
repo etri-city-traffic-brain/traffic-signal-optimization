@@ -263,13 +263,8 @@ class LearningDaemonThread(threading.Thread):
 
                 # do local learning
                 result = self.doLocalLearning(recv_msg_obj)
-                if DBG_OPTIONS.PrintExecDaemon:
-                    print("## returned trained opt model number ={}".format(result))
 
                 result = self.__copyTrainedModel(recv_msg_obj)
-
-                if DBG_OPTIONS.PrintExecDaemon:
-                    print("## returned trained opt model number ={}".format(result))
 
                 # after local learning was done, send MSG_LOCAL_LEARNING_DONE
                 send_msg = self.sendMsg(soc, _MSG_TYPE_.LOCAL_LEARNING_DONE, result)

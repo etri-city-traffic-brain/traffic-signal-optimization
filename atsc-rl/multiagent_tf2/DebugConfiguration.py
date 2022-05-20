@@ -5,8 +5,10 @@ class DBG_OPTIONS :
     WITH_DBG_MSG = False #
 
     RunWithDistributed = True  # find & store optimal model info  for distributed learning
-    TestFindOptimalModelNum = True  # todo should remove after test
     PrintTrain = True  # print messages which are related to train
+
+
+    CARE_CUMULATIVE = True # care cumulative learning.... todo should delete after test
 
     if WITH_DBG_MSG :
         ## Options which are related maintaining states
@@ -29,7 +31,7 @@ class DBG_OPTIONS :
 
 
         ## Other Options
-        RunWithWaitForDebug = False      # wait for debug
+        RunWithWaitForDebug = True      # wait for debug
         # UseConfig = True    # use config dic instead of args
         # WithNewCode = True  # run with new code
 

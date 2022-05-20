@@ -11,7 +11,7 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 ### todo
 * cumulative learning
   * Cumulative training based on a previously trained model parameter
-  * --cumulative 
+  * --cumulative-training 
   
 * state : include action of adjacent TL(SA) in the state info
   * I wonder

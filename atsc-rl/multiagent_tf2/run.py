@@ -137,6 +137,54 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
         agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
 
 
+#todo remove makeLoadModelFnPrefix() if CUMULATIVE mode succ
+def makeLoadModelFnPrefix_CareCumulative(args, problem_var, is_train_target=False):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
+
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+
+    fn_prefix=""
+    if args.mode=="train":
+        if is_train_target: # i.e., target-TL
+            if args.cumulative_training :
+                load_model_num = args.model_num
+            else:
+                return fn_prefix # no need to load pre-trained model
+        else: # if is_train_target == False, i.e., infer-TL
+            # do not care whether cumulative_training is true or not
+            load_model_num = args.infer_model_num
+    else: # i.e., args.mode == "test"
+        load_model_num = args.model_num
+
+    #
+    # is_train_target 을 활용...
+    #
+    if 0:
+        if args.infer_model_path == "." or args.cumulative_training==True:  # default
+            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                            load_model_num)
+        else:  # when we test distributed learning
+            # /tmp/tso/SAPPO-trial_0_SA_101_actor.h5
+            fn_prefix = "{}/{}-{}-trial_{}".format(args.infer_model_path, args.method.upper(), problem_var, load_model_num)
+    else:
+        if is_train_target and args.mode=="train":
+            assert args.cumulative_training==True, "internal error : it can not happen ... should have already exited from this func "
+            fn_path = "{}/model/{}".format(args.io_home, args.method)
+        elif args.infer_model_path == ".":
+            fn_path = "{}/model/{}".format(args.io_home, args.method)
+        else:
+            fn_path = args.infer_model_path
+
+        fn_prefix = "{}/{}-{}-trial_{}".format(fn_path, args.method.upper(), problem_var, load_model_num)
+
+    return fn_prefix
+
 
 def makeLoadModelFnPrefix(args, problem_var):
     '''
@@ -277,13 +325,24 @@ def trainSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
-            if is_train_target == False:
-                # make a prefix of file name which indicates saved trained model parameters
-                fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+            if DBG_OPTIONS.CARE_CUMULATIVE:
+                fn_prefix = makeLoadModelFnPrefix_CareCumulative(args, problem_var, is_train_target)
+                if len(fn_prefix) > 0:
+                    waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")  # should delete
+                    agent.loadModel(fn_prefix)
+                else:
+                    waitForDebug(f"agent for {target_sa} will training without loading a pre-trained model parameter")  # should delete
 
-                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
 
-                agent.loadModel(fn_prefix)
+            else:
+                if is_train_target == False:
+                    # make a prefix of file name which indicates saved trained model parameters
+                    fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+
+                    waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
+
+                    agent.loadModel(fn_prefix)
+
 
             ppo_agent.append(agent)
 
@@ -430,13 +489,10 @@ def trainSappo(args):
         model_save_period = args.model_save_period  # default 1
 
         # -- get the trial number that gave the best performance
-        if DBG_OPTIONS.TestFindOptimalModelNum:
-            optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
+        if args.epoch == 1:
+            optimal_model_num = 0
         else:
-            if args.epoch == 1:
-                optimal_model_num = 0
-            else:
-                optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
+            optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
 
         # -- make the prefix of file name which stores trained model
         fn_optimal_model_prefix = "{}/model/{}/{}-{}-trial". \
@@ -487,12 +543,16 @@ def testSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, convertSaNameToId(target_sa))
 
-            # make a prefix of file name which indicates saved trained model parameters
-            fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+            if DBG_OPTIONS.CARE_CUMULATIVE:
+                fn_prefix = makeLoadModelFnPrefix_CareCumulative(args, problem_var, True)
+            else:
+                # make a prefix of file name which indicates saved trained model parameters
+                fn_prefix = makeLoadModelFnPrefix(args, problem_var)
 
             waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
 
             agent.loadModel(fn_prefix)
+
             ppo_agent.append(agent)
 
 
