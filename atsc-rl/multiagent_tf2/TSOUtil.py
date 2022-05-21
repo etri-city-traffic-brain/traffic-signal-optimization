@@ -486,7 +486,7 @@ def generateCommand(args):
                 if 0: #todo 0번부터 카운트하는 것을 1번부터 하게 하면 어떻까?
                     load_model_num = int((args.epoch / args.model_save_period) * args.model_save_period)
                 else:
-                    load_model_num = int(((args.epoch -1)/ args.model_save_period) * args.model_save_period)
+                    load_model_num = int((args.epoch -1)/ args.model_save_period) * args.model_save_period
 
                 cmd = cmd + ' --model-num {} '.format(load_model_num)
                 cmd = cmd + ' --infer-model-num {} '.format(args.infer_model_number)
