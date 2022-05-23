@@ -5,34 +5,14 @@
 * Python comment : Python Integrated Tools
 * when class member function __funcFoo() is not called
 * when python process terminated with "killed" message
+* when you meet the "ModuleNotFoundError: No module named "libsalt" "
 * when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
 * When tensorboard does not work
 * when the simulation/learning is too slow
 * when training time becomes longer
 
-
-### when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
-* client_loop: send disconnect: Broken pipe
-* add following to the SSH configuration 
-  * .ssh/config for just you (or /etc/ssh/ssh_config for all user)
-  ```text
-  Host *
-  ServerAliveInterval 120
-  TCPKeepAlive no
-  ```
-  * directive “ServerAliveInterval“ will send a null packet to the server at 120-second intervals to keep the session alive and thus prevent it from closing abruptly.
-  * directive "TCPKeepAlive" specifies whether the system should send TCP keepalive messages to the other side
-* You can also make your OpenSSH server keep alive all connections with clients 
-  * by adding the following to /etc/ssh/sshd_config:
-    ```text
-    ClientAliveInterval 300
-    ClientAliveCountMax 2
-    ```
-* ref
-  * https://en.stealthsettings.com/fix-ssh-error-terminal-linux-client_loop-send-disconnect-broken-pipe.html
-  * http://egloos.zum.com/mcchae/v/11382363
-  * https://patrickmn.com/aside/how-to-keep-alive-ssh-sessions/
 <hr>
+
 
 ### do remove simulator mgs 
 * comment couts
@@ -104,6 +84,34 @@
 * consider python magic method
   * __delete__ / __del__ / __delattr__ / __delitem__
 
+
+### when you meet the "ModuleNotFoundError: No module named "libsalt" "
+* launch with path of SALT_HOME
+  ```shell
+  [%] SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator run.py --mode simulate ....
+  ```
+
+### when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
+* client_loop: send disconnect: Broken pipe
+* add following to the SSH configuration 
+  * .ssh/config for just you (or /etc/ssh/ssh_config for all user)
+  ```text
+  Host *
+  ServerAliveInterval 120
+  TCPKeepAlive no
+  ```
+  * directive “ServerAliveInterval“ will send a null packet to the server at 120-second intervals to keep the session alive and thus prevent it from closing abruptly.
+  * directive "TCPKeepAlive" specifies whether the system should send TCP keepalive messages to the other side
+* You can also make your OpenSSH server keep alive all connections with clients 
+  * by adding the following to /etc/ssh/sshd_config:
+    ```text
+    ClientAliveInterval 300
+    ClientAliveCountMax 2
+    ```
+* ref
+  * https://en.stealthsettings.com/fix-ssh-error-terminal-linux-client_loop-send-disconnect-broken-pipe.html
+  * http://egloos.zum.com/mcchae/v/11382363
+  * https://patrickmn.com/aside/how-to-keep-alive-ssh-sessions/
 
 
 ### When tensorbord does not work

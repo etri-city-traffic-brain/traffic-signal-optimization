@@ -311,9 +311,19 @@ def execTrafficSignalOptimization(cmd):
     subprocess.SW_HIDE = 1
 
     my_env = {}
-    my_env['PATH'] = env['PATH']
-    my_env['SALT_HOME'] = env['SALT_HOME']
-    my_env['PYTHONPATH'] = env['PYTHONPATH']
+    if 1: # work well
+        my_env['PATH'] = env['PATH']
+        my_env['SALT_HOME'] = env['SALT_HOME']
+        # my_env['PYTHONPATH'] = env['PYTHONPATH']
+    else: # work well
+        my_env['PATH'] = env['PATH']
+        salt_home = env['SALT_HOME']
+        my_env['SALT_HOME'] = salt_home
+        python_home = env.get('PYTHONHOME')
+        if python_home == None:
+            python_home = "."
+        python_home = f'{python_home}:{salt_home}/tools:{salt_home}:/tools/libsalt'
+        my_env['PYTHONPATH'] = python_home
 
     r = subprocess.Popen(cmd, shell=True, env=my_env).wait() # success
     # r = subprocess.Popen(cmd, shell=False, env=my_env).wait() # error

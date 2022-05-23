@@ -44,6 +44,9 @@ class SaltSappoEnvV3(gym.Env):
         if 'SALT_HOME' in os.environ:
             tools = os.path.join(os.environ['SALT_HOME'], 'tools')
             sys.path.append(tools)
+
+            tools_libsalt = os.path.join(os.environ['SALT_HOME'], 'tools/libsalt')
+            sys.path.append(tools_libsalt)
         else:
             sys.exit("Please declare the environment variable 'SALT_HOME'")
 

@@ -15,10 +15,21 @@ import shutil
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 import time
+import sys
+
+# check environment
+if 'SALT_HOME' in os.environ:
+    tools = os.path.join(os.environ['SALT_HOME'], 'tools')
+    sys.path.append(tools)
+
+    tools_libsalt = os.path.join(os.environ['SALT_HOME'], 'tools/libsalt')
+    sys.path.append(tools_libsalt)
+else:
+    sys.exit("Please declare the environment variable 'SALT_HOME'")
+
 
 
 import libsalt
-
 
 from config import TRAIN_CONFIG
 from DebugConfiguration import DBG_OPTIONS, waitForDebug

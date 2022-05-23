@@ -4,28 +4,38 @@
 # 0. set parameters
 if [ 1 ]; then
   ## control
-  DO_SIMULATE=true # whether do simulation with fixed signal to get ground zero performance or not
+  DO_SIMULATE=false # whether do simulation with fixed signal to get ground zero performance or not
+  DO_EVAL=true # whether do execution or not;  do evaluate command if true, otherwise just dump commands
 
   ## env related parameters
   ACCOUNT="tsoexp"
-  #CTRL_DAEMON_IP="129.254.182.176"
-  CTRL_DAEMON_IP="101.79.1.126" # "129.254.182.176"
+  CTRL_DAEMON_IP="129.254.182.176"
+  EXEC_DAEMON_IPS=(  "129.254.182.176"  )
+#  EXEC_DAEMON_IPS=(  "129.254.182.176"  "129.254.184.53"  "129.254.182.176" )
   PORT=2727
-  # EXEC_DAEMON_IPS=(  "129.254.182.176"  "129.254.184.53"  "129.254.182.176" )
-  # EXEC_DAEMON_IPS=(  "101.79.1.112"   "101.79.1.115"  "101.79.1.116"  "101.79.1.126"  )
-  EXEC_DAEMON_IPS=(  "101.79.1.112"   "101.79.1.115" )
-  EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2/
-  ACTIVATE_CONDA_ENV_P3_8="source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate p3.8"
+  EXEC_DIR=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2
+
+#  CTRL_DAEMON_IP="101.79.1.126" # "129.254.182.176"
+#  EXEC_DAEMON_IPS=(  "101.79.1.112"   "101.79.1.115" )
+#  #EXEC_DAEMON_IPS=(  "101.79.1.112"   "101.79.1.115"  "101.79.1.116"  "101.79.1.126"  )
+#  PORT=2727
+#  EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2/
+
+  ACTIVATE_CONDA_ENV_P3_8="source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate p3.8 "
 
   CTRL_DAEMON="DistCtrlDaemon.py"
   EXEC_DAEMON="DistExecDaemon.py"
   RL_PROG="run.py"
 
+  ## output file : to save verbosely dumped messages
+  POST_OUT=`date +"%F-%H-%M-%S"`
+  CTRL_OUT="zz.out.ctrl.$POST_OUT"
+  EXEC_OUT="zz.out.exec.$POST_OUT"
 
   ## Reinforcement Learning related parameters
   RL_SCENARIO_FILE_PATH="data/envs/salt"
   RL_MAP="doan"
-  RL_TARGET="SA 101, SA 104"
+  RL_TARGET="SA 101" #"SA 101, SA 104"
   RL_METHOD="sappo"
   RL_STATE="vdd" # v, d, vd, vdd
   RL_ACTION="gr"  # offset, gr, gro, kc
@@ -40,6 +50,12 @@ if [ 1 ]; then
   MODEL_STORE_ROOT_PATH="/home/tsoexp/share/dl_test_1"
   NUM_OF_OPTIMAL_MODEL_CANDIDATE=3
 
+
+  ## set libsalt path
+  SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator
+#  PYTHONPATH="$SALT_HOME/tools:$PYTHONPATH"
+#  PYTHONPATH="$SALT_HOME/tools/libsalt:$PYTHONPATH"
+
 fi
 
 
@@ -48,8 +64,9 @@ fi
 if $DO_SIMULATE
 then
 
+
   ## 1.1 construct command
-  INNER_CMD="python $RL_PROG --mode simulate --scenario-file-path $RL_SCENARIO_FILE_PATH "
+  INNER_CMD="SALT_HOME=$SALT_HOME python $RL_PROG --mode simulate --scenario-file-path $RL_SCENARIO_FILE_PATH "
   INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' --method $RL_METHOD "
   INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
 
@@ -60,7 +77,10 @@ then
   echo [%] $CMD
 
   ## 1.2 evaluate command
-  eval $CMD
+  if $DO_EVAL
+  then
+    eval $CMD
+  fi
 
   #  python run.py --mode simulate --map $RL_MAP --target-TL $RL_TARGET --method $RL_METHOD --state $RL_STATE  \
   #         --action $RL_ACTION --reward-func $RL_REWARD
@@ -70,7 +90,7 @@ fi
 # 2. execute controller daemon
 if [ 1 ]; then
   ## 2.1 construct command
-  INNER_CMD="python $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
+  INNER_CMD="SALT_HOME=$SALT_HOME python $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
   INNER_CMD="$INNER_CMD --validation-criteria $VALIDATION_CRITERIA "
   INNER_CMD="$INNER_CMD --model-store-root-path $MODEL_STORE_ROOT_PATH "
   INNER_CMD="$INNER_CMD --num-of-optimal-model-candidate $NUM_OF_OPTIMAL_MODEL_CANDIDATE "
@@ -83,12 +103,16 @@ if [ 1 ]; then
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV_P3_8; "
   CMD="$CMD cd $EXEC_DIR; "
-  CMD="$CMD $INNER_CMD \" &"
+  # CMD="$CMD $INNER_CMD  \" &"
+  CMD="$CMD $INNER_CMD > $CTRL_OUT 2>&1 & \" &"
 
   echo [%] $CMD
 
   ## 2.2 evaluate command
-  eval $CMD
+  if $DO_EVAL
+  then
+    eval $CMD
+  fi
 fi
 
 sleep 5
@@ -99,16 +123,22 @@ sleep 5
 for ip in ${EXEC_DAEMON_IPS[@]}
 do
   ## 3.1 construct command
-  INNER_CMD="python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT "
+  INNER_CMD="SALT_HOME=$SALT_HOME python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT "
 
   CMD="ssh $ACCOUNT@$ip  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV_P3_8; "
   CMD="$CMD cd $EXEC_DIR; "
-  CMD="$CMD $INNER_CMD \" &"
+  # CMD="$CMD $INNER_CMD \" &"
+  CMD="$CMD $INNER_CMD > $EXEC_OUT 2>&1 & \" &"
+
   echo [%] $CMD
 
   ## 2.2 evaluate command
-  eval $CMD
+  if $DO_EVAL
+  then
+    eval $CMD
+  fi
+
 done
 
 #!/bin/bash
@@ -139,10 +169,7 @@ done
   #python DistCtrlDaemon.py --port 2727 --map doan --target "SA 101, SA 104" --num-of-learning-daemon 2 --validation-criteria 5.0
   #python DistCtrlDaemon.py --port 2727 --map doan  --target "SA 101, SA 104" --num-of-learning-daemon 2 --action gr --validation-criteria 5.0 --epoch 1 --model-save-period 1
   #
-  #python DistExecDaemon.py --ip_addr 129.254.182.176  --port 2727
+  #python DistExecDaemon.py --ip-addr 129.254.182.176  --port 2727
+
+  # python run.py --mode train --map doan --target "SA 101,SA 104" --action offset --epoch
 # fi
-
-
-
-
-
