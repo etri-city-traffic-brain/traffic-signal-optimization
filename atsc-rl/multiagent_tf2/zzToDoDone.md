@@ -29,7 +29,7 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
   * increase dimension : [2048, 1024, 512, 256, 128]
   * change control_cycle
   
-* group split
+* [d] group split
   * make code which can work with small node
     * can work when the # of node is less than the # of target (i.e., # of node < # of target)
     
