@@ -7,8 +7,21 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 
 python run.py --mode simulate --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
 python run.py --mode train --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
-python run.py --mode test --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn --model-num 0 --result-comp true
+python run.py --mode test --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn \
+              --model-num 0 --result-comp true
 
+
+python DistCtrlDaemon.py --port 2727 --num-of-learning-daemon 1 --validation-criteria 6.0 \
+          --model-store-root-path /home/tsoexp/share/dl_test_1 --num-of-optimal-model-candidate 3 --scenario-file-path data/envs/salt \
+          --map doan --target-TL 'SA 101, SA 104' --method sappo --state vdd --action gr --reward-func pn --model-save-period 1 --epoch 5
+
+python DistCtrlDaemon.py --port 2727 --num-of-learning-daemon 2 --validation-criteria 10.0 \
+          --model-store-root-path /home/tsoexp/share/dl_test_1 --num-of-optimal-model-candidate 3 --scenario-file-path data/envs/salt \
+          --map doan --target-TL 'SA 101, SA 104, SA 111' --method sappo --state vdd --action gr --reward-func pn --model-save-period 1 \
+          --cumulative-training true --epoch 3
+
+
+python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
 
 
 ### todo
@@ -19,6 +32,7 @@ python run.py --mode test --map doan --target "SA 101" --action gr --epoch 1 --m
 * group split
   * make code which can work with small node
     * can work when the # of node is less than the # of target (i.e., # of node < # of target)
+    
 * [d] Fix "ModuleNotFoundError: No module named "libsalt" " "
   * this happens sometimes(not always) when we run with shell script(dist_learning.sh)
   

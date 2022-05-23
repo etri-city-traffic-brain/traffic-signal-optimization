@@ -10,7 +10,7 @@ if [ 1 ]; then
   ## env related parameters
   ACCOUNT="tsoexp"
   CTRL_DAEMON_IP="129.254.182.176"
-  EXEC_DAEMON_IPS=(  "129.254.182.176"  )
+  EXEC_DAEMON_IPS=(  "129.254.182.176" ,  "129.254.182.176"  )
 #  EXEC_DAEMON_IPS=(  "129.254.182.176"  "129.254.184.53"  "129.254.182.176" )
   PORT=2727
   EXEC_DIR=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2
@@ -35,13 +35,13 @@ if [ 1 ]; then
   ## Reinforcement Learning related parameters
   RL_SCENARIO_FILE_PATH="data/envs/salt"
   RL_MAP="doan"
-  RL_TARGET="SA 101" #"SA 101, SA 104"
+  RL_TARGET="SA 101, SA 104, SA 111" # SA 101,SA 104,SA 107,SA 111"
   RL_METHOD="sappo"
   RL_STATE="vdd" # v, d, vd, vdd
   RL_ACTION="gr"  # offset, gr, gro, kc
   RL_REWARD="pn"  # wq, cwq, pn, wt, tt
   RL_EPOCH=5
-  RL_MODEL_SAVE_PERIOD=1
+  RL_MODEL_SAVE_PERIOD=2
 
 
   ## distributed Reinforcement Learning related parameters

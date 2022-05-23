@@ -49,7 +49,18 @@ class LearningDaemonThread(threading.Thread):
         :param soc:
         :return:
         '''
-        recv_msg = soc.recv(1024)
+        # if 0:
+        #     recv_msg = soc.recv(2048)
+        # else: # not work
+        #     recv_msg = b""
+        #     while True:
+        #         packet = soc.recv(1024)
+        #         print("received...")
+        #         if not packet:
+        #             break
+        #         recv_msg += packet
+        # print("escape from soc.recv()")
+        recv_msg = soc.recv(2048)
         recv_msg_obj = doUnpickling(recv_msg)
         if DBG_OPTIONS.PrintExecDaemon:
             print("## recv_msg from {}:{} -- {}".format(self.connect_ip_addr, self.connect_port, recv_msg_obj.toString()))

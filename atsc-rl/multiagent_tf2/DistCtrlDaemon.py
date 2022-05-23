@@ -5,6 +5,7 @@ import threading
 import time
 import os
 import argparse
+import numpy as np
 import pandas as pd
 
 from TSOUtil import doPickling, doUnpickling, Msg
@@ -42,12 +43,22 @@ class ServingClientThread(threading.Thread):
         '''
         self.channel = channel
         self.details = details
-        self.target = local_target # optimization is done by connected client
-        self.infer_model_number = -1
+        if 0:
+            self.target = local_target # optimization is done by connected client
+            self.infer_model_number = -1
 
-        self.infer_model_root_path = args.model_store_root_path
-        infer_tl_list = args.target_TL.split(",")
-        infer_tl_list.remove(self.target)
+            self.infer_model_root_path = args.model_store_root_path
+            infer_tl_list = args.target_TL.split(",")
+            infer_tl_list.remove(self.target)
+        else:
+            self.target = self.convertListToCommaSeperatedString(local_target)
+            self.infer_model_number = -1
+
+            self.infer_model_root_path = args.model_store_root_path
+            infer_tl_list = args.target_TL.split(",")
+            for t in local_target:
+                infer_tl_list.remove(t)
+
         if len(infer_tl_list):
             self.infer_tls = self.convertListToCommaSeperatedString(infer_tl_list)
         else:
@@ -124,7 +135,7 @@ class ServingClientThread(threading.Thread):
         :param conn:
         :return:
         '''
-        recv_msg = conn.recv(1024)
+        recv_msg = conn.recv(2048)
         recv_msg_obj = doUnpickling(recv_msg)
 
         if DBG_OPTIONS.PrintServingThread:
@@ -385,6 +396,27 @@ def validate(args, validation_trials, fn_dist_learning_history):
 
     return success
 
+
+def makePartition(target, num_part):
+    len_target = len(target)
+    x = list(np.linspace(0, len_target, num_part + 1))
+    # print(x)
+
+    y = [int(i) for i in x]
+    # print(y)
+
+    partitions = []
+    prev = y[0]
+    for i in y[1:]:
+        part = target[prev:i]
+
+        partitions.append(part)
+        prev = i
+
+    # print (partitions)
+    return partitions
+
+
 ####
 # python DistCtrlDaemon.py --port 2727 --num_of_learning_daemon 3 --validation_criteria 6 --ground-zero True
 # python DistCtrlDaemon.py --port 2727  --target "SA 101, SA 104"  --num_of_learning_daemon 2 --validation_criteria 6
@@ -429,12 +461,17 @@ if __name__ == '__main__':
     ## invoke serving threads & establish connection
     serving_client_dic = dict()
 
-    group_list = args.target_TL.split(",")
+    if 0:
+        group_list = args.target_TL.split(",")
 
-    assert len(group_list)==args.num_of_learning_daemon,\
-        "command error : # of group({}) should be equal to num_of_learning_daemon({}}".format(len(group_list), args.num_of_learning_daemon)
+        assert len(group_list)==args.num_of_learning_daemon,\
+            "command error : # of group({}) should be equal to num_of_learning_daemon({}}".format(len(group_list), args.num_of_learning_daemon)
 
-    all_targets = group_list[:args.num_of_learning_daemon]
+        all_targets = group_list[:args.num_of_learning_daemon]
+    else:
+        target_list = args.target_TL.split(",")
+        group_list = makePartition(target_list, args.num_of_learning_daemon)
+
     for i in range(args.num_of_learning_daemon):
         channel, details = server.accept()
         target = group_list[i]

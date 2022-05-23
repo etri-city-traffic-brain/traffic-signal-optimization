@@ -7,6 +7,7 @@
 * when python process terminated with "killed" message
 * when you meet the "ModuleNotFoundError: No module named "libsalt" "
 * when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
+* when you meet the "_pickle.UnpicklingError: pickle data was truncated" error
 * When tensorboard does not work
 * when the simulation/learning is too slow
 * when training time becomes longer
@@ -90,6 +91,11 @@
   ```shell
   [%] SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator run.py --mode simulate ....
   ```
+
+###  when you meet the "_pickle.UnpicklingError: pickle data was truncated" error
+* increase the size of message receiving : 1024 --> 2048
+* ref. https://stackoverflow.com/questions/44637809/python-3-6-socket-pickle-data-was-truncated
+
 
 ### when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
 * client_loop: send disconnect: Broken pipe
