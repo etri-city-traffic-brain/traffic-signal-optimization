@@ -5,6 +5,9 @@ constants
 '''
 
 
+ONE_HOUR = 3600 # 1 hour is 3600 seconds(=60 *60)
+RESULT_COMPARE_SKIP = ONE_HOUR
+
 class _INTERVAL_:
     '''
     time interval to control distributed learning

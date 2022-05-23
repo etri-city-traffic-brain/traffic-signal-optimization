@@ -3,6 +3,7 @@ import numpy as np
 
 import pprint
 from DebugConfiguration import DBG_OPTIONS
+from TSOConstants import RESULT_COMPARE_SKIP
 
 
 def processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, individual_output):
@@ -124,7 +125,7 @@ def compareResult(args, target_tl_obj, ft_output, rl_output, model_num):
     ##-- create empty DataFrame object
     total_output = pd.DataFrame()
 
-    cut_interval = args.start_time + 3600 # 2시간 테스트시 앞에 1시간은 비교대상에서 제외
+    cut_interval = args.start_time + RESULT_COMPARE_SKIP # 2시간 테스트시 앞에 1시간은 비교대상에서 제외
     print(f"training step: {args.start_time} to {args.end_time}")
     print(f"comparing step: {cut_interval} to {args.end_time}")
     print(f"model number: {model_num}")

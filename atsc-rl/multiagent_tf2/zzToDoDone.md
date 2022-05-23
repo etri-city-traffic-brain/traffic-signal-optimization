@@ -5,6 +5,9 @@ python run.py --mode test --map doan --target "SA 101,SA 104"  --action gr --mod
 python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func cwq
 python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func pn
 
+python run.py --mode simulate --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
+python run.py --mode train --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
+python run.py --mode test --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn --model-num 0 --result-comp true
 
 
 
@@ -16,6 +19,11 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 * group split
   * make code which can work with small node
     * can work when the # of node is less than the # of target (i.e., # of node < # of target)
+* [d] Fix "ModuleNotFoundError: No module named "libsalt" " "
+  * this happens sometimes(not always) when we run with shell script(dist_learning.sh)
+  
+* [d] fix error in compareResult() at ResultCompare.py
+  * start time of comparison : should consider argument and scenario file
 
 * optimal model num
   * keep record while whole distributed learning 
@@ -46,6 +54,7 @@ python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epo
 
 * make up the code
   * [d] infer-TL argument related code
+  * remove "if 0:" related codes
   * debugging related code 
     * Print*, RunWithWaitForDebug, RunWithDistributed
   * constants

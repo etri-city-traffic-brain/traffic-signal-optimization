@@ -37,7 +37,7 @@ from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from env.SaltEnvUtil import appendPhaseRewards
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
-from env.SaltEnvUtil import getScenarioRelatedBeginEndTime
+from env.SaltEnvUtil import getScenarioRelatedBeginEndTime, getSimulationStartStepAndEndStep
 from env.SaltEnvUtil import makePosssibleSaNameList
 
 from env.SappoEnv import SaltSappoEnvV3
@@ -109,17 +109,17 @@ def createEnvironment(args):
 
 
 
-def calculateTrialLength(args):
-    '''
-    calculate a length of trial using simulation start & end time (from scenario file)
-    :param args:
-    :return: length of trial
-    '''
-    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    end_time = args.end_time if args.end_time < scenario_end else scenario_end
-    trial_len = end_time - start_time
-    return trial_len
+# def calculateTrialLength(args):
+#     '''
+#     calculate a length of trial using simulation start & end time (from scenario file)
+#     :param args:
+#     :return: length of trial
+#     '''
+#     scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+#     start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+#     end_time = args.end_time if args.end_time < scenario_end else scenario_end
+#     trial_len = end_time - start_time
+#     return trial_len, start_time, end_time
 
 
 def storeExperience(trial, step, agent, cur_state, action, reward, new_state, done, logp_t):
@@ -265,7 +265,13 @@ def trainSappo(args):
     env = createEnvironment(args)
 
     ## calculate trial length using argument and scenario file
-    trial_len = calculateTrialLength(args)
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
+    trial_len = end_time - start_time
+
+    # set start_/end_time which will be used to train
+    args.start_time = start_time
+    args.end_time = end_time
+
 
 
     ## make configuration dictionary & make some string variables
@@ -532,7 +538,12 @@ def testSappo(args):
     env = createEnvironment(args)
 
     ## calculate trial length using argument and scenario file
-    trial_len = calculateTrialLength(args)
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
+    trial_len = end_time - start_time
+
+    # set start_/end_time which will be used to test
+    args.start_time = start_time
+    args.end_time = end_time
 
 
     ## make configuration dictionary & construct problem_var string to be used to create file names
@@ -666,10 +677,14 @@ def fixedTimeSimulate(args):
     :return:
     '''
 
-    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    # calculate the length of simulation step of this trial : trial_len
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
+
+    # set start_/end_time which will be used to simulate
+    args.start_time = start_time
+    args.end_time = end_time
+
 
     salt_scenario = copyScenarioFiles(args.scenario_file_path)
     possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
@@ -710,9 +725,12 @@ def fixedTimeSimulate(args):
 
 
 def testOutOfMemory(num_epoch, args):
-    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    # scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    # start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    # end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    # trial_len = end_time - start_time
+
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
 
     salt_scenario = copyScenarioFiles(args.scenario_file_path)
