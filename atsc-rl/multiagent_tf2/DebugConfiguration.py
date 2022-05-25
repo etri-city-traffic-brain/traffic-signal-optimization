@@ -10,6 +10,8 @@ class DBG_OPTIONS :
 
     CARE_CUMULATIVE = True # care cumulative learning.... todo should delete after test
 
+    USE_EXPLORATION_EPSILON = True # use epsilon for exploration.... todo should delete after test
+
     if WITH_DBG_MSG :
         ## Options which are related maintaining states
         MaintainServerThreadState = True    # maintain a state of thread

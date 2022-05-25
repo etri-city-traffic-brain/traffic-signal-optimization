@@ -71,10 +71,15 @@ def parseArgument():
 
     args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
 
-    if 1:
-        #todo : think how often should we update actions
-        if args.action == 'gr':
-            args.control_cycle = 1
+    # todo : think how often should we update actions
+    if args.action == 'gr':
+        args.control_cycle = 1
+
+    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
+        # to use only exploitation when we do "test"
+        if args.mode == 'test':
+            args.epsilon = 0.0
+            args.epsilon_min = 0.0
 
     return args
 

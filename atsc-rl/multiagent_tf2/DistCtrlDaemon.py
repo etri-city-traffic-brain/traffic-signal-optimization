@@ -331,17 +331,6 @@ def validate(args, validation_trials, fn_dist_learning_history):
     :return:
     '''
 
-    #
-    # todo 관련 코드 전체적으로 수정해야 한다.
-    #    이미 결과 비교하는 것이 sappo_test() 에 포함되어 있다.
-    #    시뮬레이터의 출력 파일을 분석하여 교차로 통과시간을 비교한다.
-    #    def result_comp(args, ft_output, rl_output, model_num)를 이용한다.
-    #
-    #
-    # sappo_test()에서 아래와 같이 수행하여 결과를 저장해 놓는다.
-    # total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num),
-    #                     encoding='utf-8-sig', index=False)
-
 
     ## make command to execute TSO program with trained models
 
@@ -381,8 +370,7 @@ def validate(args, validation_trials, fn_dist_learning_history):
             print("### index={}".format(df.index.values))
             print("### column={}".format(df.columns.values))
 
-        # todo : should change hard-coding : "total", "imp_SumTravelTime_sum_0hop'
-        improvement_rate = df.at['total', 'imp_SumTravelTime_sum_0hop']
+        # improvement_rate = df.at['total', 'imp_SumTravelTime_sum_0hop']
         improvement_rate = df.at[_IMPROVEMENT_COMP_.ROW_NAME, _IMPROVEMENT_COMP_.COLUMN_NAME]
         success = _CHECK_.SUCCESS if improvement_rate >= args.validation_criteria else _CHECK_.FAIL
 

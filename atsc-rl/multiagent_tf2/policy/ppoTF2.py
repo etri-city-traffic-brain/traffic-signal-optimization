@@ -261,13 +261,16 @@ class PPOAgentTF2:
         self.gamma = config["gamma"]  # 0.99
         self.lamda = config["lambda"]  # 0.90
 
-
         max_size = config["memory_size"]  # 100
         forget_ratio = config["forget_ratio"]  # 0.1
         self.memory = ReplayMemory(max_size, forget_ratio)
-
-
         self.replay_count = 0
+
+        if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
+            self.epsilon = config["epsilon"]  # 1 if train, otherwise(test) 0
+            self.epsilon_min = config["epsilon_min"]  # 0.1 if train, otherwise(test) 0
+            self.epsilon_decay = config["epsilon_decay"]  # 0.999
+
 
         if USE_TBX :
             self.writer = SummaryWriter(comment="_" + self.env_name + "_" + self.optimizer.__name__ + "_" + str(self.lr))
@@ -293,6 +296,14 @@ class PPOAgentTF2:
 
 
     def act(self, state):
+
+        if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
+            return self.actV2(state)
+        else:
+            return self.actV1(state)
+
+
+    def actV1(self, state):
         # Use the network to predict the next action to take, using the model
         pred = self.actor.predict(state)
 
@@ -307,6 +318,28 @@ class PPOAgentTF2:
             logp_t = [0]  # when it is not train, this value is not used. so I set dummy value
 
         return action, logp_t
+
+
+    def actV2(self, state):
+        # Use the network to predict the next action to take, using the model
+        pred = self.actor.predict(state)
+
+        self.epsilon *= self.epsilon_decay
+        # print("act epsilon {}".format(self.epsilon))
+        self.epsilon = max(self.epsilon_min, self.epsilon)
+
+        if np.random.random() < self.epsilon:
+            low, high = -1.0, 1.0  # -1 and 1 are boundaries of tanh
+            action = pred + np.random.uniform(low, high, size=pred.shape) * self.std
+            action = np.clip(action, low, high)
+
+            logp_t = self.gaussian_likelihood(action, pred, self.log_std)
+        else:
+            action = pred
+            logp_t = [0]  # when it is not train, this value is not used. so I set dummy value
+
+        return action, logp_t
+
 
 
     def gaussian_likelihood(self, action, pred, log_std):
@@ -461,7 +494,9 @@ class PPOAgentTF2:
             sz_actions = total_size(actions, verbose=False)
             sz_logp_ts = total_size(logp_ts, verbose=False)
             sz_y_true= total_size(y_true)
+
             print(f"num_entry={num_entry} sz_states={sz_states} sz_n_states={sz_next_states} sz_act={sz_actions} sz_logp_ts={sz_logp_ts} sz_y_true={sz_y_true}")
+
             del states
             del next_states
             del actions
@@ -548,6 +583,14 @@ def makePPOConfig(args):
     cfg["control_cycle"] = args.control_cycle  # 5
     cfg["add_time"] = args.add_time  # 2
 
+    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
+        # for exploration
+        cfg["epsilon"] = args.epsilon  # epsilon for exploration
+        cfg["epsilon_min"] = args.epsilon_min # minimum of epsilon for exploration
+        cfg["epsilon_decay"] = args.epsilon_decay # epsilon decay for exploration
+        cfg["epoch_exploration_decay"] = args.epoch_exploration_decay # epsilon decay for exploration
+
+
     # cfg["network_layers"] = [512, 256, 128, 64, 32]  # TRAIN_CONFIG['network_size']
     cfg["network_layers"] = TRAIN_CONFIG['network_size']
 
@@ -581,6 +624,16 @@ def makePPOProblemVar(conf):
     problem_var += "_netSz_{}".format(conf["network_layers"])
     problem_var += "_offset_range_{}".format(conf["offset_range"])
     problem_var += "_control_cycle_{}".format(conf["control_cycle"])
+
+    # error message = 'File name too long'
+    if 0:
+        if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
+            # for exploration
+            problem_var += "_epsilon_{}".format(conf["epsilon"])
+            problem_var += "_epsilon_min_{}".format(conf["epsilon_min"])
+            problem_var += "_epsilon_decay{}".format(conf["epsilon_decay"])
+            problem_var += "_epoch_exploration_decay{}".format(conf["epoch_exploration_decay"])
+
     # if args.method=='ppornd':
     #     problem_var += "_gammai_{}".format(args.gamma_i)
     #     problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])

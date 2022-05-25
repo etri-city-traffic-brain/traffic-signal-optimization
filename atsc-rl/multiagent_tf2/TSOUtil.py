@@ -158,6 +158,13 @@ def addArgumentsToParser(parser):
     ### policy : common args
     parser.add_argument('--gamma', type=float, default=0.99, help='gamma')
 
+    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
+        parser.add_argument('--epsilon', type=float, default=1.0, help='epsilon for exploration')
+        parser.add_argument('--epsilon-min', type=float, default=0.1, help='minimum of epsilon for exploration')
+        parser.add_argument('--epsilon-decay', type=float, default=0.9999, help='epsilon decay for exploration')
+        # used to adjust epsilon when we do cumulative training : ref. generateCommand() at TSOUtil.py
+        parser.add_argument('--epoch-exploration-decay', type=float, default=0.9995, help='epsilon decay for an epoch; has meaning when we do cumulative training')
+
     ### polocy : PPO args
     parser.add_argument('--ppo-epoch', type=int, default=10, help='model fit epoch')
     parser.add_argument('--ppo-eps', type=float, default=0.1, help='')
@@ -465,6 +472,22 @@ def generateCommand(args):
 
 
     cmd = cmd + ' --gamma {}'.format(args.gamma)
+
+    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
+        epsilon = args.epsilon
+
+        # adjust epsilon when we do cumulative training
+        if args.cumulative_training:
+            an_experiment_exploration_decay = 1 - ( (1 - args.epoch_exploration_decay) * args.epoch)
+            experiments_exploration_decay = np.power(an_experiment_exploration_decay, args.infer_model_number+1)
+            epsilon = epsilon * experiments_exploration_decay
+
+        cmd = cmd + ' --epsilon {}'.format(epsilon)
+        cmd = cmd + ' --epsilon-min {}'.format(args.epsilon_min)
+        cmd = cmd + ' --epsilon-decay {}'.format(args.epsilon_decay)
+
+        print(f'### exp_{args.infer_model_number+1} epsilon={epsilon}')
+
 
     cmd = cmd + ' --ppo-epoch {}'.format(args.ppo_epoch)
     cmd = cmd + ' --ppo-eps {}'.format(args.ppo_eps)
