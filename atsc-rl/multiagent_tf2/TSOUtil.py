@@ -63,7 +63,7 @@ def readLines(fn):
     :return: list: read data
     '''
     f = open(fn, 'r')
-    data = f.readline()
+    data = f.readlines()
     f.close()
     return data
 
@@ -79,8 +79,6 @@ def writeLine(fn, contents):
              newline=None, closefd=True, opener=None)
     f.write("{}\n".format(contents))
     f.close()
-
-
 
 
 

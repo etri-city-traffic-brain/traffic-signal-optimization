@@ -533,7 +533,14 @@ def trainSappo(args):
         #       (ref. LearningDaemonThread::__copyTrainedModel() func )
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(args.target_TL.split(",")[0]))
 
-        writeLine(fn_opt_model_info, fn_optimal_model)
+        if DBG_OPTIONS.KEEP_OPTIMAL_MODEL_NUM:
+            # appendLine(fn_opt_model_info, fn_optimal_model)
+            if int(args.infer_model_num) < 0:
+                writeLine(fn_opt_model_info, fn_optimal_model)
+            else:
+                appendLine(fn_opt_model_info, fn_optimal_model)
+        else:
+            writeLine(fn_opt_model_info, fn_optimal_model)
 
         return optimal_model_num
 

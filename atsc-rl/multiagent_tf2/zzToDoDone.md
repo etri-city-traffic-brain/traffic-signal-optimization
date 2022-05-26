@@ -1,13 +1,13 @@
 
 
-python run.py --mode test --map doan --target "SA 101,SA 104"  --action offset --model-num 0
-python run.py --mode test --map doan --target "SA 101,SA 104"  --action gr --model-num 0
-python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func cwq
-python run.py --mode train --map doan --target "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func pn
+python run.py --mode test --map doan --target-TL "SA 101,SA 104"  --action offset --model-num 0
+python run.py --mode test --map doan --target-TL "SA 101,SA 104"  --action gr --model-num 0
+python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func cwq
+python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func pn
 
-python run.py --mode simulate --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
-python run.py --mode train --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
-python run.py --mode test --map doan --target "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn \
+python run.py --mode simulate --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
+python run.py --mode train --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
+python run.py --mode test --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn \
               --model-num 0 --result-comp true
 
 
@@ -29,18 +29,22 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
   * increase dimension : [2048, 1024, 512, 256, 128]
   * change control_cycle
   
+* [d] add codes to control exploration ratio when we do train : USE_EXPLORATION_EPSILON
+  
 * [d] group split
   * make code which can work with small node
     * can work when the # of node is less than the # of target (i.e., # of node < # of target)
     
-* [d] Fix "ModuleNotFoundError: No module named "libsalt" " "
+
+
+* [d-0526] Fix "ModuleNotFoundError: No module named "libsalt" " "
   * this happens sometimes(not always) when we run with shell script(dist_learning.sh)
   
-* [d] fix error in compareResult() at ResultCompare.py
+* [d-0526] fix error in compareResult() at ResultCompare.py
   * start time of comparison : should consider argument and scenario file
 
 * optimal model num
-  * keep record while whole distributed learning 
+  * [d] keep record while whole distributed learning : KEEP_OPTIMAL_MODEL_NUM
     * use append(), readlines()[-1] 
   * enlarge the scope of candidate
     * consider control_cycle

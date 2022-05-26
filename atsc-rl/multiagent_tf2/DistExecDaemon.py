@@ -12,7 +12,7 @@ from TSOConstants import _MSG_TYPE_
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _FN_PREFIX_, _MODE_
-from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine
+from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, readLines
 from TSOUtil import convertSaNameToId
 
 # Here's our thread:
@@ -195,7 +195,10 @@ class LearningDaemonThread(threading.Thread):
         model_store_path = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].model_store_root_path
         #todo 현재 대상이 하나인 경우만 고려하고 있다. 여러 개인 경우에 대해 고려해야 한다.
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(target_list[0]))
-        opt_model_info = readLine(fn_opt_model_info)
+        if DBG_OPTIONS.KEEP_OPTIMAL_MODEL_NUM:
+            opt_model_info = readLines(fn_opt_model_info)[-1]
+        else:
+            opt_model_info = readLine(fn_opt_model_info)
             # ./model/sappo/SAPPO-_state_vdd_action_gr_reward_cwq_..._control_cycle_1-trial-0
 
         tokens = opt_model_info.split('-')

@@ -10,7 +10,9 @@ class DBG_OPTIONS :
 
     CARE_CUMULATIVE = True # care cumulative learning.... todo should delete after test
 
-    USE_EXPLORATION_EPSILON = True # use epsilon for exploration.... todo should delete after test
+    USE_EXPLORATION_EPSILON = False # use epsilon for exploration.... todo should delete after test
+
+    KEEP_OPTIMAL_MODEL_NUM = True # to store(keep) all optimal model num when we do experiment ... todo should delete after test
 
     if WITH_DBG_MSG :
         ## Options which are related maintaining states
