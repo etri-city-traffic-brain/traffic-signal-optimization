@@ -297,6 +297,8 @@ class PPOAgentTF2:
 
     def act(self, state):
 
+        print(f'##### self.std={self.std}  self.log_std={self.log_std}')
+
         if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
             return self.actV2(state)
         else:
