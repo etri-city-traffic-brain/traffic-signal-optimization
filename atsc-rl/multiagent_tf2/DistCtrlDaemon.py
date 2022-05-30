@@ -15,7 +15,7 @@ from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
-from TSOConstants import _FN_PREFIX_, _IMPROVEMENT_COMP_
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
 
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
@@ -361,8 +361,6 @@ def validate(args, validation_trials, fn_dist_learning_history):
     if 1:
         # read a file which contains the result of comparison
         # and get the improvement rate
-        # import pandas as pd
-        # from TSOConstants import _FN_PREFIX_, _IMPROVEMENT_COMP_
         fn_result = "{}/{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
         df = pd.read_csv(fn_result, index_col=0)
 
@@ -371,7 +369,7 @@ def validate(args, validation_trials, fn_dist_learning_history):
             print("### column={}".format(df.columns.values))
 
         # improvement_rate = df.at['total', 'imp_SumTravelTime_sum_0hop']
-        improvement_rate = df.at[_IMPROVEMENT_COMP_.ROW_NAME, _IMPROVEMENT_COMP_.COLUMN_NAME]
+        improvement_rate = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
         success = _CHECK_.SUCCESS if improvement_rate >= args.validation_criteria else _CHECK_.FAIL
 
         appendLine(fn_dist_learning_history, f"{args.model_num},{improvement_rate}")

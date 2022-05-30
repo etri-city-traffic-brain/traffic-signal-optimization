@@ -125,13 +125,11 @@ def addArgumentsToParser(parser):
                         default='cwq',
                         help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based')
 
-    if DBG_OPTIONS.CARE_CUMULATIVE:
-        parser.add_argument("--cumulative-training", type=str2bool, default="FALSE", help='whether do cumulative training based on a previously trained model parameter or not')
+    parser.add_argument("--cumulative-training", type=str2bool, default="FALSE", help='whether do cumulative training based on a previously trained model parameter or not')
 
     parser.add_argument('--model-num', type=str, default='0', help='trained model number')
 
-    if DBG_OPTIONS.CARE_CUMULATIVE:
-        parser.add_argument('--infer-model-num', type=str, default='-1', help='trained model number for inference; this value is valid only when infer-TL is exist')
+    parser.add_argument('--infer-model-num', type=str, default='-1', help='trained model number for inference; this value is valid only when infer-TL is exist')
 
     parser.add_argument("--result-comp", type=str2bool, default="TRUE", help='whether compare simulation result or not')
 
@@ -156,12 +154,13 @@ def addArgumentsToParser(parser):
     ### policy : common args
     parser.add_argument('--gamma', type=float, default=0.99, help='gamma')
 
-    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
-        parser.add_argument('--epsilon', type=float, default=1.0, help='epsilon for exploration')
-        parser.add_argument('--epsilon-min', type=float, default=0.1, help='minimum of epsilon for exploration')
-        parser.add_argument('--epsilon-decay', type=float, default=0.9999, help='epsilon decay for exploration')
-        # used to adjust epsilon when we do cumulative training : ref. generateCommand() at TSOUtil.py
-        parser.add_argument('--epoch-exploration-decay', type=float, default=0.9995, help='epsilon decay for an epoch; has meaning when we do cumulative training')
+    ### for exploration
+    parser.add_argument('--epsilon', type=float, default=1.0, help='epsilon for exploration')
+    parser.add_argument('--epsilon-min', type=float, default=0.1, help='minimum of epsilon for exploration')
+    parser.add_argument('--epsilon-decay', type=float, default=0.9999, help='epsilon decay for exploration')
+    # used to adjust epsilon when we do cumulative training : ref. generateCommand() at TSOUtil.py
+    parser.add_argument('--epoch-exploration-decay', type=float, default=0.9995,
+                        help='epsilon decay for an epoch; has meaning when we do cumulative training')
 
     ### polocy : PPO args
     parser.add_argument('--ppo-epoch', type=int, default=10, help='model fit epoch')
@@ -471,20 +470,20 @@ def generateCommand(args):
 
     cmd = cmd + ' --gamma {}'.format(args.gamma)
 
-    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
-        epsilon = args.epsilon
+    ### USE_EXPLORATION_EPSILON:
+    epsilon = args.epsilon
 
-        # adjust epsilon when we do cumulative training
-        if args.cumulative_training:
-            an_experiment_exploration_decay = 1 - ( (1 - args.epoch_exploration_decay) * args.epoch)
-            experiments_exploration_decay = np.power(an_experiment_exploration_decay, args.infer_model_number+1)
-            epsilon = epsilon * experiments_exploration_decay
+    # adjust epsilon when we do cumulative training
+    if args.cumulative_training:
+        an_experiment_exploration_decay = 1 - ((1 - args.epoch_exploration_decay) * args.epoch)
+        experiments_exploration_decay = np.power(an_experiment_exploration_decay, args.infer_model_number + 1)
+        epsilon = epsilon * experiments_exploration_decay
 
-        cmd = cmd + ' --epsilon {}'.format(epsilon)
-        cmd = cmd + ' --epsilon-min {}'.format(args.epsilon_min)
-        cmd = cmd + ' --epsilon-decay {}'.format(args.epsilon_decay)
+    cmd = cmd + ' --epsilon {}'.format(epsilon)
+    cmd = cmd + ' --epsilon-min {}'.format(args.epsilon_min)
+    cmd = cmd + ' --epsilon-decay {}'.format(args.epsilon_decay)
 
-        print(f'### exp_{args.infer_model_number+1} epsilon={epsilon}')
+    print(f'### exp_{args.infer_model_number + 1} epsilon={epsilon}')
 
 
     cmd = cmd + ' --ppo-epoch {}'.format(args.ppo_epoch)
@@ -511,18 +510,15 @@ def generateCommand(args):
         if args.infer_model_number >= 0:  # we have trained model... do inference
             cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
 
-            if DBG_OPTIONS.CARE_CUMULATIVE:
-                cmd = cmd + ' --cumulative-training {} '.format(args.cumulative_training)
+            cmd = cmd + ' --cumulative-training {} '.format(args.cumulative_training)
 
-                if 0: #todo 0번부터 카운트하는 것을 1번부터 하게 하면 어떻까?
-                    load_model_num = int((args.epoch / args.model_save_period) * args.model_save_period)
-                else:
-                    load_model_num = int((args.epoch -1)/ args.model_save_period) * args.model_save_period
-
-                cmd = cmd + ' --model-num {} '.format(load_model_num)
-                cmd = cmd + ' --infer-model-num {} '.format(args.infer_model_number)
+            if 0:  # todo 0번부터 카운트하는 것을 1번부터 하게 하면 어떻까?
+                load_model_num = int((args.epoch / args.model_save_period) * args.model_save_period)
             else:
-                cmd = cmd + ' --model-num {} '.format(args.infer_model_number)
+                load_model_num = int((args.epoch - 1) / args.model_save_period) * args.model_save_period
+
+            cmd = cmd + ' --model-num {} '.format(load_model_num)
+            cmd = cmd + ' --infer-model-num {} '.format(args.infer_model_number)
 
             ## todo  만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)

@@ -195,10 +195,7 @@ class LearningDaemonThread(threading.Thread):
         model_store_path = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].model_store_root_path
         #todo 현재 대상이 하나인 경우만 고려하고 있다. 여러 개인 경우에 대해 고려해야 한다.
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(target_list[0]))
-        if DBG_OPTIONS.KEEP_OPTIMAL_MODEL_NUM:
-            opt_model_info = readLines(fn_opt_model_info)[-1]
-        else:
-            opt_model_info = readLine(fn_opt_model_info)
+        opt_model_info = readLines(fn_opt_model_info)[-1]
             # ./model/sappo/SAPPO-_state_vdd_action_gr_reward_cwq_..._control_cycle_1-trial-0
 
         tokens = opt_model_info.split('-')

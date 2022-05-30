@@ -3,6 +3,7 @@
 * do remove simulator msg 
 * how to increase the # of max open file
 * Python comment : Python Integrated Tools
+* too many log messages are dumped when we do simulation with SALT simulator
 * when class member function __funcFoo() is not called
 * when python process terminated with "killed" message
 * when you meet the "ModuleNotFoundError: No module named "libsalt" "
@@ -13,6 +14,7 @@
 * when training time becomes longer
 
 <hr>
+
 
 
 ### do remove simulator mgs 
@@ -58,6 +60,13 @@
          @return:
         ```
   
+
+
+### too many log messages are dumped when we do simulation with SALT simulator
+* find the "cout" and comment it out
+  * traffic-simulator/src/Object/TrafficSignal/TrafficSignal.cpp
+
+
 ### when class member function __funcFoo() is not called
 * be careful when you use double underscore as a start of func name  
   * can not be called outside of defined class 

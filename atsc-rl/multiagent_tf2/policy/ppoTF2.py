@@ -266,10 +266,10 @@ class PPOAgentTF2:
         self.memory = ReplayMemory(max_size, forget_ratio)
         self.replay_count = 0
 
-        if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
-            self.epsilon = config["epsilon"]  # 1 if train, otherwise(test) 0
-            self.epsilon_min = config["epsilon_min"]  # 0.1 if train, otherwise(test) 0
-            self.epsilon_decay = config["epsilon_decay"]  # 0.999
+        ### USE_EXPLORATION_EPSILON:
+        self.epsilon = config["epsilon"]  # 1 if train, otherwise(test) 0
+        self.epsilon_min = config["epsilon_min"]  # 0.1 if train, otherwise(test) 0
+        self.epsilon_decay = config["epsilon_decay"]  # 0.999
 
 
         if USE_TBX :
@@ -299,10 +299,9 @@ class PPOAgentTF2:
 
         #print(f'##### self.std={self.std}  self.log_std={self.log_std}')
 
-        if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
-            return self.actV2(state)
-        else:
-            return self.actV1(state)
+        ### USE_EXPLORATION_EPSILON:
+        return self.actV2(state)
+        ### return self.actV1(state)
 
 
     def actV1(self, state):
@@ -585,12 +584,11 @@ def makePPOConfig(args):
     cfg["control_cycle"] = args.control_cycle  # 5
     cfg["add_time"] = args.add_time  # 2
 
-    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
-        # for exploration
-        cfg["epsilon"] = args.epsilon  # epsilon for exploration
-        cfg["epsilon_min"] = args.epsilon_min # minimum of epsilon for exploration
-        cfg["epsilon_decay"] = args.epsilon_decay # epsilon decay for exploration
-        cfg["epoch_exploration_decay"] = args.epoch_exploration_decay # epsilon decay for exploration
+    # for exploration
+    cfg["epsilon"] = args.epsilon  # epsilon for exploration
+    cfg["epsilon_min"] = args.epsilon_min  # minimum of epsilon for exploration
+    cfg["epsilon_decay"] = args.epsilon_decay  # epsilon decay for exploration
+    cfg["epoch_exploration_decay"] = args.epoch_exploration_decay  # epsilon decay for exploration
 
 
     # cfg["network_layers"] = [512, 256, 128, 64, 32]  # TRAIN_CONFIG['network_size']
@@ -629,12 +627,11 @@ def makePPOProblemVar(conf):
 
     # error message = 'File name too long'
     if 0:
-        if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
-            # for exploration
-            problem_var += "_epsilon_{}".format(conf["epsilon"])
-            problem_var += "_epsilon_min_{}".format(conf["epsilon_min"])
-            problem_var += "_epsilon_decay{}".format(conf["epsilon_decay"])
-            problem_var += "_epoch_exploration_decay{}".format(conf["epoch_exploration_decay"])
+        # for exploration
+        problem_var += "_epsilon_{}".format(conf["epsilon"])
+        problem_var += "_epsilon_min_{}".format(conf["epsilon_min"])
+        problem_var += "_epsilon_decay{}".format(conf["epsilon_decay"])
+        problem_var += "_epoch_exploration_decay{}".format(conf["epoch_exploration_decay"])
 
     # if args.method=='ppornd':
     #     problem_var += "_gammai_{}".format(args.gamma_i)

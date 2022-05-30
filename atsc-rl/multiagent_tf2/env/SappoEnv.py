@@ -10,7 +10,7 @@ import numpy as np
 import libsalt
 
 
-from env.SaltEnvUtil import appendPhaseRewards
+from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getSimulationStartStepAndEndStep
@@ -168,10 +168,11 @@ class SaltSappoEnvV3(gym.Env):
 
             self.simulation_steps = 0
 
+            self.prev_avg_speed_list = []
+
             if self.args.mode == 'test':
                 self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
-                writeLine(self.fn_rl_phase_reward_output, 'step,tl_name,actions,phase,reward')
-
+                writeLine(self.fn_rl_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed')
 
 
     def __getNextTimeToAct(self, current_step, sa_cycle, control_cycle):
@@ -300,7 +301,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list)
+                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list)
 
 
         elif self.args.action == "kc":  # keep or change
@@ -320,7 +321,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list)
+                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list)
 
 
             ## apply keep-change actions : second step
@@ -337,7 +338,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list)
+                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list)
 
         # for SAs to apply action next time (다음 번에 action을 적용할 SA들에 대해)
         #   1) calculate reward, 2) gather state info, 3) increase time to act
@@ -383,6 +384,12 @@ class SaltSappoEnvV3(gym.Env):
         libsalt.setCurrentStep(self.start_step)
         self.simulation_steps = libsalt.getCurrentStep()
 
+        if self.args.mode == 'test':
+            self.prev_avg_speed_list.clear()
+
+            for tlid in self.target_tl_id_list:
+                self.prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, self.tl_obj, num_hop=0))
+
         #-- warming up
         ##--- make dummy actions to write output file
         actions = []
@@ -401,7 +408,7 @@ class SaltSappoEnvV3(gym.Env):
             if self.args.mode == 'test':
                 appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                    actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                   self.tl_obj, self.target_tl_id_list)
+                                   self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list)
 
 
         self.simulation_steps = libsalt.getCurrentStep()
@@ -436,7 +443,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list)
+                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list)
 
                 if self.simulation_steps % self.reward_info_collection_cycle == 0:
                     # self.reward_mgmt.gatherRewardRelatedInfo(self.action_t, self.simulation_steps, self.reward_info_collection_cycle)

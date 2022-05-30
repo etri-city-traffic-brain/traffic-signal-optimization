@@ -34,7 +34,7 @@ import libsalt
 from config import TRAIN_CONFIG
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
-from env.SaltEnvUtil import appendPhaseRewards
+from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getScenarioRelatedBeginEndTime, getSimulationStartStepAndEndStep
@@ -47,7 +47,7 @@ from env.SappoRewardMgmt import SaltRewardMgmtV3
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
-from TSOConstants import _FN_PREFIX_
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
@@ -72,14 +72,13 @@ def parseArgument():
     args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
 
     # todo : think how often should we update actions
-    if args.action == 'gr':
-        args.control_cycle = 1
+    # if args.action == 'gr':
+    #     args.control_cycle = 1
 
-    if DBG_OPTIONS.USE_EXPLORATION_EPSILON:
-        # to use only exploitation when we do "test"
-        if args.mode == 'test':
-            args.epsilon = 0.0
-            args.epsilon_min = 0.0
+    # to use only exploitation when we do "test"
+    if args.mode == 'test':
+        args.epsilon = 0.0
+        args.epsilon_min = 0.0
 
     return args
 
@@ -153,68 +152,9 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
         agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
 
 
-#todo remove makeLoadModelFnPrefix() if CUMULATIVE mode succ
-def makeLoadModelFnPrefix_CareCumulative(args, problem_var, is_train_target=False):
-    '''
-    make a prefix of file name which indicates saved trained model parameters
-
-    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
-
-    :param args:
-    :param problem_var:
-    :return:
-    '''
-
-    fn_prefix=""
-    if args.mode=="train":
-        if is_train_target: # i.e., target-TL
-            if args.cumulative_training :
-                load_model_num = args.model_num
-            else:
-                return fn_prefix # no need to load pre-trained model
-        else: # if is_train_target == False, i.e., infer-TL
-            # do not care whether cumulative_training is true or not
-            load_model_num = args.infer_model_num
-    else: # i.e., args.mode == "test"
-        load_model_num = args.model_num
-
-    #
-    # is_train_target 을 활용...
-    #
-    if 0:
-        if args.infer_model_path == "." or args.cumulative_training==True:  # default
-            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
-                                                            load_model_num)
-        else:  # when we test distributed learning
-            # /tmp/tso/SAPPO-trial_0_SA_101_actor.h5
-            fn_prefix = "{}/{}-{}-trial_{}".format(args.infer_model_path, args.method.upper(), problem_var, load_model_num)
-    else:
-        if is_train_target and args.mode=="train":
-            assert args.cumulative_training==True, "internal error : it can not happen ... should have already exited from this func "
-            fn_path = "{}/model/{}".format(args.io_home, args.method)
-        elif args.infer_model_path == ".":
-            fn_path = "{}/model/{}".format(args.io_home, args.method)
-        else:
-            fn_path = args.infer_model_path
-
-        fn_prefix = "{}/{}-{}-trial_{}".format(fn_path, args.method.upper(), problem_var, load_model_num)
-
-    return fn_prefix
 
 
-def makeLoadModelFnPrefix(args, problem_var):
-    '''
-    make a prefix of file name which indicates saved trained model parameters
-
-    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
-
-    :param args:
-    :param problem_var:
-    :return:
-    '''
-    return makeLoadModelFnPrefixV2(args, problem_var)
-
-def makeLoadModelFnPrefixV1(args, problem_var):
+def makeLoadModelFnPrefixV1(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
 
@@ -235,7 +175,7 @@ def makeLoadModelFnPrefixV1(args, problem_var):
     return fn_prefix
 
 
-def makeLoadModelFnPrefixV2(args, problem_var):
+def makeLoadModelFnPrefixV2(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
 
@@ -256,6 +196,59 @@ def makeLoadModelFnPrefixV2(args, problem_var):
     return fn_prefix
 
 
+def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
+
+    v3: we consider cumulative training
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+
+    fn_prefix=""
+
+    ## get model num to load
+    if args.mode=="train":
+        if is_train_target: # i.e., target-TL
+            if args.cumulative_training :
+                load_model_num = args.model_num
+            else:
+                return fn_prefix # no need to load pre-trained model
+        else: # if is_train_target == False, i.e., infer-TL
+            # do not care whether cumulative_training is true or not
+            load_model_num = args.infer_model_num
+    else: # i.e., args.mode == "test"
+        load_model_num = args.model_num
+
+
+    ## construct file path
+    if is_train_target and args.mode=="train":
+        assert args.cumulative_training == True, "internal error : it can not happen ... should have already exited from this func "
+        fn_path = "{}/model/{}".format(args.io_home, args.method)
+    elif args.infer_model_path == ".":
+        fn_path = "{}/model/{}".format(args.io_home, args.method)
+    else:
+        fn_path = args.infer_model_path
+
+    fn_prefix = "{}/{}-{}-trial_{}".format(fn_path, args.method.upper(), problem_var, load_model_num)
+
+    return fn_prefix
+
+
+def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
+
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+    return makeLoadModelFnPrefixV3(args, problem_var, is_train_target)
 
 def trainSappo(args):
     '''
@@ -347,23 +340,22 @@ def trainSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
-            if DBG_OPTIONS.CARE_CUMULATIVE:
-                fn_prefix = makeLoadModelFnPrefix_CareCumulative(args, problem_var, is_train_target)
-                if len(fn_prefix) > 0:
-                    waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")  # should delete
-                    agent.loadModel(fn_prefix)
-                else:
-                    waitForDebug(f"agent for {target_sa} will training without loading a pre-trained model parameter")  # should delete
-
-
+            fn_prefix = makeLoadModelFnPrefix(args, problem_var, is_train_target)
+            if len(fn_prefix) > 0:
+                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")  # should delete
+                agent.loadModel(fn_prefix)
             else:
-                if is_train_target == False:
-                    # make a prefix of file name which indicates saved trained model parameters
-                    fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+                waitForDebug(
+                    f"agent for {target_sa} will training without loading a pre-trained model parameter")  # should delete
 
-                    waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
 
-                    agent.loadModel(fn_prefix)
+            #     if is_train_target == False:
+            #         # make a prefix of file name which indicates saved trained model parameters
+            #         fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+            #
+            #         waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
+            #
+            #         agent.loadModel(fn_prefix)
 
 
             ppo_agent.append(agent)
@@ -533,14 +525,10 @@ def trainSappo(args):
         #       (ref. LearningDaemonThread::__copyTrainedModel() func )
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(args.target_TL.split(",")[0]))
 
-        if DBG_OPTIONS.KEEP_OPTIMAL_MODEL_NUM:
-            # appendLine(fn_opt_model_info, fn_optimal_model)
-            if int(args.infer_model_num) < 0:
-                writeLine(fn_opt_model_info, fn_optimal_model)
-            else:
-                appendLine(fn_opt_model_info, fn_optimal_model)
-        else:
+        if int(args.infer_model_num) < 0:
             writeLine(fn_opt_model_info, fn_optimal_model)
+        else:
+            appendLine(fn_opt_model_info, fn_optimal_model)
 
         return optimal_model_num
 
@@ -577,11 +565,8 @@ def testSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, convertSaNameToId(target_sa))
 
-            if DBG_OPTIONS.CARE_CUMULATIVE:
-                fn_prefix = makeLoadModelFnPrefix_CareCumulative(args, problem_var, True)
-            else:
-                # make a prefix of file name which indicates saved trained model parameters
-                fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+            # make a prefix of file name which indicates saved trained model parameters
+            fn_prefix = makeLoadModelFnPrefix(args, problem_var, True)
 
             waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
 
@@ -663,8 +648,9 @@ def testSappo(args):
 
     # compare traffic simulation results
     if args.result_comp:
-        ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
-        rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
+        #todo
+        ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
+        rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
 
         total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num)
 
@@ -708,7 +694,7 @@ def fixedTimeSimulate(args):
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
-    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
+    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed')
 
     reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
                                        args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
@@ -723,16 +709,24 @@ def fixedTimeSimulate(args):
 
     sim_step = libsalt.getCurrentStep()
 
+    prev_avg_speed_list = []
+    for tlid in target_tl_id_list:
+        prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, target_tl_obj, num_hop=0))
+
     for i in range(trial_len):
         libsalt.simulationStep()
         sim_step += 1
 
         # todo 일정 주기로 보상 값을 얻어와서 기록한다.
         appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
-                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list)
+                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list, prev_avg_speed_list)
 
 
     print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
+
+    prev_avg_speed_list.clear()
+    del prev_avg_speed_list
+
     libsalt.close()
 
 
