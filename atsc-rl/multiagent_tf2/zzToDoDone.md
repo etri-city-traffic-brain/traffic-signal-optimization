@@ -106,6 +106,9 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
     * grep todo *
     
 * dockerize
+  * compile salt in the docker image env
+    * from : make a binary outside and copy it to docker image env
+    * to : copy SALT source into docker image env and compile it to make binary
 
 <hr>
   

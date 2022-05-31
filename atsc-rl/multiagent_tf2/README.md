@@ -113,7 +113,7 @@
 ```
 - SALT simulation output during training
 ```shell script
-    output/train/-PeriodicOutput.csv
+    output/train/_PeriodicOutput.csv
 ```
 
 #### Test ####
@@ -133,7 +133,7 @@
 ```
 - SALT simulation output for fixed time scenario
 ```shell script
-    output/simulate/-PeriodicOutput.csv
+    output/simulate/_PeriodicOutput.csv
 ```
 
 - When **result-comp is True**, comparison of improvement for model number {}

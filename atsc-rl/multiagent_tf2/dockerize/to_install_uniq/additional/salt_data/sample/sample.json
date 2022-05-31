@@ -1,0 +1,30 @@
+{
+  "scenario": {
+    "host" :"129.254.184.53",
+    "port":"1337",
+    "interval":"1",
+    "id": "sample",
+    "time": {
+      "begin": 3600,
+      "end": 4800
+    },
+    "input": {
+      "fileType": "SALT",
+      "node": "node.xml",
+      "link": "edge.xml",
+      "connection": "connection.xml",
+      "trafficLightSystem": "tss.xml",
+      "route": "route.xml"
+    },
+    "parameter": {
+      "minCellLength": 30,
+      "vehLength": 5
+    },
+    "output": {
+      "fileDir": "/uniq/simulator/salt/volume/output/sample/",
+      "period": 600,
+      "level": "link",
+      "save": 1
+    }
+  }
+}
