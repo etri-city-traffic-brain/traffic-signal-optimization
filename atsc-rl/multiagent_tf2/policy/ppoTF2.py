@@ -300,8 +300,9 @@ class PPOAgentTF2:
         #print(f'##### self.std={self.std}  self.log_std={self.log_std}')
 
         ### USE_EXPLORATION_EPSILON:
-        return self.actV2(state)
-        ### return self.actV1(state)
+        return self.actV3(state)
+        # return self.actV2(state)
+        # return self.actV1(state)
 
 
     def actV1(self, state):
@@ -341,6 +342,28 @@ class PPOAgentTF2:
 
         return action, logp_t
 
+
+    def actV3(self, state):
+        # Use the network to predict the next action to take, using the model
+        pred = self.actor.predict(state)
+
+        self.epsilon *= self.epsilon_decay
+        # print("act epsilon {}".format(self.epsilon))
+        self.epsilon = max(self.epsilon_min, self.epsilon)
+
+        if self.is_train :
+            if np.random.random() < self.epsilon:
+                low, high = -1.0, 1.0  # -1 and 1 are boundaries of tanh
+                action = pred + np.random.uniform(low, high, size=pred.shape) * self.std
+                action = np.clip(action, low, high)
+            else:
+                action = pred
+            logp_t = self.gaussian_likelihood(action, pred, self.log_std)
+        else:
+            action = pred
+            logp_t = [0]  # when it is not train, this value is not used. so I set dummy value
+
+        return action, logp_t
 
 
     def gaussian_likelihood(self, action, pred, log_std):
