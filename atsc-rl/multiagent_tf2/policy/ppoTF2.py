@@ -511,15 +511,15 @@ class PPOAgentTF2:
         approx_ent = np.mean(-logp)
 
         if 1:
-            from TSOUtil import total_size
-            num_entry = len(states)
-            sz_states = total_size(states, verbose=False)
-            sz_next_states = total_size(next_states, verbose=False)
-            sz_actions = total_size(actions, verbose=False)
-            sz_logp_ts = total_size(logp_ts, verbose=False)
-            sz_y_true= total_size(y_true)
-
-            print(f"num_entry={num_entry} sz_states={sz_states} sz_n_states={sz_next_states} sz_act={sz_actions} sz_logp_ts={sz_logp_ts} sz_y_true={sz_y_true}")
+            # from TSOUtil import total_size
+            # num_entry = len(states)
+            # sz_states = total_size(states, verbose=False)
+            # sz_next_states = total_size(next_states, verbose=False)
+            # sz_actions = total_size(actions, verbose=False)
+            # sz_logp_ts = total_size(logp_ts, verbose=False)
+            # sz_y_true= total_size(y_true)
+            #
+            # print(f"num_entry={num_entry} sz_states={sz_states} sz_n_states={sz_next_states} sz_act={sz_actions} sz_logp_ts={sz_logp_ts} sz_y_true={sz_y_true}")
 
             del states
             del next_states
