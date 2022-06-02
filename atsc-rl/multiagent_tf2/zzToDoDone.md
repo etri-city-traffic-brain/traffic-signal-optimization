@@ -92,32 +92,21 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
 
 ### done history
 
-* Tag v1.5.1-
+* Tag v1.1a-20220602
   * add cumulative trainint ,  --cumulative-training 
     * Cumulative training based on a previously trained model parameter
-  * [d-0602] add codes to control exploration ratio when we do train : USE_EXPLORATION_EPSILON
-  
-  * [d-0602] group split
+  * add codes to control exploration ratio when we do train : USE_EXPLORATION_EPSILON
+  * group split
     * make code which can work with small node
       * can work when the # of node is less than the # of target (i.e., # of node < # of target)
-
-  * [d-0526] Fix "ModuleNotFoundError: No module named "libsalt" " "
+  * Fix "ModuleNotFoundError: No module named "libsalt" " "
     * this happens sometimes(not always) when we run with shell script(dist_learning.sh)
-  
-  * [d-0526] fix error in compareResult() at ResultCompare.py
+  * fix error in compareResult() at ResultCompare.py
     * start time of comparison : should consider argument and scenario file
-  
-  * add nohup into script : nohup .... > foo.out 2>&1 &
-    ```shell
-       nohup python DistCtrlDaemon.py --port 2828 --map sa_1_6_17 --target "SA 6" --num-of-learning-daemon 1 \
-                                     --state vdd  --action gro --reward-func cwq --validation-criteria 10.0 \
-                                     --epoch 200 --model-save-period 5 --cumulative-training True \
-                                     --model-store-root-path /home/tsoexp/share/results/2828/gro_cwq > ctrl.gro.cwq 2>&1 &
-      nohup python DistExecDaemon.py --ip-addr 101.79.1.116  --port 2828 > exec.gro.cwq 2>&1 &
-      nohup tensorboard --logdir ./logs --host 101.79.1.116 --port 7007 > tb.out 2>&1 &
-    ```
+  * add nohup into script : nohup python foo.py .... > foo.out 2>&1 &
+
     
-* Tag v1.5-20220519AM-dist
+* Tag v1.0.5-20220519AM-dist
   * distributed traffic signal optimization
     * command generation : generateCommand() at TSOUtil.py
       * considered all arguments used to run a single node program(ref. parseArgument() at run.py)
