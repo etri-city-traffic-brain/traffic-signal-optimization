@@ -663,9 +663,24 @@ def testSappo(args):
             dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
             shutil.copy2(result_fn, dst_fn)
 
+            df = pd.read_csv(result_fn, index_col=0)
+            for sa in env.target_sa_name_list:
+                __printImprovementRate(df, sa)
+            __printImprovementRate(df, 'total')
+
     return avg_reward
 
 
+def __printImprovementRate(df, target):
+    ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
+    rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
+    ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']
+    rl_sum_travel_time = df.at[target, 'rl_SumTravelTime_sum_0hop']
+
+    ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
+    rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
+    imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
+    print(f'Average Travel Time ({target}): {imp_rate}% improved')
 
 
 def fixedTimeSimulate(args):

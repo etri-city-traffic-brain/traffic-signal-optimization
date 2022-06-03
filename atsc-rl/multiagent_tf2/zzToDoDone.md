@@ -91,7 +91,11 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
   
 
 ### done history
-
+* Tag V1.1b-202206
+  * [0603] fix and extend result compare related stuff
+    * fix : logic to calculate the improvement ratio of travel time
+    * extend : calculate improvement rate for each SA
+  
 * Tag v1.1a-20220602
   * add cumulative trainint ,  --cumulative-training 
     * Cumulative training based on a previously trained model parameter

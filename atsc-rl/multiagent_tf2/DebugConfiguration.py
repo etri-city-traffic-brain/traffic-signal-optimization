@@ -7,6 +7,7 @@ class DBG_OPTIONS :
     RunWithDistributed = True  # find & store optimal model info  for distributed learning
     PrintTrain = True  # print messages which are related to train
 
+    IngCompResult = False
     NEW_PPO = True # std 값 변경 되게 하기 위함
 
     if WITH_DBG_MSG :
