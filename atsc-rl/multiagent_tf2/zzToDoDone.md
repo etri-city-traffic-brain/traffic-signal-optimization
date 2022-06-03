@@ -28,11 +28,6 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
 * experiments
   * increase dimension : [2048, 1024, 512, 256, 128]
   * change control_cycle
-  
-* check result compare
-  * travel time should be average (not total travel time)
-    * 통과 차량 수가 많은 경우에는 travel time이 커진다?
-
 
 * optimal model num
   * [d] keep record while whole distributed learning : KEEP_OPTIMAL_MODEL_NUM
