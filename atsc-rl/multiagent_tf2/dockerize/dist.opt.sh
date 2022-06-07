@@ -11,6 +11,8 @@
 DEFAULT_VERSION="v1.1a.20220531" # "v0.0a"   # "v2.1a.0622"
 VERSION=${1:-$DEFAULT_VERSION}
 
+#DEFAULT_DOCKERFILE="Dockerfile.opt.compile" # compile within docker env
+#DEFAULT_DOCKERFILE="Dockerfile.opt.centos"  # based on CentOS
 DEFAULT_DOCKERFILE="Dockerfile.opt"
 DOCKERFILE=${2:-$DEFAULT_DOCKERFILE}
 
