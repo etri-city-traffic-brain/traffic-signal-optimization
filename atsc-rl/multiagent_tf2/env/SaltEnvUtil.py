@@ -12,7 +12,7 @@ from xml.etree.ElementTree import parse
 import libsalt
 
 import DebugConfiguration
-from TSOConstants import _REWARD_GATHER_UNIT_
+from TSOConstants import _REWARD_GATHER_UNIT_, _RESULT_COMP_
 
 
 
@@ -594,10 +594,27 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
 
     return target_tl_obj, sa_obj, _lane_len
 
+def getAverageSpeedOfIntersection(tl_id, tl_obj, num_hop=0):
+    '''
+    get average speed of given intersection
+
+    :param tl_id: inersection identifier
+    :param tl_obj:  objects which holds TL information
+    :param num_hop: number of hop to calculate speed
+    :return:
+    '''
+    link_list = tl_obj[tl_id]['in_edge_list_0']
+
+    if num_hop>0:
+        link_list += tl_obj[tl_id]['in_edge_list_1']
+    link_speed_list = []
+    for link_id in link_list:
+        link_speed_list.append(libsalt.link.getAverageSpeed(link_id))
+
+    return np.average(link_speed_list)
 
 
-
-def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list):
+def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list):
     '''
     write reward to given file
     this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool
@@ -610,6 +627,7 @@ def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list,
     :param sa_name_list:  list of name of SA
     :param tl_obj: object which holds information about TLs
     :param tl_id_list: list of TL id
+    :param prev_avg_speed_list: previous average speed
     :return:
     '''
 
@@ -637,12 +655,19 @@ def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list,
                 tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
                 tl_action = actions[sa_idx][tl_idx]
 
+            if sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL:
+                avg_speed = prev_avg_speed_list[i]
+            else:
+                avg_speed = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
+                prev_avg_speed_list[i] = avg_speed
+
             # step,tl_name,actions,phase,reward
-            f.write("{},{},{},{},{}\n".format(sim_step,
+            f.write("{},{},{},{},{},{}\n".format(sim_step,
                                               tl_obj[tlid]['crossName'],
                                               tl_action,
                                               libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                              reward))
+                                              reward,
+                                              avg_speed))
         sa_reward_list.clear()
 
     else: # reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.TL
@@ -659,13 +684,19 @@ def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list,
                 tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
                 tl_action = actions[sa_idx][tl_idx]
 
+            if sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL:
+                avg_speed = prev_avg_speed_list[i]
+            else:
+                avg_speed = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
+                prev_avg_speed_list[i] = avg_speed
 
             # step,tl_name,actions,phase,reward
-            f.write("{},{},{},{},{}\n".format(sim_step,
+            f.write("{},{},{},{},{},{}\n".format(sim_step,
                                               tl_obj[tlid]['crossName'],
                                               tl_action,
                                               libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                              reward))
+                                              reward,
+                                              avg_speed))
 
     f.close()
 

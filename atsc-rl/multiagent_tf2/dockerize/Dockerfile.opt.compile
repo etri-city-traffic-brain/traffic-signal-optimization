@@ -1,0 +1,115 @@
+FROM ubuntu:20.04
+RUN apt-get update && yes | apt-get update
+RUN apt-get install -y build-essential
+
+RUN apt-get update
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y install tzdata
+RUN apt-get install -y software-properties-common
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update
+
+# 1. install library for dependency
+# 1.1 libraries for SALT simulator
+# 1.1.1  swig for SALT simulator
+RUN apt-get remove swig
+RUN apt-get install -y swig
+RUN swig -version
+
+# 1.1.2  camke for SALT simulator
+RUN apt-get install -y cmake
+RUN cmake -version
+
+# 1.1.3  libboost_1_71 for SALT simulator
+WORKDIR /to_install
+COPY ./to_install_uniq/boost_1_71_0.tar.bz2 /to_install
+RUN tar xvfj boost_1_71_0.tar.bz2
+WORKDIR /to_install/boost_1_71_0
+RUN ./bootstrap.sh --prefix=/usr
+RUN ./b2 cxxflags=-fPIC cflags=-fPIC link=static -a
+RUN ./b2 install
+WORKDIR /
+RUN rm -rf /to_install
+
+
+# 1.2  python, pandas, tensorflow, keras, h5py for optimizer & simulator
+# 1.2.1 python for simulator, optimizer
+RUN apt-get update
+RUN apt-get install -y python3.8 python3-pip
+#RUN apt-get install -y python3.8-dev
+RUN ln -s /usr/bin/python3.8 /usr/bin/python
+
+RUN python --version
+RUN python -m pip install --upgrade pip
+
+# 1.2.2 packages for optimizer
+# RUN python -m pip install tensorflow==2.0.0
+# RUN python -m pip install keras==2.3.1
+RUN python -m pip install tensorflow==2.3.0
+RUN python -m pip install keras==2.4.3
+RUN python -m pip install h5py==2.10.0
+RUN python -m pip install pandas
+RUN python -m pip install gym
+RUN python -m pip install matplotlib
+RUN python -m pip install --upgrade protobuf==3.20.0
+	# to solve following issue
+	# TypeError: Descriptors cannot not be created directly
+	# If this call came from a _pb2.py file, your generated code is out of date and must be regenerated with protoc >= 3.19.0.
+
+
+
+# 1.3 for convenience, install vim editor
+RUN apt-get update
+RUN apt-get install -y vim
+
+# 2. install simulator
+# 2.1 install SALT simulator
+# 2.1.1 copy salt source code
+COPY ./to_install_uniq/salt /uniq/simulator/salt
+
+# 2.1.2 compile
+WORKDIR /uniq/simulator/salt
+RUN /uniq/simulator/salt/c.sh
+
+# 2.1.3 clean : remove source code
+RUN rm -rf ./LICENSE ./README.md ./analysis ./build ./c.sh ./conf ./data
+RUN rm -rf ./flow.txt ./helper ./include ./lib ./src ./test
+WORKDIR /
+
+
+# 2.2 install SUMO simulator
+#       all dependent lib.s for SUMO are installed
+RUN apt-get update
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Seoul
+RUN apt-get install -y sumo sumo-tools sumo-doc
+#       make a symbolic link
+RUN ln -s /usr/share/sumo /uniq/simulator/sumo
+
+# 3. install optimizer
+COPY ./to_install_uniq/optimizer /uniq/optimizer
+
+# 4. set environment variable
+# 4.1 set env variable for SALT
+ENV SALT_HOME=/uniq/simulator/salt
+ENV PYTHONPATH=$SALT_HOME/tools:$PYTHONPATH
+ENV PATH=$SALT_HOME/bin:$PATH
+
+# 4.2 set env variable for SUMO
+ENV SUMO_HOME=/uniq/simulator/sumo
+ENV PYTHONPATH=$SUMO_HOME/tools:$PYTHONPATH
+ENV PATH=$SUMO_HOME/bin:$PATH
+
+# 5. set working dir
+WORKDIR /uniq/optimizer
+
+# 6. execute
+#ENTRYPOINT ["/bin/bash", "-l", "-c"]
+
+#
+#  sudo docker build -f Dockerfile.opt.compile -t foo:0.1 .
+#
+#  sudo docker images
+#  sudo docker rmi -f cf79e0f33133
+#
+#  sudo docker run -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io foo:0.1 python run.py --mode train --map doan --action offset --target-TL 'SA 101' --epoch 1 --io-home io --scenario-file-path io/scenario
+#  sudo docker run -it -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io foo:0.1 /bin/bash

@@ -3,29 +3,19 @@
 * do remove simulator msg 
 * how to increase the # of max open file
 * Python comment : Python Integrated Tools
+* too many log messages are dumped when we do simulation with SALT simulator
 * when class member function __funcFoo() is not called
 * when python process terminated with "killed" message
+* when you meet the "ModuleNotFoundError: No module named "libsalt" "
 * when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
+* when you meet the "_pickle.UnpicklingError: pickle data was truncated" error
 * When tensorboard does not work
 * when the simulation/learning is too slow
 * when training time becomes longer
 
-
-### when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
-* client_loop: send disconnect: Broken pipe
-* add following to the SSH configuration 
-  * .ssh/config  or /etc/ssh/ssh_config
-  ```text
-  Host *
-  ServerAliveInterval 120
-  TCPKeepAlive no
-  ```
-  * directive “ServerAliveInterval“ will send a null packet to the server at 120-second intervals to keep the session alive and thus prevent it from closing abruptly.
-  * directive "TCPKeepAlive" specifies whether the system should send TCP keepalive messages to the other side
-* ref
-  * https://en.stealthsettings.com/fix-ssh-error-terminal-linux-client_loop-send-disconnect-broken-pipe.html
-  * http://egloos.zum.com/mcchae/v/11382363
 <hr>
+
+
 
 ### do remove simulator mgs 
 * comment couts
@@ -70,6 +60,13 @@
          @return:
         ```
   
+
+
+### too many log messages are dumped when we do simulation with SALT simulator
+* find the "cout" and comment it out
+  * traffic-simulator/src/Object/TrafficSignal/TrafficSignal.cpp
+
+
 ### when class member function __funcFoo() is not called
 * be careful when you use double underscore as a start of func name  
   * can not be called outside of defined class 
@@ -97,6 +94,39 @@
 * consider python magic method
   * __delete__ / __del__ / __delattr__ / __delitem__
 
+
+### when you meet the "ModuleNotFoundError: No module named "libsalt" "
+* launch with path of SALT_HOME
+  ```shell
+  [%] SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator run.py --mode simulate ....
+  ```
+
+###  when you meet the "_pickle.UnpicklingError: pickle data was truncated" error
+* increase the size of message receiving : 1024 --> 2048
+* ref. https://stackoverflow.com/questions/44637809/python-3-6-socket-pickle-data-was-truncated
+
+
+### when you meet the sudden disconnection from the SSH session with the message: “client_loop: send disconnect: Broken pipe”
+* client_loop: send disconnect: Broken pipe
+* add following to the SSH configuration 
+  * .ssh/config for just you (or /etc/ssh/ssh_config for all user)
+  ```text
+  Host *
+  ServerAliveInterval 120
+  TCPKeepAlive no
+  ```
+  * directive “ServerAliveInterval“ will send a null packet to the server at 120-second intervals to keep the session alive and thus prevent it from closing abruptly.
+  * directive "TCPKeepAlive" specifies whether the system should send TCP keepalive messages to the other side
+* You can also make your OpenSSH server keep alive all connections with clients 
+  * by adding the following to /etc/ssh/sshd_config:
+    ```text
+    ClientAliveInterval 300
+    ClientAliveCountMax 2
+    ```
+* ref
+  * https://en.stealthsettings.com/fix-ssh-error-terminal-linux-client_loop-send-disconnect-broken-pipe.html
+  * http://egloos.zum.com/mcchae/v/11382363
+  * https://patrickmn.com/aside/how-to-keep-alive-ssh-sessions/
 
 
 ### When tensorbord does not work

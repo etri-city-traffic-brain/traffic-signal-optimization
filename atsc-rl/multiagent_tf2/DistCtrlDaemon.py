@@ -5,6 +5,7 @@ import threading
 import time
 import os
 import argparse
+import numpy as np
 import pandas as pd
 
 from TSOUtil import doPickling, doUnpickling, Msg
@@ -14,7 +15,7 @@ from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
-from TSOConstants import _FN_PREFIX_, _IMPROVEMENT_COMP_
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
 
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
@@ -42,12 +43,22 @@ class ServingClientThread(threading.Thread):
         '''
         self.channel = channel
         self.details = details
-        self.target = local_target # optimization is done by connected client
-        self.infer_model_number = -1
+        if 0:
+            self.target = local_target # optimization is done by connected client
+            self.infer_model_number = -1
 
-        self.infer_model_root_path = args.model_store_root_path
-        infer_tl_list = args.target_TL.split(",")
-        infer_tl_list.remove(self.target)
+            self.infer_model_root_path = args.model_store_root_path
+            infer_tl_list = args.target_TL.split(",")
+            infer_tl_list.remove(self.target)
+        else:
+            self.target = self.convertListToCommaSeperatedString(local_target)
+            self.infer_model_number = -1
+
+            self.infer_model_root_path = args.model_store_root_path
+            infer_tl_list = args.target_TL.split(",")
+            for t in local_target:
+                infer_tl_list.remove(t)
+
         if len(infer_tl_list):
             self.infer_tls = self.convertListToCommaSeperatedString(infer_tl_list)
         else:
@@ -124,7 +135,7 @@ class ServingClientThread(threading.Thread):
         :param conn:
         :return:
         '''
-        recv_msg = conn.recv(1024)
+        recv_msg = conn.recv(2048)
         recv_msg_obj = doUnpickling(recv_msg)
 
         if DBG_OPTIONS.PrintServingThread:
@@ -320,17 +331,6 @@ def validate(args, validation_trials, fn_dist_learning_history):
     :return:
     '''
 
-    #
-    # todo 관련 코드 전체적으로 수정해야 한다.
-    #    이미 결과 비교하는 것이 sappo_test() 에 포함되어 있다.
-    #    시뮬레이터의 출력 파일을 분석하여 교차로 통과시간을 비교한다.
-    #    def result_comp(args, ft_output, rl_output, model_num)를 이용한다.
-    #
-    #
-    # sappo_test()에서 아래와 같이 수행하여 결과를 저장해 놓는다.
-    # total_output.to_csv("{}/output/test/{}_{}.csv".format(args.io_home, problem_var, model_num),
-    #                     encoding='utf-8-sig', index=False)
-
 
     ## make command to execute TSO program with trained models
 
@@ -361,8 +361,6 @@ def validate(args, validation_trials, fn_dist_learning_history):
     if 1:
         # read a file which contains the result of comparison
         # and get the improvement rate
-        # import pandas as pd
-        # from TSOConstants import _FN_PREFIX_, _IMPROVEMENT_COMP_
         fn_result = "{}/{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
         df = pd.read_csv(fn_result, index_col=0)
 
@@ -370,9 +368,8 @@ def validate(args, validation_trials, fn_dist_learning_history):
             print("### index={}".format(df.index.values))
             print("### column={}".format(df.columns.values))
 
-        # todo : should change hard-coding : "total", "imp_SumTravelTime_sum_0hop'
-        improvement_rate = df.at['total', 'imp_SumTravelTime_sum_0hop']
-        improvement_rate = df.at[_IMPROVEMENT_COMP_.ROW_NAME, _IMPROVEMENT_COMP_.COLUMN_NAME]
+        # improvement_rate = df.at['total', 'imp_SumTravelTime_sum_0hop']
+        improvement_rate = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
         success = _CHECK_.SUCCESS if improvement_rate >= args.validation_criteria else _CHECK_.FAIL
 
         appendLine(fn_dist_learning_history, f"{args.model_num},{improvement_rate}")
@@ -384,6 +381,27 @@ def validate(args, validation_trials, fn_dist_learning_history):
                  format(improvement_rate, args.validation_criteria, success))
 
     return success
+
+
+def makePartition(target, num_part):
+    len_target = len(target)
+    x = list(np.linspace(0, len_target, num_part + 1))
+    # print(x)
+
+    y = [int(i) for i in x]
+    # print(y)
+
+    partitions = []
+    prev = y[0]
+    for i in y[1:]:
+        part = target[prev:i]
+
+        partitions.append(part)
+        prev = i
+
+    # print (partitions)
+    return partitions
+
 
 ####
 # python DistCtrlDaemon.py --port 2727 --num_of_learning_daemon 3 --validation_criteria 6 --ground-zero True
@@ -429,12 +447,17 @@ if __name__ == '__main__':
     ## invoke serving threads & establish connection
     serving_client_dic = dict()
 
-    group_list = args.target_TL.split(",")
+    if 0:
+        group_list = args.target_TL.split(",")
 
-    assert len(group_list)==args.num_of_learning_daemon,\
-        "command error : # of group({}) should be equal to num_of_learning_daemon({}}".format(len(group_list), args.num_of_learning_daemon)
+        assert len(group_list)==args.num_of_learning_daemon,\
+            "command error : # of group({}) should be equal to num_of_learning_daemon({}}".format(len(group_list), args.num_of_learning_daemon)
 
-    all_targets = group_list[:args.num_of_learning_daemon]
+        all_targets = group_list[:args.num_of_learning_daemon]
+    else:
+        target_list = args.target_TL.split(",")
+        group_list = makePartition(target_list, args.num_of_learning_daemon)
+
     for i in range(args.num_of_learning_daemon):
         channel, details = server.accept()
         target = group_list[i]

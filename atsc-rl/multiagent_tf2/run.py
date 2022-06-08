@@ -15,18 +15,29 @@ import shutil
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 import time
+import sys
+
+# check environment
+if 'SALT_HOME' in os.environ:
+    tools = os.path.join(os.environ['SALT_HOME'], 'tools')
+    sys.path.append(tools)
+
+    tools_libsalt = os.path.join(os.environ['SALT_HOME'], 'tools/libsalt')
+    sys.path.append(tools_libsalt)
+else:
+    sys.exit("Please declare the environment variable 'SALT_HOME'")
+
 
 
 import libsalt
 
-
 from config import TRAIN_CONFIG
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
-from env.SaltEnvUtil import appendPhaseRewards
+from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
-from env.SaltEnvUtil import getScenarioRelatedBeginEndTime
+from env.SaltEnvUtil import getScenarioRelatedBeginEndTime, getSimulationStartStepAndEndStep
 from env.SaltEnvUtil import makePosssibleSaNameList
 
 from env.SappoEnv import SaltSappoEnvV3
@@ -36,7 +47,7 @@ from env.SappoRewardMgmt import SaltRewardMgmtV3
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
-from TSOConstants import _FN_PREFIX_
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
@@ -60,10 +71,14 @@ def parseArgument():
 
     args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}.scenario.json"
 
-    if 1:
-        #todo : think how often should we update actions
-        if args.action == 'gr':
-            args.control_cycle = 1
+    # todo : think how often should we update actions
+    # if args.action == 'gr':
+    #     args.control_cycle = 1
+
+    # to use only exploitation when we do "test"
+    if args.mode == 'test':
+        args.epsilon = 0.0
+        args.epsilon_min = 0.0
 
     return args
 
@@ -98,17 +113,17 @@ def createEnvironment(args):
 
 
 
-def calculateTrialLength(args):
-    '''
-    calculate a length of trial using simulation start & end time (from scenario file)
-    :param args:
-    :return: length of trial
-    '''
-    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    end_time = args.end_time if args.end_time < scenario_end else scenario_end
-    trial_len = end_time - start_time
-    return trial_len
+# def calculateTrialLength(args):
+#     '''
+#     calculate a length of trial using simulation start & end time (from scenario file)
+#     :param args:
+#     :return: length of trial
+#     '''
+#     scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+#     start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+#     end_time = args.end_time if args.end_time < scenario_end else scenario_end
+#     trial_len = end_time - start_time
+#     return trial_len, start_time, end_time
 
 
 def storeExperience(trial, step, agent, cur_state, action, reward, new_state, done, logp_t):
@@ -138,19 +153,8 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
 
 
 
-def makeLoadModelFnPrefix(args, problem_var):
-    '''
-    make a prefix of file name which indicates saved trained model parameters
 
-    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
-
-    :param args:
-    :param problem_var:
-    :return:
-    '''
-    return makeLoadModelFnPrefixV2(args, problem_var)
-
-def makeLoadModelFnPrefixV1(args, problem_var):
+def makeLoadModelFnPrefixV1(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
 
@@ -171,7 +175,7 @@ def makeLoadModelFnPrefixV1(args, problem_var):
     return fn_prefix
 
 
-def makeLoadModelFnPrefixV2(args, problem_var):
+def makeLoadModelFnPrefixV2(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
 
@@ -192,6 +196,59 @@ def makeLoadModelFnPrefixV2(args, problem_var):
     return fn_prefix
 
 
+def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
+
+    v3: we consider cumulative training
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+
+    fn_prefix=""
+
+    ## get model num to load
+    if args.mode=="train":
+        if is_train_target: # i.e., target-TL
+            if args.cumulative_training :
+                load_model_num = args.model_num
+            else:
+                return fn_prefix # no need to load pre-trained model
+        else: # if is_train_target == False, i.e., infer-TL
+            # do not care whether cumulative_training is true or not
+            load_model_num = args.infer_model_num
+    else: # i.e., args.mode == "test"
+        load_model_num = args.model_num
+
+
+    ## construct file path
+    if is_train_target and args.mode=="train":
+        assert args.cumulative_training == True, "internal error : it can not happen ... should have already exited from this func "
+        fn_path = "{}/model/{}".format(args.io_home, args.method)
+    elif args.infer_model_path == ".":
+        fn_path = "{}/model/{}".format(args.io_home, args.method)
+    else:
+        fn_path = args.infer_model_path
+
+    fn_prefix = "{}/{}-{}-trial_{}".format(fn_path, args.method.upper(), problem_var, load_model_num)
+
+    return fn_prefix
+
+
+def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
+    '''
+    make a prefix of file name which indicates saved trained model parameters
+
+    it should be consistent with LearningDaemonThread::__copyTrainedModel() at DistExecDaemon.py
+
+    :param args:
+    :param problem_var:
+    :return:
+    '''
+    return makeLoadModelFnPrefixV3(args, problem_var, is_train_target)
 
 def trainSappo(args):
     '''
@@ -206,7 +263,13 @@ def trainSappo(args):
     env = createEnvironment(args)
 
     ## calculate trial length using argument and scenario file
-    trial_len = calculateTrialLength(args)
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
+    trial_len = end_time - start_time
+
+    # set start_/end_time which will be used to train
+    args.start_time = start_time
+    args.end_time = end_time
+
 
 
     ## make configuration dictionary & make some string variables
@@ -277,13 +340,23 @@ def trainSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
-            if is_train_target == False:
-                # make a prefix of file name which indicates saved trained model parameters
-                fn_prefix = makeLoadModelFnPrefix(args, problem_var)
-
-                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
-
+            fn_prefix = makeLoadModelFnPrefix(args, problem_var, is_train_target)
+            if len(fn_prefix) > 0:
+                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")  # should delete
                 agent.loadModel(fn_prefix)
+            else:
+                waitForDebug(
+                    f"agent for {target_sa} will training without loading a pre-trained model parameter")  # should delete
+
+
+            #     if is_train_target == False:
+            #         # make a prefix of file name which indicates saved trained model parameters
+            #         fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+            #
+            #         waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
+            #
+            #         agent.loadModel(fn_prefix)
+
 
             ppo_agent.append(agent)
 
@@ -430,13 +503,10 @@ def trainSappo(args):
         model_save_period = args.model_save_period  # default 1
 
         # -- get the trial number that gave the best performance
-        if DBG_OPTIONS.TestFindOptimalModelNum:
-            optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
+        if args.epoch == 1:
+            optimal_model_num = 0
         else:
-            if args.epoch == 1:
-                optimal_model_num = 0
-            else:
-                optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
+            optimal_model_num = findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate)
 
         # -- make the prefix of file name which stores trained model
         fn_optimal_model_prefix = "{}/model/{}/{}-{}-trial". \
@@ -455,7 +525,10 @@ def trainSappo(args):
         #       (ref. LearningDaemonThread::__copyTrainedModel() func )
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(args.target_TL.split(",")[0]))
 
-        writeLine(fn_opt_model_info, fn_optimal_model)
+        if int(args.infer_model_num) < 0:
+            writeLine(fn_opt_model_info, fn_optimal_model)
+        else:
+            appendLine(fn_opt_model_info, fn_optimal_model)
 
         return optimal_model_num
 
@@ -465,7 +538,12 @@ def testSappo(args):
     env = createEnvironment(args)
 
     ## calculate trial length using argument and scenario file
-    trial_len = calculateTrialLength(args)
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
+    trial_len = end_time - start_time
+
+    # set start_/end_time which will be used to test
+    args.start_time = start_time
+    args.end_time = end_time
 
 
     ## make configuration dictionary & construct problem_var string to be used to create file names
@@ -488,11 +566,12 @@ def testSappo(args):
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, convertSaNameToId(target_sa))
 
             # make a prefix of file name which indicates saved trained model parameters
-            fn_prefix = makeLoadModelFnPrefix(args, problem_var)
+            fn_prefix = makeLoadModelFnPrefix(args, problem_var, True)
 
             waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
 
             agent.loadModel(fn_prefix)
+
             ppo_agent.append(agent)
 
 
@@ -569,8 +648,9 @@ def testSappo(args):
 
     # compare traffic simulation results
     if args.result_comp:
-        ft_output = pd.read_csv("{}/output/simulate/-PeriodicOutput.csv".format(args.io_home))
-        rl_output = pd.read_csv("{}/output/test/-PeriodicOutput.csv".format(args.io_home))
+        #todo
+        ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
+        rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
 
         total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num)
 
@@ -583,9 +663,24 @@ def testSappo(args):
             dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
             shutil.copy2(result_fn, dst_fn)
 
+            df = pd.read_csv(result_fn, index_col=0)
+            for sa in env.target_sa_name_list:
+                __printImprovementRate(df, sa)
+            __printImprovementRate(df, 'total')
+
     return avg_reward
 
 
+def __printImprovementRate(df, target):
+    ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
+    rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
+    ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']
+    rl_sum_travel_time = df.at[target, 'rl_SumTravelTime_sum_0hop']
+
+    ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
+    rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
+    imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
+    print(f'Average Travel Time ({target}): {imp_rate}% improved')
 
 
 def fixedTimeSimulate(args):
@@ -595,10 +690,14 @@ def fixedTimeSimulate(args):
     :return:
     '''
 
-    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    # calculate the length of simulation step of this trial : trial_len
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
+
+    # set start_/end_time which will be used to simulate
+    args.start_time = start_time
+    args.end_time = end_time
+
 
     salt_scenario = copyScenarioFiles(args.scenario_file_path)
     possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
@@ -610,7 +709,7 @@ def fixedTimeSimulate(args):
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
-    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
+    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed')
 
     reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
                                        args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
@@ -625,23 +724,34 @@ def fixedTimeSimulate(args):
 
     sim_step = libsalt.getCurrentStep()
 
+    prev_avg_speed_list = []
+    for tlid in target_tl_id_list:
+        prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, target_tl_obj, num_hop=0))
+
     for i in range(trial_len):
         libsalt.simulationStep()
         sim_step += 1
 
         # todo 일정 주기로 보상 값을 얻어와서 기록한다.
         appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
-                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list)
+                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list, prev_avg_speed_list)
 
 
     print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
+
+    prev_avg_speed_list.clear()
+    del prev_avg_speed_list
+
     libsalt.close()
 
 
 def testOutOfMemory(num_epoch, args):
-    scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    # scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
+    # start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
+    # end_time = args.end_time if args.end_time < scenario_end else scenario_end
+    # trial_len = end_time - start_time
+
+    start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
 
     salt_scenario = copyScenarioFiles(args.scenario_file_path)

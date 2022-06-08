@@ -12,7 +12,7 @@ from TSOConstants import _MSG_TYPE_
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _FN_PREFIX_, _MODE_
-from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine
+from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, readLines
 from TSOUtil import convertSaNameToId
 
 # Here's our thread:
@@ -49,7 +49,18 @@ class LearningDaemonThread(threading.Thread):
         :param soc:
         :return:
         '''
-        recv_msg = soc.recv(1024)
+        # if 0:
+        #     recv_msg = soc.recv(2048)
+        # else: # not work
+        #     recv_msg = b""
+        #     while True:
+        #         packet = soc.recv(1024)
+        #         print("received...")
+        #         if not packet:
+        #             break
+        #         recv_msg += packet
+        # print("escape from soc.recv()")
+        recv_msg = soc.recv(2048)
         recv_msg_obj = doUnpickling(recv_msg)
         if DBG_OPTIONS.PrintExecDaemon:
             print("## recv_msg from {}:{} -- {}".format(self.connect_ip_addr, self.connect_port, recv_msg_obj.toString()))
@@ -178,12 +189,13 @@ class LearningDaemonThread(threading.Thread):
         '''
         target = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
         target_list = target.split(",")
-        waitForDebug("target={} target_list={}".format(target, target_list))
+        if DBG_OPTIONS.PrintExecDaemon:
+            waitForDebug("target={} target_list={}".format(target, target_list))
 
         model_store_path = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS].model_store_root_path
         #todo 현재 대상이 하나인 경우만 고려하고 있다. 여러 개인 경우에 대해 고려해야 한다.
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(target_list[0]))
-        opt_model_info = readLine(fn_opt_model_info)
+        opt_model_info = readLines(fn_opt_model_info)[-1]
             # ./model/sappo/SAPPO-_state_vdd_action_gr_reward_cwq_..._control_cycle_1-trial-0
 
         tokens = opt_model_info.split('-')
@@ -196,7 +208,11 @@ class LearningDaemonThread(threading.Thread):
         problem_var = ('-').join(problem_var.split('-')[:-1])  # SAPPO-_state_vdd_action_gr_reward_cwq_...._cycle_1
 
         path = path + '*'  # ./model/sappo/SAPPO-_state_vdd_action_gr_reward_cwq_...._cycle_1-trial*
-        print("opt_model_num={}\npath={}\nproblem_var={}".format(opt_model_num, path, problem_var))
+
+        if DBG_OPTIONS.PrintExecDaemon:
+            print("opt_model_num={}\npath={}\nproblem_var={}".format(opt_model_num, path, problem_var))
+        else:
+            print("opt_model_num={}".format(opt_model_num))
 
         for tl in target_list:
             # 0. caution
@@ -229,13 +245,14 @@ class LearningDaemonThread(threading.Thread):
 
                     model_name = tokens[-2].split('_')[-1]  # actor or critic
                     # 3. make command
-                    cmd = 'pwd; cp "{}" "{}/{}-trial_{}_{}_{}.{}"'.format(fname, model_store_path, problem_var,
+                    cmd = 'cp "{}" "{}/{}-trial_{}_{}_{}.{}"'.format(fname, model_store_path, problem_var,
                                                                           trial, tl, model_name, extension)
                 else :
                     print("Internal error : LearningDaemonThread::__copyTrainedModel()")
 
                 if DBG_OPTIONS.PrintExecDaemon:
                     waitForDebug(cmd)
+
 
                 r = execTrafficSignalOptimization(cmd)
 
@@ -263,13 +280,8 @@ class LearningDaemonThread(threading.Thread):
 
                 # do local learning
                 result = self.doLocalLearning(recv_msg_obj)
-                if DBG_OPTIONS.PrintExecDaemon:
-                    print("## returned trained opt model number ={}".format(result))
 
                 result = self.__copyTrainedModel(recv_msg_obj)
-
-                if DBG_OPTIONS.PrintExecDaemon:
-                    print("## returned trained opt model number ={}".format(result))
 
                 # after local learning was done, send MSG_LOCAL_LEARNING_DONE
                 send_msg = self.sendMsg(soc, _MSG_TYPE_.LOCAL_LEARNING_DONE, result)

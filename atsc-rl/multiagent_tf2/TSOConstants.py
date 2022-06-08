@@ -5,6 +5,9 @@ constants
 '''
 
 
+ONE_HOUR = 3600 # 1 hour is 3600 seconds(=60 *60)
+RESULT_COMPARE_SKIP = ONE_HOUR
+
 class _INTERVAL_:
     '''
     time interval to control distributed learning
@@ -67,10 +70,12 @@ class _MODE_ :
 
 
 
-class _IMPROVEMENT_COMP_:
+class _RESULT_COMP_:
     '''
     used to indicate the improvement rate from DataFrame object
     '''
+    SIMULATION_OUTPUT='_PeriodicOutput.csv'
+    SPEED_GATHER_INTERVAL = 60 # 60 seconds; interval for gathering the average speed of intersection
     ROW_NAME = "total"
     COLUMN_NAME = 'imp_SumTravelTime_sum_0hop'
 
