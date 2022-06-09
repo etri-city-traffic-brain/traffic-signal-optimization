@@ -300,8 +300,29 @@ class Msg:
 
 
 
-
 def execTrafficSignalOptimization(cmd):
+    '''
+    set the environment to do TSO(traffic signal optimization)
+    and
+    execute TSO program
+    (as an external subprocess)
+
+    :param cmd: command to launch TSO program
+    :return:
+    '''
+    my_env = os.environ.copy()
+    subprocess.SW_HIDE = 1
+
+    r = subprocess.Popen(cmd, shell=True, env=my_env).wait() # success
+    # r = subprocess.Popen(cmd, shell=False, env=my_env).wait() # error
+    #    FileNotFoundError: [Errno 2] No such file or directory:
+    #    'cd multiagent; python run.py --mode train --method sappo --target-TL "SA 101" --map doan --epoch 5'
+    # r = subprocess.run(cmd, shell=True, env=my_env).wait() # error
+
+    return r
+
+
+def execTrafficSignalOptimization_Old(cmd):
     '''
     set the environment to do TSO(traffic signal optimization)
     and

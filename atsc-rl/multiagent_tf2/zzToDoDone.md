@@ -69,10 +69,7 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
     * ref. https://code.tutsplus.com/tutorials/understand-how-much-memory-your-python-objects-use--cms-25609
     
     
-* dockerize
-  * compile salt in the docker image env
-    * from : make a binary outside and copy it to docker image env
-    * to : copy SALT source into docker image env and compile it to make binary
+
 
 * solve questions :  todos in the code
   * can find given questions in the code
@@ -81,13 +78,23 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
 * distributed traffic signal optimization
   * make LearningDaemonThread::__copyTrainedModel() work with various method
     * currently only care sappo
+    * 
 
 <hr>
   
 
 ### done history
 * Tag V1.1b-202206
-  * [0603] fix and extend result compare related stuff
+  * [0609] (stablization) Fixed the problem that boost lib could not be found when performing reinforcement learning
+    * pass not some but all environment variables of the user when we launch RL program
+      * before : some env variables of the user
+      * now : all env variables of the user
+
+  * [0607] (improvement) compile salt in the docker image env
+    * from : make a binary outside and copy it to docker image env
+    * to : copy SALT source into docker image env and compile it to make binary
+    
+  * U[0603] fix and extend result compare related stuff
     * fix : logic to calculate the improvement ratio of travel time
     * extend : calculate improvement rate for each SA
   
