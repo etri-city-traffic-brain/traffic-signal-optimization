@@ -1,5 +1,6 @@
 
 ## Troubleshooting
+* can not find libboost lib : ImportError: libboost_filesystem.so.1.71.0 
 * do remove simulator msg 
 * how to increase the # of max open file
 * Python comment : Python Integrated Tools
@@ -15,8 +16,17 @@
 
 <hr>
 
-
-
+### can not find libboost lib : ImportError: libboost_filesystem.so.1.71.0 
+  * full error message
+    ```
+    ImportError: libboost_filesystem.so.1.71.0: cannot open shared object file: No such file or directory
+    ```
+  * add followings into .bashrc
+    ``` 
+    export LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
+    ```
+    
+  
 ### do remove simulator mgs 
 * comment couts
   * traffic-simulator/src/Object/TrafficSignal/TrafficSignal.cpp
@@ -98,7 +108,7 @@
 ### when you meet the "ModuleNotFoundError: No module named "libsalt" "
 * launch with path of SALT_HOME
   ```shell
-  [%] SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator run.py --mode simulate ....
+  [%] SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator python run.py --mode simulate ....
   ```
 
 ###  when you meet the "_pickle.UnpicklingError: pickle data was truncated" error
