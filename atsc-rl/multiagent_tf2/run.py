@@ -47,7 +47,7 @@ from env.SappoRewardMgmt import SaltRewardMgmtV3
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
-from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, RESULT_COMPARE_SKIP
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
@@ -652,26 +652,71 @@ def testSappo(args):
         ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
         rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
 
-        total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num)
+        if 0:
+            total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num)
 
-        result_fn = "{}/output/test/{}_{}.csv".format(args.io_home, problem_var, args.model_num)
-        total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
+            result_fn = "{}/output/test/{}_{}.csv".format(args.io_home, problem_var, args.model_num)
+            total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
-        if 1 : # args.dist
-            # todo   Let's think about which path would be better to save it
-            #                 dist learning history
-            dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
-            shutil.copy2(result_fn, dst_fn)
+            if 1 : # args.dist
+                # todo   Let's think about which path would be better to save it
+                #                 dist learning history
+                dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
+                shutil.copy2(result_fn, dst_fn)
 
-            df = pd.read_csv(result_fn, index_col=0)
-            for sa in env.target_sa_name_list:
-                __printImprovementRate(df, sa)
-            __printImprovementRate(df, 'total')
+                #df = pd.read_csv(result_fn, index_col=0)
+                #for sa in env.target_sa_name_list:
+                #    __printImprovementRate(df, sa)
+                #__printImprovementRate(df, 'total')
+                __printImprovementRate(env, result_fn)
+
+        else:
+            comp_skip = RESULT_COMPARE_SKIP
+            result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
+            __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
+
+            comp_skip = args.warmup_time
+            result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
+            __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
 
     return avg_reward
 
 
-def __printImprovementRate(df, target):
+
+def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
+    result_fn = "{}/output/test/{}_s{}_{}.csv".format(args.io_home, problem_var, comp_skip, args.model_num)
+    dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
+    total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
+
+    shutil.copy2(result_fn, dst_fn)
+
+    return result_fn
+
+
+def __printImprovementRate(env, result_fn, msg="Skip one hour"):
+    df = pd.read_csv(result_fn, index_col=0)
+    for sa in env.target_sa_name_list:
+        __printImprovementRateInternal(df, sa, msg)
+    __printImprovementRateInternal(df, 'total', msg)
+
+
+def __printImprovementRateInternal(df, target, msg="Skip one hour"):
+    ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
+    rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
+    ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']
+    rl_sum_travel_time = df.at[target, 'rl_SumTravelTime_sum_0hop']
+
+    ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
+    rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
+    imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
+    print(f'{msg} Average Travel Time ({target}): {imp_rate}% improved')
+
+
+
+
+
+def __printImprovementRate_old(df, target):
     ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
     rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
     ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']

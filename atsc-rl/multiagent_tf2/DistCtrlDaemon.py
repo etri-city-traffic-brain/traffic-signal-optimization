@@ -16,6 +16,7 @@ from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
+from TSOConstants import RESULT_COMPARE_SKIP
 
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
@@ -285,6 +286,8 @@ def getArgsWithAddArgumentFunc():
     parser.add_argument("--model-store-root-path", type=str, default="/tmp/tso")
     # parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
     #                     help="number of candidate to compare reward to find optimal model")
+    parser.add_argument("--copy-simulation-output",  type=str2bool, default=False,
+                        help="whether do copy simulation output(PeriodicOutput.csv) to keep test history")
 
     ### add argument for single node learning
     parser = addArgumentsToParser(parser)
@@ -346,6 +349,18 @@ def validate(args, validation_trials, fn_dist_learning_history):
 
     ## execute traffic signal optimization program
     result = execTrafficSignalOptimization(validation_cmd)
+
+    ## copy simulation output file to kepp test history
+    if args.copy_simulation_output:
+        import shutil
+        _origin = f'./output/{args.mode}/{_RESULT_COMP_.SIMULATION_OUTPUT}'
+        tokens = _RESULT_COMP_.SIMULATION_OUTPUT.split(".")
+        _target = f'{args.model_store_root_path}/{tokens[0]}_{args.model_num}.{tokens[1]}'
+            #   model_store_root_path/_PeriodicOutput_0.csv
+        print(f'### copy {_origin} {_target}')
+        shutil.copy2(_origin, _target)
+
+
     if 0:
         # 개선율만을 저장한 파일에서 읽어온다.
         # open a file which contains improvement rate as a result of comparison
@@ -358,7 +373,7 @@ def validate(args, validation_trials, fn_dist_learning_history):
             print("improvement_rate={} got from improvement_rate file ".format(improvement_rate))
 
     # 결과 비교 전체를 저장한 파일에서 읽어와서 개선율을 꺼낸다.
-    if 1:
+    if 0: # success
         # read a file which contains the result of comparison
         # and get the improvement rate
         fn_result = "{}/{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
@@ -374,6 +389,32 @@ def validate(args, validation_trials, fn_dist_learning_history):
 
         appendLine(fn_dist_learning_history, f"{args.model_num},{improvement_rate}")
 
+        if DBG_OPTIONS.PrintImprovementRate:
+            print("improvement_rate={} got from result comp file".format(improvement_rate))
+
+    else:  # success
+        # read a file which contains the result of comparison
+        # and get the improvement rate
+
+        # case 0:  when the duration of skip for result comparition is given
+        # from TSOConstants import RESULT_COMPARE_SKIP
+        comp_skip = RESULT_COMPARE_SKIP
+        fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
+        df = pd.read_csv(fn_result, index_col=0)
+        imp_rate_0 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
+
+        # case 1:  when the duration of skip for result comparison is warming-up time
+        # zz.result_comp_s600.0.csv
+        comp_skip = args.warmup_time
+        fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
+        df = pd.read_csv(fn_result, index_col=0)
+        imp_rate_1 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
+
+        appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}, {imp_rate_1}")
+
+        success = _CHECK_.SUCCESS if imp_rate_0 >= args.validation_criteria else _CHECK_.FAIL
+
+        improvement_rate = imp_rate_0
         if DBG_OPTIONS.PrintImprovementRate:
             print("improvement_rate={} got from result comp file".format(improvement_rate))
 
@@ -420,7 +461,7 @@ if __name__ == '__main__':
 
     # to save the history of distributed learning
     fn_dist_learning_history = "{}/{}".format(args.model_store_root_path, _FN_PREFIX_.DIST_LEARNING_HISTORY)
-    writeLine(fn_dist_learning_history, "trial, improvement_rate")
+    writeLine(fn_dist_learning_history, f'trial, improvement_rate_skip{RESULT_COMPARE_SKIP}, improvement_rate_skip{args.warmup_time}')
 
     # local_learning_epoch = args.epoch
     # args.epoch = local_learning_epoch
