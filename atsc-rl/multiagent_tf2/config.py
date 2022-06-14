@@ -2,7 +2,7 @@ from tensorflow.keras.optimizers import Adam
 
 TRAIN_CONFIG = {
     # 'libsalt_dir': '/home/tsoexp/z.docker_test/traffic-simulator/tools/libsalt',
-    'network_size': (1024, 512, 256, 128, 64),
+    'network_size': (1024, 512, 512, 512, 512),
     'optimizer' : Adam,
 
     # not used.....
