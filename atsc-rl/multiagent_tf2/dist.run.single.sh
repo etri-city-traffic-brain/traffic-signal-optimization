@@ -34,16 +34,7 @@ EXP_OPTION="copy"
 
 cd $TEST_DIR
 
-echo nohup python DistCtrlDaemon.py --port $PORT --map $MAP --target-TL "$TARGET" \
-	--num-of-learning-daemon $NUM_DAEMON \
-	--state $STATE --action $ACTION  --reward-func $REWARD_FUNC \
-       	--validation-criteria $IMP_GOAL \
-       	--epoch $EPOCH --model-save-period $MODEL_SAVE_PERIOD \
-       	--cumulative-training True \
-       	--num-of-optimal-model-candidate $NUM_OPT_MODEL_CANDIDATE \
-	--model-store-root-path $MODEL_STORE_PATH/$RESULT_DIR/${ACTION}_${REWARD_FUNC}_${EXP_OPTION} \
-        --copy-simulation-output $COPY_SIMULATION_OUTPUT \
-	> out.ctrl 2>&1
+echo "nohup python DistCtrlDaemon.py --port $PORT --map $MAP --target-TL "$TARGET" --num-of-learning-daemon $NUM_DAEMON --state $STATE --action $ACTION  --reward-func $REWARD_FUNC --validation-criteria $IMP_GOAL --epoch $EPOCH --model-save-period $MODEL_SAVE_PERIOD --cumulative-training True --num-of-optimal-model-candidate $NUM_OPT_MODEL_CANDIDATE --model-store-root-path $MODEL_STORE_PATH/$RESULT_DIR/${ACTION}_${REWARD_FUNC}_${EXP_OPTION} --copy-simulation-output $COPY_SIMULATION_OUTPUT > out.ctrl 2>&1 &"
 
 nohup python DistCtrlDaemon.py --port $PORT --map $MAP --target-TL "$TARGET" \
        	--num-of-learning-daemon $NUM_DAEMON \
@@ -61,8 +52,8 @@ echo "nohup python DistExecDaemon.py --ip-addr $IP_ADDR --port $PORT > out.exec 
 nohup python DistExecDaemon.py --ip-addr $IP_ADDR --port $PORT > out.exec 2>&1 &
 sleep 3
 
-#echo "nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &"
-#nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &
+echo "nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &"
+nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &
 
 #sleep 3
 
