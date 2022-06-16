@@ -75,7 +75,7 @@ class _RESULT_COMP_:
     used to indicate the improvement rate from DataFrame object
     '''
     SIMULATION_OUTPUT='_PeriodicOutput.csv'
-    SPEED_GATHER_INTERVAL = 60 # 60 seconds; interval for gathering the average speed of intersection
+    SPEED_GATHER_INTERVAL = 30 # seconds; interval for gathering the average speed of intersection
     ROW_NAME = "total"
     COLUMN_NAME = 'imp_SumTravelTime_sum_0hop'
 

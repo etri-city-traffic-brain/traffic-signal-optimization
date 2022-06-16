@@ -85,7 +85,7 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
 
 ### done history
 * Tag V1.1b-202206
-  * [0609] (stablization) Fixed the problem that boost lib could not be found when performing reinforcement learning
+  * U [0609] (stablization) Fixed the problem that boost lib could not be found when performing reinforcement learning
     * pass not some but all environment variables of the user when we launch RL program
       * before : some env variables of the user
       * now : all env variables of the user
