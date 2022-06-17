@@ -34,7 +34,7 @@ import libsalt
 from config import TRAIN_CONFIG
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
-from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection
+from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection, getAverageTravelTimeOfIntersection
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getScenarioRelatedBeginEndTime, getSimulationStartStepAndEndStep
@@ -754,7 +754,11 @@ def fixedTimeSimulate(args):
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
-    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed')
+
+    if DBG_OPTIONS.WithAverageTravelTime:
+        writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time')
+    else:
+        writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed')
 
     reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
                                        args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
@@ -770,15 +774,25 @@ def fixedTimeSimulate(args):
     sim_step = libsalt.getCurrentStep()
 
     prev_avg_speed_list = []
+    if DBG_OPTIONS.WithAverageTravelTime:
+        prev_avg_travel_time_list = []
     for tlid in target_tl_id_list:
         prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, target_tl_obj, num_hop=0))
+        if DBG_OPTIONS.WithAverageTravelTime:
+            prev_avg_travel_time_list.append(getAverageTravelTimeOfIntersection(tlid, target_tl_obj, num_hop=0))
+
 
     for i in range(trial_len):
         libsalt.simulationStep()
         sim_step += 1
 
         # todo 일정 주기로 보상 값을 얻어와서 기록한다.
-        appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
+        if DBG_OPTIONS.WithAverageTravelTime:
+            appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
+                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list,
+                               prev_avg_speed_list, prev_avg_travel_time_list)
+        else:
+            appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
                                target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list, prev_avg_speed_list)
 
 
@@ -787,61 +801,11 @@ def fixedTimeSimulate(args):
     prev_avg_speed_list.clear()
     del prev_avg_speed_list
 
+    if DBG_OPTIONS.WithAverageTravelTime:
+        prev_avg_travel_time_list.clear()
+        del prev_avg_travel_time_list
+
     libsalt.close()
-
-
-def testOutOfMemory(num_epoch, args):
-    # scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    # start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    # end_time = args.end_time if args.end_time < scenario_end else scenario_end
-    # trial_len = end_time - start_time
-
-    start_time, end_time = getSimulationStartStepAndEndStep(args)
-    trial_len = end_time - start_time
-
-    salt_scenario = copyScenarioFiles(args.scenario_file_path)
-    possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
-    target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, possible_sa_name_list, salt_scenario)
-    target_sa_name_list = list(target_sa_obj.keys())
-    target_tl_id_list = list(target_tl_obj.keys())
-
-
-    ### 가시화 서버용 교차로별 고정 시간 신호 기록용
-    output_ft_dir = f'{args.io_home}/output/{args.mode}'
-    fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
-    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
-
-    # reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
-    #                                    args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
-    #                                    target_sa_name_list, len(target_sa_name_list))
-
-    for ep in range(num_epoch):
-
-        ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
-        libsalt.start(salt_scenario)
-        libsalt.setCurrentStep(start_time)
-
-        actions = []
-
-        sim_step = libsalt.getCurrentStep()
-
-        for i in range(trial_len):
-            libsalt.simulationStep()
-            sim_step += 1
-
-            # #  i>= args.warmup_time:
-            # # todo 일정 주기로 보상 값을 얻어와서 기록한다.
-            # appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
-            #                        target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list)
-
-
-        # print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
-        libsalt.close()
-
-        time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
-        import gc
-        gc.collect()
-        print(f'{ep}-th done : {time_data}\n\n')
 
 
 
