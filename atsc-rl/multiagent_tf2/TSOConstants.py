@@ -32,7 +32,10 @@ class _FN_PREFIX_ :
     RESULT_COMP = "zz.result_comp"
 
     # file name to save the history of distributed learning
-    DIST_LEARNING_HISTORY = 'zz.dist_learning_history.txt'
+    DIST_LEARNING_HISTORY = 'zz.dist_learning_history.csv'
+
+    # (a prefix of) file name to save the contents of replay memory
+    REPLAY_MEMORY = 'zz.replay_memory'
 
 
 

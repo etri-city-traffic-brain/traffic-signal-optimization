@@ -8,6 +8,7 @@ class DBG_OPTIONS :
     PrintTrain = True  # print messages which are related to train
 
     WithAverageTravelTime = True # dump phase rewards with average travel time
+    CumulateReplayMemory = True # dump and load replay memory to do cumulative learning when we do distributed learning
     IngCompResult = False
     NEW_PPO = True # std 값 변경 되게 하기 위함
 

@@ -24,7 +24,7 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.optimizers import Adam, RMSprop, Adagrad, Adadelta
-
+import pickle
 
 USE_TBX = False
 if USE_TBX:
@@ -223,6 +223,71 @@ class ReplayMemory :
         self.next_states.append(next_state)
         self.dones.append(done)
         self.logp_ts.append(logp_t)
+
+
+    def objectDump(self, fn):
+        '''
+        dump the contents of ReplayMemory into file
+        :param fn: file name
+        :return:
+        '''
+        with open(fn, 'wb') as file:
+            pickle.dump(self.max_size, file)
+            pickle.dump(self.num_delete, file)
+            pickle.dump(self.states, file)
+            pickle.dump(self.actions, file)
+            pickle.dump(self.rewards, file)
+            pickle.dump(self.next_states, file)
+            pickle.dump(self.dones, file)
+            pickle.dump(self.logp_ts, file)
+
+
+    def objectLoad(self, fn):
+        '''
+        load the contents of replay memory from a given filw
+        :param fn: file name
+        :return:
+        '''
+        with open(fn, 'rb') as file:
+            self.max_size = pickle.load(file)  # max_size
+            self.num_delete = pickle.load(file) # max_size * forget_ratio
+            self.states = pickle.load(file)
+            self.actions = pickle.load(file)
+            self.rewards = pickle.load(file)
+            self.next_states = pickle.load(file)
+            self.dones = pickle.load(file)
+            self.logp_ts = pickle.load(file)
+
+
+
+
+def testReplayMemory():
+    '''
+    test objectDump()/objectLoad() in ReplayMemory
+    :return:
+    '''
+    max_size = 10
+    forget_ratio = 0.8
+    fn = "foo.rm"
+    rm1 = ReplayMemory(max_size, forget_ratio)
+    for i in range(10):
+        state = [i]*5
+        action = [1,2,3]
+        reward = 0.5
+        next_state = [i+1]*5
+        done = False
+        logp_t = i
+        rm1.store(state, action, reward, next_state, done, logp_t)
+    rm1.objectDump(fn)
+
+    rm2 = ReplayMemory(max_size+1, forget_ratio+1)
+    rm2.objectLoad(fn)
+
+    assert rm1.max_size == rm2.max_size, print("error not equal max_size")
+    for i in range(10):
+        print(f"rm1.states[{i}]={rm1.states[i]} rm2.states[{i}]={rm2.states[i]}")
+        assert rm1.states[i] == rm2.states[i], print(f"error not equal states{i}")
+        assert rm1.next_states[i] == rm2.next_states[i], print(f"error not equal next_states{i}")
 
 
 class PPOAgentTF2:
@@ -544,6 +609,25 @@ class PPOAgentTF2:
     def saveModel(self, fn_prefix):
         self.actor.model.save_weights(f"{fn_prefix}_{self.id}_actor.h5")
         self.critic.model.save_weights(f"{fn_prefix}_{self.id}_critic.h5")
+
+
+
+    def dumpReplayMemory(self, fn):
+        '''
+        dump the contents of replay memory into file
+        :param fn:
+        :return:
+        '''
+        self.memory.objectDump(fn)
+
+    def loadReplayMemory(self, fn):
+        '''
+        load the contents of replay memory from a given file
+        :param fn:
+        :return:
+        '''
+        self.memory.objectLoad(fn)
+
 
 
     pylab.figure(figsize=(18, 9))

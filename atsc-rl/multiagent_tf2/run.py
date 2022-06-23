@@ -152,6 +152,27 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
         agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
 
 
+def storeExperience2(do_reset, agent, cur_state, action, reward, new_state, done, logp_t):
+    '''
+    store experience
+
+    :param trial: trial
+    :param step: simulation step
+    :param agent:
+    :param cur_state:
+    :param action:
+    :param reward:
+    :param new_state:
+    :param done:
+    :param logp_t:
+    :return:
+    '''
+
+    if do_reset:
+        agent.memory.reset(cur_state, action, reward, new_state, done, logp_t)
+    else:
+        agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
+
 
 
 def makeLoadModelFnPrefixV1(args, problem_var, is_train_target=False):
@@ -312,6 +333,7 @@ def trainSappo(args):
     agent_reward1, agent_reward40 = [], []
 
     total_reward = 0
+    fn_replay_memory_object = ""
 
     ## create PPO Agent
     if 1:
@@ -339,6 +361,17 @@ def trainSappo(args):
             action_size = action_space.shape[0]
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
+
+            if DBG_OPTIONS.CumulateReplayMemory:
+                #todo should care fn ... shared
+                # train_target 이고, args.cumulative_training 인 경우에만  load/dump
+
+                if is_train_target and args.cumulative_training:
+                    fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                                                                         _FN_PREFIX_.REPLAY_MEMORY, agent.id)
+                    if int(args.infer_model_num) >= 0:
+                        agent.loadReplayMemory(fn_replay_memory_object)
+                    print(f"### loaded len(replay memory for {agent.id})={len(agent.memory.states)}")
 
             fn_prefix = makeLoadModelFnPrefix(args, problem_var, is_train_target)
             if len(fn_prefix) > 0:
@@ -418,8 +451,25 @@ def trainSappo(args):
                 if env.sa_name_list[i] not in env.target_sa_name_list:
                     continue
 
-                storeExperience(trial, t, ppo_agent[i], cur_states[i], actions[i], rewards[i],
-                                new_states[i], done, logp_ts[i])
+                #todo  reset하지 않고, store만 해도 되지 않나?
+                #      즉, 항상 false 이어도 동작할 것이다.
+                if 0:
+                    do_reset = False
+                    if trial == 0 and t == 0:
+                        if DBG_OPTIONS.CumulateReplayMemory and int(args.infer_model_num) >= 0:
+                            print(f" in FALSE trial={trial}  t={t} cumu={DBG_OPTIONS.CumulateReplayMemory}  infer={args.infer_model_num}")
+                            do_reset = False
+                        else:
+                            print(f" in TRUE trial={trial}  t={t} cumu={DBG_OPTIONS.CumulateReplayMemory}  infer={args.infer_model_num}")
+                            do_reset = True
+
+                    print(f'{t}-step {ppo_agent[i].id} trial={trial} t={t} {do_reset} men_men={len(ppo_agent[i].memory.states)}')
+
+                    storeExperience2(do_reset, ppo_agent[i], cur_states[i], actions[i], rewards[i],
+                                        new_states[i], done, logp_ts[i])
+                else:
+                    ppo_agent[i].memory.store(cur_states[i], actions[i], rewards[i], new_states[i], done, logp_ts[i])
+
                 # update observation
                 cur_states[i] = new_states[i]
                 episodic_reward += rewards[i]
@@ -530,7 +580,19 @@ def trainSappo(args):
         else:
             appendLine(fn_opt_model_info, fn_optimal_model)
 
+        if DBG_OPTIONS.CumulateReplayMemory:
+            for i in range(agent_num):
+                if not ppo_agent[i].is_train : # if it is not the target of training
+                    continue
+                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                                                                        _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
+
+                ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
+                print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
+
         return optimal_model_num
+
+
 
 def testSappo(args):
 

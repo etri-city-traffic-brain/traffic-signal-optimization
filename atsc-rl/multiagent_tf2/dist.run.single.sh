@@ -18,7 +18,7 @@ NUM_OPT_MODEL_CANDIDATE=10
 MODEL_STORE_PATH=/home/tsoexp/share/results
 COPY_SIMULATION_OUTPUT="yes"
 
-RESULT_DIR="0611"
+RESULT_DIR="0623"
 
 # for single
 NUM_DAEMON=1
@@ -27,9 +27,9 @@ TARGET="SA 101, SA 104, SA 107, SA 111" # "SA 1, SA 6, SA 17"
 STATE="vdd"
 ACTION="gro"
 REWARD_FUNC="cwq"
-EPOCH=1
-MODEL_SAVE_PERIOD=5
-EXP_OPTION="copy"
+EPOCH=200
+MODEL_SAVE_PERIOD=1
+EXP_OPTION="rm"
 
 
 cd $TEST_DIR
@@ -52,8 +52,8 @@ echo "nohup python DistExecDaemon.py --ip-addr $IP_ADDR --port $PORT > out.exec 
 nohup python DistExecDaemon.py --ip-addr $IP_ADDR --port $PORT > out.exec 2>&1 &
 sleep 3
 
-echo "nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &"
-nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &
+#echo "nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &"
+#nohup tensorboard --logdir ./logs --host $IP_ADDR --port $TB_PORT > out.tb 2>&1 &
 
 #sleep 3
 
