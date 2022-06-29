@@ -184,7 +184,6 @@ def addArgumentsToParser(parser):
     ### PPO Replay Memory
     parser.add_argument('--mem-len', type=int, default=1000, help='memory length')
     parser.add_argument('--mem-fr', type=float, default=0.9, help='memory forget ratio')
-    # parser.add_argument('--dump-replay-memory', type=str2bool, default="False", help='whether dump replay memory or not')
 
     ### SAPPO OFFSET
     parser.add_argument('--offset-range', type=int, default=2, help="offset side range")
@@ -438,7 +437,6 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
 
 
 
-
 def generateCommand(args):
     '''
     generate a command for traffic signal optimization
@@ -529,10 +527,12 @@ def generateCommand(args):
     if args.mode == _MODE_.TRAIN:
         cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
 
+        cmd = cmd + ' --cumulative-training {} '.format(args.cumulative_training)
+
         if args.infer_model_number >= 0:  # we have trained model... do inference
             cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
 
-            cmd = cmd + ' --cumulative-training {} '.format(args.cumulative_training)
+            # cmd = cmd + ' --cumulative-training {} '.format(args.cumulative_training)
 
             if 0:  # todo 0번부터 카운트하는 것을 1번부터 하게 하면 어떻까?
                 load_model_num = int((args.epoch / args.model_save_period) * args.model_save_period)
@@ -560,7 +560,6 @@ def generateCommand(args):
         print("{} constructed command={}".format("\n\n", cmd))
 
     return cmd
-
 
 
 # def makePPOConfig(args):

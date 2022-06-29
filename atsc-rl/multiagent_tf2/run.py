@@ -234,7 +234,7 @@ def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
     ## get model num to load
     if args.mode=="train":
         if is_train_target: # i.e., target-TL
-            if args.cumulative_training :
+            if args.cumulative_training and ( int(args.infer_model_num) >= 0 ) :
                 load_model_num = args.model_num
             else:
                 return fn_prefix # no need to load pre-trained model
@@ -364,13 +364,13 @@ def trainSappo(args):
 
             #todo should care file name ... should we use shared storage for distributed learning?
             # for CumulateReplayMemory
-            if is_train_target and args.cumulative_training:
+            # load stored replay memory if is_train_target and args.cumulative_training and (args.infer_model_num >=0)
+            if is_train_target and args.cumulative_training and (int(args.infer_model_num) >= 0) :
                 fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
                                                                      _FN_PREFIX_.REPLAY_MEMORY, agent.id)
                 # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path, _FN_PREFIX_.REPLAY_MEMORY, agent.id)
 
-                if int(args.infer_model_num) >= 0:
-                    agent.loadReplayMemory(fn_replay_memory_object)
+                agent.loadReplayMemory(fn_replay_memory_object)
                 # print(f"### loaded len(replay memory for {agent.id})={len(agent.memory.states)}")
 
             fn_prefix = makeLoadModelFnPrefix(args, problem_var, is_train_target)
@@ -579,20 +579,21 @@ def trainSappo(args):
                 ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
                 # print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
         else:
-            # print(f"args.cumulative-training is {args.cumulative_training}")
+            print(f"args.cumulative-training is {args.cumulative_training}")
 
-            for i in range(agent_num):
-                if not ppo_agent[i].is_train : # if it is not the target of training
-                    print(f"ppo_agent[i].is_train = {ppo_agent[i].is_train} ... should False")
-                    continue
+            if 0:
+                for i in range(agent_num):
+                    if not ppo_agent[i].is_train : # if it is not the target of training
+                        print(f"ppo_agent[i].is_train = {ppo_agent[i].is_train} ... should False")
+                        continue
 
-                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
-                                                                        _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
+                    fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                                                                            _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
 
-                # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path,
-                #                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
-                ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
-                # print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
+                    # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path,
+                    #                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
+                    ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
+                    # print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
 
 
         return optimal_model_num
