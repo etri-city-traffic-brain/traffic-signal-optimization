@@ -362,16 +362,16 @@ def trainSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
-            if DBG_OPTIONS.CumulateReplayMemory:
-                #todo should care fn ... shared
-                # train_target 이고, args.cumulative_training 인 경우에만  load/dump
+            #todo should care file name ... should we use shared storage for distributed learning?
+            # for CumulateReplayMemory
+            if is_train_target and args.cumulative_training:
+                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                                                                     _FN_PREFIX_.REPLAY_MEMORY, agent.id)
+                # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path, _FN_PREFIX_.REPLAY_MEMORY, agent.id)
 
-                if is_train_target and args.cumulative_training:
-                    fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
-                                                                         _FN_PREFIX_.REPLAY_MEMORY, agent.id)
-                    if int(args.infer_model_num) >= 0:
-                        agent.loadReplayMemory(fn_replay_memory_object)
-                    print(f"### loaded len(replay memory for {agent.id})={len(agent.memory.states)}")
+                if int(args.infer_model_num) >= 0:
+                    agent.loadReplayMemory(fn_replay_memory_object)
+                # print(f"### loaded len(replay memory for {agent.id})={len(agent.memory.states)}")
 
             fn_prefix = makeLoadModelFnPrefix(args, problem_var, is_train_target)
             if len(fn_prefix) > 0:
@@ -451,24 +451,7 @@ def trainSappo(args):
                 if env.sa_name_list[i] not in env.target_sa_name_list:
                     continue
 
-                #todo  reset하지 않고, store만 해도 되지 않나?
-                #      즉, 항상 false 이어도 동작할 것이다.
-                if 0:
-                    do_reset = False
-                    if trial == 0 and t == 0:
-                        if DBG_OPTIONS.CumulateReplayMemory and int(args.infer_model_num) >= 0:
-                            print(f" in FALSE trial={trial}  t={t} cumu={DBG_OPTIONS.CumulateReplayMemory}  infer={args.infer_model_num}")
-                            do_reset = False
-                        else:
-                            print(f" in TRUE trial={trial}  t={t} cumu={DBG_OPTIONS.CumulateReplayMemory}  infer={args.infer_model_num}")
-                            do_reset = True
-
-                    print(f'{t}-step {ppo_agent[i].id} trial={trial} t={t} {do_reset} men_men={len(ppo_agent[i].memory.states)}')
-
-                    storeExperience2(do_reset, ppo_agent[i], cur_states[i], actions[i], rewards[i],
-                                        new_states[i], done, logp_ts[i])
-                else:
-                    ppo_agent[i].memory.store(cur_states[i], actions[i], rewards[i], new_states[i], done, logp_ts[i])
+                ppo_agent[i].memory.store(cur_states[i], actions[i], rewards[i], new_states[i], done, logp_ts[i])
 
                 # update observation
                 cur_states[i] = new_states[i]
@@ -580,15 +563,37 @@ def trainSappo(args):
         else:
             appendLine(fn_opt_model_info, fn_optimal_model)
 
-        if DBG_OPTIONS.CumulateReplayMemory:
+        # for CumulateReplayMemory
+        # todo dump-replay-memory 이용하도록 정리해야 한다.
+        if args.cumulative_training:
             for i in range(agent_num):
                 if not ppo_agent[i].is_train : # if it is not the target of training
+                    print(f"ppo_agent[i].is_train = {ppo_agent[i].is_train} ... should False")
                     continue
+
                 fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
                                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
 
+                # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path,
+                #                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
                 ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
-                print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
+                # print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
+        else:
+            # print(f"args.cumulative-training is {args.cumulative_training}")
+
+            for i in range(agent_num):
+                if not ppo_agent[i].is_train : # if it is not the target of training
+                    print(f"ppo_agent[i].is_train = {ppo_agent[i].is_train} ... should False")
+                    continue
+
+                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                                                                        _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
+
+                # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path,
+                #                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
+                ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
+                # print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
+
 
         return optimal_model_num
 
@@ -817,10 +822,7 @@ def fixedTimeSimulate(args):
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
 
-    if DBG_OPTIONS.WithAverageTravelTime:
-        writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time')
-    else:
-        writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed')
+    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time')
 
     reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
                                        args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
@@ -836,12 +838,10 @@ def fixedTimeSimulate(args):
     sim_step = libsalt.getCurrentStep()
 
     prev_avg_speed_list = []
-    if DBG_OPTIONS.WithAverageTravelTime:
-        prev_avg_travel_time_list = []
+    prev_avg_travel_time_list = []
     for tlid in target_tl_id_list:
         prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, target_tl_obj, num_hop=0))
-        if DBG_OPTIONS.WithAverageTravelTime:
-            prev_avg_travel_time_list.append(getAverageTravelTimeOfIntersection(tlid, target_tl_obj, num_hop=0))
+        prev_avg_travel_time_list.append(getAverageTravelTimeOfIntersection(tlid, target_tl_obj, num_hop=0))
 
 
     for i in range(trial_len):
@@ -849,13 +849,9 @@ def fixedTimeSimulate(args):
         sim_step += 1
 
         # todo 일정 주기로 보상 값을 얻어와서 기록한다.
-        if DBG_OPTIONS.WithAverageTravelTime:
-            appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
+        appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
                                target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list,
                                prev_avg_speed_list, prev_avg_travel_time_list)
-        else:
-            appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
-                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list, prev_avg_speed_list)
 
 
     print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
@@ -863,9 +859,9 @@ def fixedTimeSimulate(args):
     prev_avg_speed_list.clear()
     del prev_avg_speed_list
 
-    if DBG_OPTIONS.WithAverageTravelTime:
-        prev_avg_travel_time_list.clear()
-        del prev_avg_travel_time_list
+    # used to save AverageTravelTime
+    prev_avg_travel_time_list.clear()
+    del prev_avg_travel_time_list
 
     libsalt.close()
 

@@ -104,7 +104,7 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
     * extend : calculate improvement rate for each SA
   
 * Tag v1.1a-20220602
-  * add cumulative trainint ,  --cumulative-training 
+  * add cumulative training ,  --cumulative-training 
     * Cumulative training based on a previously trained model parameter
   * add codes to control exploration ratio when we do train : USE_EXPLORATION_EPSILON
   * group split

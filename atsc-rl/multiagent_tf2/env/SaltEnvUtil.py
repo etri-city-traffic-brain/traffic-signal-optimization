@@ -655,12 +655,6 @@ def getAverageTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
     return avg_tt
 
 
-def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list, prev_avg_travel_time_list=[]):
-    if DebugConfiguration.DBG_OPTIONS.WithAverageTravelTime:
-        return appendPhaseRewardsWithTT(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list, prev_avg_travel_time_list)
-    else:
-        return appendPhaseRewardsWithoutTT(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list)
-
 def appendPhaseRewardsWithoutTT(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list):
     '''
     write reward to given file
@@ -749,7 +743,7 @@ def appendPhaseRewardsWithoutTT(fn, sim_step, actions, reward_mgmt, sa_obj, sa_n
 
 
 
-def appendPhaseRewardsWithTT(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list, prev_avg_travel_time_list):
+def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list, prev_avg_travel_time_list):
     '''
     write reward to given file
     this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool

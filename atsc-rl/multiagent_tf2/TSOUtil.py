@@ -184,6 +184,7 @@ def addArgumentsToParser(parser):
     ### PPO Replay Memory
     parser.add_argument('--mem-len', type=int, default=1000, help='memory length')
     parser.add_argument('--mem-fr', type=float, default=0.9, help='memory forget ratio')
+    # parser.add_argument('--dump-replay-memory', type=str2bool, default="False", help='whether dump replay memory or not')
 
     ### SAPPO OFFSET
     parser.add_argument('--offset-range', type=int, default=2, help="offset side range")

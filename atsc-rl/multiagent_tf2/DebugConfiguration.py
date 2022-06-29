@@ -7,10 +7,12 @@ class DBG_OPTIONS :
     RunWithDistributed = True  # find & store optimal model info  for distributed learning
     PrintTrain = True  # print messages which are related to train
 
-    WithAverageTravelTime = True # dump phase rewards with average travel time
-    CumulateReplayMemory = True # dump and load replay memory to do cumulative learning when we do distributed learning
     IngCompResult = False
-    NEW_PPO = True # std 값 변경 되게 하기 위함
+    NEW_PPO = True # std 값 변경 되게 하기 위함  #  현재 적용되어 있지 않음. diff ppoTF2.py.org ppoTF2v2.py
+
+    # CumulateReplayMemory = True # dump and load replay memory to do cumulative learning when we do distributed learning
+    # WithAverageTravelTime = True # dump phase rewards with average travel time
+
 
     if WITH_DBG_MSG :
         ## Options which are related maintaining states
@@ -52,7 +54,7 @@ class DBG_OPTIONS :
         PrintResultCompare = False  # print messages which are related to result comparison
         PrintRewardMgmt = False  # print messages which are related to reward mgmt
         PrintSaRelatedInfo = False  # print SA related info
-        PrintServingThread = False  # print messages which are related to serving thread
+        PrintServingThread = True  # print messages which are related to serving thread
         PrintStep = False  # print progress msgs every step : inferred actions
         # PrintTrain = True  # print messages which are related to train
 
