@@ -174,7 +174,7 @@ class SaltSappoEnvV3(gym.Env):
             if self.args.mode == 'test':
                 self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
 
-                writeLine(self.fn_rl_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_travel_time')
+                writeLine(self.fn_rl_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time')
 
 
     def __getNextTimeToAct(self, current_step, sa_cycle, control_cycle):
