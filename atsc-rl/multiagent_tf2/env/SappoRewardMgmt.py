@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from deprecated import deprecated
 
 import libsalt
 
@@ -8,7 +9,7 @@ from DebugConfiguration import DBG_OPTIONS
 from TSOConstants import _REWARD_GATHER_UNIT_
 
 
-
+@deprecated(reason="use another Class : SaltRewardMgmtV3")
 class SaltRewardMgmtV1 :
     '''
     class for reward management
@@ -168,6 +169,7 @@ class SaltRewardMgmtV1 :
 
 
 # self.reward_unit 에 따라 다르게 수집하게 하자.
+@deprecated(reason="use another Class : SaltRewardMgmtV3")
 class SaltRewardMgmtV2:
     '''
     class for reward management
@@ -847,6 +849,7 @@ class SaltRewardMgmtV3:
         return list(reward_info)
 
 
+
     def __gatherRewardRelatedInfoPerTL(self, simulation_steps):
         '''
         gather reward related info per TL
@@ -1029,6 +1032,7 @@ class SaltRewardMgmtV3:
         sa_reward_info = self.__getRewardInfo(sa_reward_info, link_list_0, lane_list_0, sim_steps)
 
         return sa_reward_info
+
 
 
     def calculateSARewardInstantly(self, sa_idx, sim_step):

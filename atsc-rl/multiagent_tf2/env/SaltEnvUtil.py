@@ -8,6 +8,7 @@ import shutil
 import uuid
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import parse
+from deprecated import deprecated
 
 import libsalt
 
@@ -99,9 +100,7 @@ def copyScenarioFiles(scenario_file_path):
     :param scenario_file_path:
     :return:
     '''
-    # import uuid
-    # import shutil
-    dir_path = os.path.dirname(os.path.realpath(__file__))
+    # dir_path = os.path.dirname(os.path.realpath(__file__))
     uid = str(uuid.uuid4())
 
     abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
@@ -145,22 +144,21 @@ def getActionList(phase_num, max_phase):
             meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
         if phase_num == 5:
             meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
-        #     action_list = [x.tolist() for x in meshgrid if x[max_phase]!=0 and x[max_phase]+np.sum(x[mask])==0 and np.min(np.abs(x[mask]))==0 and np.max(np.abs(x[mask]))==1]
 
         if phase_num == 1:
             action_list = [[0]]
         else:
-            action_list = [x.tolist() for x in meshgrid if
-                           x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
-                               np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
-                               x[mask]) and x[max_phase] != np.max(x[mask])]
+            action_list = [x.tolist() for x in meshgrid
+                                        if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
+                                            and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
+                                            and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])]
     else:
         meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
-        action_list = [x.tolist() for x in meshgrid if
-                       x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
-                           np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
-                           x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1 and x[max_phase] != np.min(x[mask]) and
-                       x[max_phase] != np.max(x[mask])]
+        action_list = [x.tolist() for x in meshgrid
+                                        if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
+                                            and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
+                                            and x[max_phase] != np.min(x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1
+                                            and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])]
 
     if phase_num != 1:
         tmp = list([1] * phase_num)
@@ -182,8 +180,8 @@ def getActionList(phase_num, max_phase):
     return action_list
 
 
-
-def getActionList_v2(phase_num, max_phase):
+@deprecated(reason="use another function : getActionList")
+def getActionListV2(phase_num, max_phase):
     '''
     create list of possible actions which can ge used to adjust green time
 
@@ -207,22 +205,19 @@ def getActionList_v2(phase_num, max_phase):
         if phase_num == 5:
             meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
 
-        #     action_list = [x.tolist() for x in meshgrid if x[max_phase]!=0 and x[max_phase]+np.sum(x[mask])==0 and np.min(np.abs(x[mask]))==0 and np.max(np.abs(x[mask]))==1]
-        action_list = [x.tolist() for x in meshgrid if
-                       x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
-                           np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
-                           x[mask]) and x[max_phase] != np.max(x[mask]) and x[max_phase]>0]
+        action_list = [x.tolist() for x in meshgrid
+                                        if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
+                                            and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
+                                            and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])
+                                            and x[max_phase]>0]
     else:
         meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
-        action_list = [x.tolist() for x in meshgrid if
-                       x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0 and np.min(
-                           np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1 and x[max_phase] != np.min(
-                           x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1 and x[max_phase] != np.min(x[mask]) and
-                       x[max_phase] != np.max(x[mask]) and x[max_phase]>0]
-
-#     tmp = list([1] * phase_num)
-#     tmp[max_phase] = -(phase_num - 1)
-#     action_list.append(tmp)
+        action_list = [x.tolist() for x in meshgrid
+                                        if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
+                                            and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
+                                            and x[max_phase] != np.min(x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1
+                                            and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])
+                                            and x[max_phase]>0]
 
     tmp = list([-1] * phase_num)
     tmp[max_phase] = phase_num - 1
@@ -289,16 +284,10 @@ def getScheduleID(traffic_signal, given_start_time):
             break
 
     if idx == -1:
-        #offset = traffic_signal.find("TODPlan").attrib['offset']
         schedule = traffic_signal.find("TODPlan").attrib['defaultPlan']
-        #start_time = given_start_time
     else:
-        #offset = all_plan[idx].attrib['offset']
         schedule = all_plan[idx].attrib['schedule']
-        #start_time = all_plan[idx].attrib['startTime']
 
-    # if 0:
-    #     print("given_start_time={} offset={} schedule={} startTime={}".format(given_start_time, offset, schedule, start_time))
     return schedule
 
 
@@ -436,12 +425,6 @@ def constructLaneRelatedInfo(args, salt_scenario, target_tl_obj):
     libsalt.start(salt_scenario)
     libsalt.setCurrentStep(startStep)
 
-    # print("init", [libsalt.trafficsignal.getTLSConnectedLinkID(x) for x in target_tl_id_list])
-    # print("init", [libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(x) for x in target_tl_id_list])
-    # print("init", [libsalt.trafficsignal.getLastTLSPhaseSwitchingTimeByNodeID(x) for x in target_tl_id_list])
-    # print("init", [len(libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(x).myPhaseVector) for x in target_tl_id_list])
-    # print("init", [libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(x).myPhaseVector[0][1] for x in target_tl_id_list])
-
     _lane_len = []
     for target in target_tl_obj:
         _lane_list = []
@@ -467,7 +450,6 @@ def constructLaneRelatedInfo(args, salt_scenario, target_tl_obj):
         else:
             target_tl_obj[target]['state_space'] = len(_lane_list_0) + 1
         _lane_len.append(len(_lane_list))
-    # print(target_tl_obj)
 
     libsalt.close()
 
@@ -594,6 +576,8 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
 
     return target_tl_obj, sa_obj, _lane_len
 
+
+
 def getAverageSpeedOfIntersection(tl_id, tl_obj, num_hop=0):
     '''
     get average speed of given intersection
@@ -655,10 +639,12 @@ def getAverageTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
     return avg_tt
 
 
-def appendPhaseRewardsWithoutTT(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list):
+@deprecated(reason="use another function : appendPhaseRewards")
+def appendPhaseRewards_V1(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list):
     '''
     write reward to given file
     this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool
+    currently not used.... do not write average travel time
 
     :param fn: file name to store reward
     :param sim_step: simulation step

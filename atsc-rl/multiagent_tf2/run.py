@@ -47,7 +47,7 @@ from env.SappoRewardMgmt import SaltRewardMgmtV3
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
-from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, RESULT_COMPARE_SKIP
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
@@ -716,33 +716,14 @@ def testSappo(args):
 
     # compare traffic simulation results
     if args.result_comp:
-        #todo
         ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
         rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
 
-        if 0:
-            total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num)
+        comp_skip = _RESULT_COMPARE_SKIP_
+        result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
+        __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
 
-            result_fn = "{}/output/test/{}_{}.csv".format(args.io_home, problem_var, args.model_num)
-            total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
-
-            if 1 : # args.dist
-                # todo   Let's think about which path would be better to save it
-                #                 dist learning history
-                dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
-                shutil.copy2(result_fn, dst_fn)
-
-                #df = pd.read_csv(result_fn, index_col=0)
-                #for sa in env.target_sa_name_list:
-                #    __printImprovementRate(df, sa)
-                #__printImprovementRate(df, 'total')
-                __printImprovementRate(env, result_fn)
-
-        else:
-            comp_skip = RESULT_COMPARE_SKIP
-            result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
-            __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
-
+        if DBG_OPTIONS.ResultCompareSkipWarmUp:
             comp_skip = args.warmup_time
             result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
             __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')

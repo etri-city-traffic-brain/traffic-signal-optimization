@@ -16,7 +16,7 @@ from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
-from TSOConstants import RESULT_COMPARE_SKIP
+from TSOConstants import _RESULT_COMPARE_SKIP_
 
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
@@ -397,20 +397,24 @@ def validate(args, validation_trials, fn_dist_learning_history):
         # and get the improvement rate
 
         # case 0:  when the duration of skip for result comparition is given
-        # from TSOConstants import RESULT_COMPARE_SKIP
-        comp_skip = RESULT_COMPARE_SKIP
+        comp_skip = _RESULT_COMPARE_SKIP_
         fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
         df = pd.read_csv(fn_result, index_col=0)
         imp_rate_0 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
 
-        # case 1:  when the duration of skip for result comparison is warming-up time
-        # zz.result_comp_s600.0.csv
-        comp_skip = args.warmup_time
-        fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
-        df = pd.read_csv(fn_result, index_col=0)
-        imp_rate_1 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
+        if DBG_OPTIONS.ResultCompareSkipWarmUp:
+            # case 1:  when the duration of skip for result comparison is warming-up time
+            # zz.result_comp_s600.0.csv
+            comp_skip = args.warmup_time
+            fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
+            df = pd.read_csv(fn_result, index_col=0)
+            imp_rate_1 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
 
-        appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}, {imp_rate_1}")
+        if DBG_OPTIONS.ResultCompareSkipWarmUp:
+            appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}, {imp_rate_1}")
+        else:
+            appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}")
+
 
         success = _CHECK_.SUCCESS if imp_rate_0 >= args.validation_criteria else _CHECK_.FAIL
 
@@ -461,7 +465,10 @@ if __name__ == '__main__':
 
     # to save the history of distributed learning
     fn_dist_learning_history = "{}/{}".format(args.model_store_root_path, _FN_PREFIX_.DIST_LEARNING_HISTORY)
-    writeLine(fn_dist_learning_history, f'trial, improvement_rate_skip{RESULT_COMPARE_SKIP}, improvement_rate_skip{args.warmup_time}')
+    if DBG_OPTIONS.ResultCompareSkipWarmUp:
+        writeLine(fn_dist_learning_history, f'trial, improvement_rate_skip{_RESULT_COMPARE_SKIP_}, improvement_rate_skip{args.warmup_time}')
+    else:
+        writeLine(fn_dist_learning_history, f'trial, improvement_rate_skip{_RESULT_COMPARE_SKIP_}')
 
     # local_learning_epoch = args.epoch
     # args.epoch = local_learning_epoch
