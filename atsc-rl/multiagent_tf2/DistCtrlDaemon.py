@@ -7,6 +7,7 @@ import os
 import argparse
 import numpy as np
 import pandas as pd
+from deprecated import deprecated
 
 from TSOUtil import doPickling, doUnpickling, Msg
 from TSOConstants import _MSG_TYPE_
@@ -44,24 +45,17 @@ class ServingClientThread(threading.Thread):
         '''
         self.channel = channel
         self.details = details
-        if 0:
-            self.target = local_target # optimization is done by connected client
-            self.infer_model_number = -1
 
-            self.infer_model_root_path = args.model_store_root_path
-            infer_tl_list = args.target_TL.split(",")
-            infer_tl_list.remove(self.target)
-        else:
-            self.target = self.convertListToCommaSeperatedString(local_target)
-            self.infer_model_number = -1
+        self.target = self.__convertListToCommaSeperatedString(local_target)
+        self.infer_model_number = -1
 
-            self.infer_model_root_path = args.model_store_root_path
-            infer_tl_list = args.target_TL.split(",")
-            for t in local_target:
-                infer_tl_list.remove(t)
+        self.infer_model_root_path = args.model_store_root_path
+        infer_tl_list = args.target_TL.split(",")
+        for t in local_target:
+            infer_tl_list.remove(t)
 
         if len(infer_tl_list):
-            self.infer_tls = self.convertListToCommaSeperatedString(infer_tl_list)
+            self.infer_tls = self.__convertListToCommaSeperatedString(infer_tl_list)
         else:
             self.infer_tls = ''
 
@@ -78,7 +72,8 @@ class ServingClientThread(threading.Thread):
         threading.Thread.__init__(self)
 
 
-    def convertListToCommaSeperatedString(self, a_list):
+
+    def __convertListToCommaSeperatedString(self, a_list):
         '''
         convert list to comma seperated string
         :param a_list:
@@ -94,6 +89,7 @@ class ServingClientThread(threading.Thread):
         return cvted
 
 
+
     def setInferModelNumber(self, trials):
         '''
         set the model number which will be used inference
@@ -101,6 +97,7 @@ class ServingClientThread(threading.Thread):
         :return:
         '''
         self.infer_model_number = trials
+
 
 
     def setTerminationCondition(self, val):
@@ -111,6 +108,7 @@ class ServingClientThread(threading.Thread):
         :return:
         '''
         self.check_termination_condition = val
+
 
 
     def sendMsg(self, conn, msg_type, msg_contents):
@@ -130,6 +128,7 @@ class ServingClientThread(threading.Thread):
         return pickled_msg
 
 
+
     def receiveMsg(self, conn):
         '''
         receive a message
@@ -142,6 +141,7 @@ class ServingClientThread(threading.Thread):
         if DBG_OPTIONS.PrintServingThread:
             print("## recv_msg from {}:{} -- {}".format(self.details[0], self.details[1], recv_msg_obj.toString()))
         return recv_msg_obj
+
 
 
     #todo argument에 모두 넣어서 보내는 것은 어떻까?
@@ -166,6 +166,7 @@ class ServingClientThread(threading.Thread):
         msg_contents_dic[_MSG_CONTENT_.CTRL_DAEMON_ARGS] = self.args
 
         return msg_contents_dic
+
 
 
     def run(self):
@@ -204,8 +205,7 @@ class ServingClientThread(threading.Thread):
             elif self.check_termination_condition == _CHECK_.FAIL:
                 # todo _MSG_.LOCAL_LEARNING_REQUEST 로 통합할 수 있을 것 같다.
                 msg_contents = self.makeMsgContents()
-                send_msg_obj = self.sendMsg(self.channel, _MSG_TYPE_.LOCAL_RELEARNING_REQUEST,
-                                            msg_contents)
+                send_msg_obj = self.sendMsg(self.channel, _MSG_TYPE_.LOCAL_RELEARNING_REQUEST, msg_contents)
                 self.check_termination_condition = _CHECK_.NOT_READY
 
         self.channel.close()
@@ -214,11 +214,8 @@ class ServingClientThread(threading.Thread):
             print('## Closed connection:', self.details[0])
 
 
+
 def getArgs():
-    # return getArgsOne()
-    return getArgsWithAddArgumentFunc()
-
-def getArgsOne():
     '''
     do arguments parsing
     :return: parsed argument
@@ -227,59 +224,6 @@ def getArgsOne():
 
     ### for distributed learning
     parser.add_argument("--port", type=int, default=2727)
-    parser.add_argument("--ground-zero",  type=str2bool, default=False,  help="whether do simulation with fixed signal to get ground zero performance")
-    parser.add_argument("--validation-criteria", type=float, default=5.0)
-    parser.add_argument("--num-of-learning-daemon", type=int, default=3)
-    # parser.add_argument("--infer_model_root_path", type=str, default="/tmp/tso")
-    parser.add_argument("--model-store-root-path", type=str, default="/tmp/tso")
-    parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
-                        help="number of candidate to compare reward to find optimal model")
-
-
-    ### for single node learning
-    parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt')
-    parser.add_argument('--map', choices=['dj_all', 'doan', 'doan_20211207', 'sa_1_6_17'], default='sa_1_6_17',
-                        help='name of map')
-                # doan : SA 101, SA 104, SA 107, SA 111
-                # sa_1_6_17 : SA 1,SA 6,SA 17
-
-    parser.add_argument("--target-TL", type=str, default="SA 1,SA 6,SA 17")
-    parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
-    parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
-
-    parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
-    parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
-                        help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
-    parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
-                        help='v - volume, d - density, vd - volume + density, vdd - volume / density')
-    parser.add_argument('--reward-func',
-                        choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max',
-                                 'wt_ABV', 'tt', 'cwq'],
-                        default='cwq',
-                        help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based')
-
-    ### for train
-    parser.add_argument('--epoch', type=int, default=100, help='training epoch')
-    parser.add_argument('--warmup-time', type=int, default=600, help='warming-up time of simulation')
-    parser.add_argument('--model-save-period', type=int, default=5, help='how often to save the trained model')
-    parser.add_argument("--print-out", type=str2bool, default="TRUE", help='print result each step')
-
-
-    args = parser.parse_args()
-
-    return args
-
-
-def getArgsWithAddArgumentFunc():
-    '''
-    do arguments parsing
-    :return: parsed argument
-    '''
-    parser = argparse.ArgumentParser()
-
-    ### for distributed learning
-    parser.add_argument("--port", type=int, default=2727)
-    parser.add_argument("--ground-zero",  type=str2bool, default=False,  help="whether do simulation with fixed signal to get ground zero performance")
     parser.add_argument("--validation-criteria", type=float, default=5.0)
     parser.add_argument("--num-of-learning-daemon", type=int, default=3)
     # parser.add_argument("--infer_model_root_path", type=str, default="/tmp/tso")
@@ -296,34 +240,6 @@ def getArgsWithAddArgumentFunc():
 
     return args
 
-
-
-def getTheCurrentPerformance(args):
-    '''
-    obtain the current performance
-    we can use it to calculate the degree of improvement.
-
-    :param args : argparse.Namespace : parsed argument
-
-    :return: float
-            current performance
-    '''
-    current_performance = 1.0
-
-    ## make a command to run simulation with fixed signal
-    local_learning_epoch = args.epoch
-    args.mode=_MODE_.SIMULATE
-    args.epoch = 1
-    args.infer_model_number = -1 # do not inference
-    cmd = generateCommand(args)
-    args.epoch = local_learning_epoch
-
-
-    waitForDebug("before launch simulation to get base performance")
-
-    result = execTrafficSignalOptimization(cmd)
-
-    return current_performance
 
 
 def validate(args, validation_trials, fn_dist_learning_history):
@@ -429,12 +345,20 @@ def validate(args, validation_trials, fn_dist_learning_history):
 
 
 def makePartition(target, num_part):
+    '''
+    split targets to optimize into num_part partitions
+
+    :param target: target to optimize
+    :param num_part: # of partitions (# of exec daemon)
+    :return:
+    '''
     len_target = len(target)
-    x = list(np.linspace(0, len_target, num_part + 1))
-    # print(x)
+    x = list(np.linspace(0, len_target, num_part + 1)) #
+    #  if target is "SA 1, SA 2, SA 3, SA 4, SA 5" and  num_part is 3
+    # print(x)  #[0.0, 1.6666666666666667, 3.3333333333333335, 5.0]
 
     y = [int(i) for i in x]
-    # print(y)
+    # print(y) # [0, 1, 3, 5]
 
     partitions = []
     prev = y[0]
@@ -444,7 +368,7 @@ def makePartition(target, num_part):
         partitions.append(part)
         prev = i
 
-    # print (partitions)
+    # print (partitions)  # [['SA 1'], [' SA 2', ' SA 3'], [' SA 4', ' SA 5']]
     return partitions
 
 
@@ -477,10 +401,10 @@ if __name__ == '__main__':
     #    xxx_test() funcs in test.py obtain the performance of simulation
     #       using fixed-time-based signal control for result comparison
     ##  so.. we do not do it here
-    if args.ground_zero :
-        ## first obtain the current performance
-        #     so that we can use it to calculate the degree of improvement.
-        current_performance = getTheCurrentPerformance(args)
+    # if args.ground_zero :
+    #     ## first obtain the current performance
+    #     #     so that we can use it to calculate the degree of improvement.
+    #     current_performance = getTheCurrentPerformance(args)
 
     ##
     ## Set up the server:
@@ -572,18 +496,3 @@ if __name__ == '__main__':
 # argparser
 #   ref.https://donghwa-kim.github.io/argparser.html
 #
-
-
-######
-#     python ServerDaemon.py --config_file_path config.json
-#
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument("--config_file_path", type=str, default="config.json")
-    # args = parser.parse_args()
-    # json_fn = args.config_file_path
-    #
-    # with open(json_fn, 'r') as file:
-    #     json_string = file.read()
-    #     data_dict = json.loads(json_string)
-    #
-    #     port = data_dict["port"]

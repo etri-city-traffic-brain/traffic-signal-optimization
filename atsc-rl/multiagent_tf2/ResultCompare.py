@@ -104,6 +104,7 @@ def getStatisticsInformationAboutGivenEdgeList(ft_output, rl_output, in_edge_lis
     return ft_output2, ft_output3, rl_output2, rl_output3
 
 
+
 def compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip = -1):
     '''
     compare two result files and calculate improvement rate
@@ -137,6 +138,7 @@ def compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed_r
     return __compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip)
 
 
+
 def __compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip = -1):
     '''
     compare two result files and calculate improvement rate for each intersection, each SA and overall
@@ -162,9 +164,10 @@ def __compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed
     else:
         cut_interval = args.start_time + passed_res_comp_skip
 
-    print(f"training step: {args.start_time} to {args.end_time}")
-    print(f"comparing step: {cut_interval} to {args.end_time}")
-    print(f"model number: {model_num}")
+    if DBG_OPTIONS.PrintResultCompare:
+        print(f"training step: {args.start_time} to {args.end_time}")
+        print(f"comparing step: {cut_interval} to {args.end_time}")
+        print(f"model number: {model_num}")
 
 
     #
@@ -192,7 +195,7 @@ def __compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed
     # for each SA
     3
     for sa in target_sa_tl_dic.keys():
-        if 0:
+        if DBG_OPTIONS.PrintResultCompare:
             print(f'{sa}')
             for tl in list(target_sa_tl_dic[sa]):
                 print(target_tl_obj[tl]['crossName'])
@@ -212,6 +215,8 @@ def __compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed
     total_output = total_output.sort_values(by=["SA", "name"], ascending=True)
 
     return total_output
+
+
 
 def __compareResultInternal(individual_output, comp_tl_list, target_tl_obj, ft_output, rl_output, cut_interval):
     ##-- set the info to be extracted : kind, method
@@ -241,7 +246,8 @@ def __compareResultInternal(individual_output, comp_tl_list, target_tl_obj, ft_o
         #     print(target_tl_obj[tl]['crossName'], target_tl_obj[tl]['in_edge_list_0'])
 
     if DBG_OPTIONS.PrintResultCompare:
-        print("\nAll Target TL summary.....")
+        # print("\nAll Target TL summary.....")
+        print(f"\n{individual_output['name'][0]} summary.....")
 
     ft_output2, ft_output3, rl_output2, rl_output3 = \
         getStatisticsInformationAboutGivenEdgeList(ft_output, rl_output, in_edge_list_0, in_edge_list, cut_interval)
@@ -252,6 +258,7 @@ def __compareResultInternal(individual_output, comp_tl_list, target_tl_obj, ft_o
                                                           ft_output2, ft_output3, rl_output2, rl_output3,
                                                           individual_output)
     return individual_output
+
 
 
 def testCompareResult():
@@ -352,4 +359,6 @@ def __printImprovementRate(df, target):
 #  python ResultCompare.py --map doan --target-TL "SA 101, SA 104"
 
 if __name__ == '__main__':
+    DBG_OPTIONS.PrintResultCompare = True
+    DBG_OPTIONS.IngCompResult = True
     testCompareResult()

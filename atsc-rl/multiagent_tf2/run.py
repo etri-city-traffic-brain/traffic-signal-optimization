@@ -13,9 +13,10 @@ import os
 import pandas as pd
 import shutil
 import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
 import time
 import sys
+
+from deprecated import deprecated
 
 # check environment
 if 'SALT_HOME' in os.environ:
@@ -31,13 +32,12 @@ else:
 
 import libsalt
 
-from config import TRAIN_CONFIG
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
 from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection, getAverageTravelTimeOfIntersection
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
-from env.SaltEnvUtil import getScenarioRelatedBeginEndTime, getSimulationStartStepAndEndStep
+from env.SaltEnvUtil import getSimulationStartStepAndEndStep
 from env.SaltEnvUtil import makePosssibleSaNameList
 
 from env.SappoEnv import SaltSappoEnvV3
@@ -96,7 +96,6 @@ def makeDirectories(dir_name_list):
 
 
 
-
 def createEnvironment(args):
     '''
     create environment
@@ -112,20 +111,7 @@ def createEnvironment(args):
     return env
 
 
-
-# def calculateTrialLength(args):
-#     '''
-#     calculate a length of trial using simulation start & end time (from scenario file)
-#     :param args:
-#     :return: length of trial
-#     '''
-#     scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-#     start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-#     end_time = args.end_time if args.end_time < scenario_end else scenario_end
-#     trial_len = end_time - start_time
-#     return trial_len, start_time, end_time
-
-
+@deprecated
 def storeExperience(trial, step, agent, cur_state, action, reward, new_state, done, logp_t):
     '''
     store experience
@@ -152,6 +138,8 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
         agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
 
 
+
+@deprecated
 def storeExperience2(do_reset, agent, cur_state, action, reward, new_state, done, logp_t):
     '''
     store experience
@@ -196,6 +184,7 @@ def makeLoadModelFnPrefixV1(args, problem_var, is_train_target=False):
     return fn_prefix
 
 
+
 def makeLoadModelFnPrefixV2(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
@@ -215,6 +204,7 @@ def makeLoadModelFnPrefixV2(args, problem_var, is_train_target=False):
         fn_prefix = "{}/{}-{}-trial_{}".format(args.infer_model_path, args.method.upper(), problem_var, args.model_num)
 
     return fn_prefix
+
 
 
 def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
@@ -259,6 +249,7 @@ def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
     return fn_prefix
 
 
+
 def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
@@ -270,6 +261,8 @@ def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
     :return:
     '''
     return makeLoadModelFnPrefixV3(args, problem_var, is_train_target)
+
+
 
 def trainSappo(args):
     '''
@@ -290,7 +283,6 @@ def trainSappo(args):
     # set start_/end_time which will be used to train
     args.start_time = start_time
     args.end_time = end_time
-
 
 
     ## make configuration dictionary & make some string variables
@@ -362,7 +354,9 @@ def trainSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
-            #todo should care file name ... should we use shared storage for distributed learning?
+            #todo should care file name ...
+            #     Should we use shared storage for distributed training?   No...
+            #        Training will be done at the same node while distributed training is doing
             # for CumulateReplayMemory
             # load stored replay memory if is_train_target and args.cumulative_training and (args.infer_model_num >=0)
             if is_train_target and args.cumulative_training and (int(args.infer_model_num) >= 0) :
@@ -371,24 +365,18 @@ def trainSappo(args):
                 # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path, _FN_PREFIX_.REPLAY_MEMORY, agent.id)
 
                 agent.loadReplayMemory(fn_replay_memory_object)
-                # print(f"### loaded len(replay memory for {agent.id})={len(agent.memory.states)}")
+                if DBG_OPTIONS.PrintTrain:
+                    print(f"### loaded len(replay memory for {agent.id})={len(agent.memory.states)}")
 
             fn_prefix = makeLoadModelFnPrefix(args, problem_var, is_train_target)
             if len(fn_prefix) > 0:
-                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")  # should delete
+                if DBG_OPTIONS.PrintTrain:
+                    waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
                 agent.loadModel(fn_prefix)
             else:
-                waitForDebug(
-                    f"agent for {target_sa} will training without loading a pre-trained model parameter")  # should delete
-
-
-            #     if is_train_target == False:
-            #         # make a prefix of file name which indicates saved trained model parameters
-            #         fn_prefix = makeLoadModelFnPrefix(args, problem_var)
-            #
-            #         waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
-            #
-            #         agent.loadModel(fn_prefix)
+                if DBG_OPTIONS.PrintTrain:
+                    waitForDebug(
+                        f"agent for {target_sa} will training without loading a pre-trained model parameter")
 
 
             ppo_agent.append(agent)
@@ -418,7 +406,9 @@ def trainSappo(args):
 
             episodic_reward = 0
             episodic_agent_reward = [0] * agent_num
-            start = time.time()
+
+            if DBG_OPTIONS.PrintTrain:
+                start = time.time()
 
         # collect current state information
         cur_states = env.reset()
@@ -568,7 +558,6 @@ def trainSappo(args):
         if args.cumulative_training:
             for i in range(agent_num):
                 if not ppo_agent[i].is_train : # if it is not the target of training
-                    print(f"ppo_agent[i].is_train = {ppo_agent[i].is_train} ... should False")
                     continue
 
                 fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
@@ -581,26 +570,18 @@ def trainSappo(args):
         else:
             print(f"args.cumulative-training is {args.cumulative_training}")
 
-            if 0:
-                for i in range(agent_num):
-                    if not ppo_agent[i].is_train : # if it is not the target of training
-                        print(f"ppo_agent[i].is_train = {ppo_agent[i].is_train} ... should False")
-                        continue
-
-                    fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
-                                                                            _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
-
-                    # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path,
-                    #                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
-                    ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
-                    # print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
-
 
         return optimal_model_num
 
 
 
 def testSappo(args):
+    '''
+    test trained model
+
+    :param args:
+    :return:
+    '''
 
     ## load environment
     env = createEnvironment(args)
@@ -636,7 +617,8 @@ def testSappo(args):
             # make a prefix of file name which indicates saved trained model parameters
             fn_prefix = makeLoadModelFnPrefix(args, problem_var, True)
 
-            waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
+            if DBG_OPTIONS.PrintTrain:
+                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
 
             agent.loadModel(fn_prefix)
 
@@ -664,7 +646,9 @@ def testSappo(args):
 
         ep_reward_list = []  # To store reward history of each episode
         episodic_reward = 0
-        start = time.time()
+
+        if DBG_OPTIONS.PrintTrain:
+            start = time.time()
 
 
     # collect current state information
@@ -711,8 +695,9 @@ def testSappo(args):
 
     # Mean of last 40 episodes
     avg_reward = np.mean(ep_reward_list[-40:])
-    print("Avg Reward is ==> {}".format(avg_reward))
-    print("episode time :", time.time() - start)  # execution time =  current time - start time
+    if DBG_OPTIONS.PrintTrain:
+        print("Avg Reward is ==> {}".format(avg_reward))
+        print("episode time :", time.time() - start)  # execution time =  current time - start time
 
     # compare traffic simulation results
     if args.result_comp:
@@ -723,7 +708,7 @@ def testSappo(args):
         result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
         __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
 
-        if DBG_OPTIONS.ResultCompareSkipWarmUp:
+        if DBG_OPTIONS.ResultCompareSkipWarmUp: # comparison excluding warm-up time
             comp_skip = args.warmup_time
             result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
             __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
@@ -731,8 +716,19 @@ def testSappo(args):
     return avg_reward
 
 
-
 def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
+    '''
+    compare result of fxied-time-control and RL-agent-control
+    and save the comparison results
+
+    :param args:
+    :param env:
+    :param ft_output: result of traffic signal control by fixed-time
+    :param rl_output: result of traffic signal control by RL-agent
+    :param problem_var:
+    :param comp_skip: time interval to exclude from result comparison
+    :return:
+    '''
     result_fn = "{}/output/test/{}_s{}_{}.csv".format(args.io_home, problem_var, comp_skip, args.model_num)
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
     total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
@@ -761,20 +757,6 @@ def __printImprovementRateInternal(df, target, msg="Skip one hour"):
     imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
     print(f'{msg} Average Travel Time ({target}): {imp_rate}% improved')
 
-
-
-
-
-def __printImprovementRate_old(df, target):
-    ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
-    rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
-    ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']
-    rl_sum_travel_time = df.at[target, 'rl_SumTravelTime_sum_0hop']
-
-    ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
-    rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
-    imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
-    print(f'Average Travel Time ({target}): {imp_rate}% improved')
 
 
 def fixedTimeSimulate(args):
@@ -879,11 +861,5 @@ if __name__ == "__main__":
 
     elif args.mode == 'simulate':
         fixedTimeSimulate(args)
-        # test_out_of_memory = True
-        # if test_out_of_memory:
-        #     num_epoch = 200
-        #     testOutOfMemory(200, args)
-        # else:
-        #     fixedTimeSimulate(args)
 
 

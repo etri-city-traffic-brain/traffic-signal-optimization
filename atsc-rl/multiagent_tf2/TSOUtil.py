@@ -86,6 +86,11 @@ def writeLine(fn, contents):
 arguemnt parsing
 '''
 def str2bool(v):
+    '''
+    convert string to boolean
+    :param v:
+    :return:
+    '''
     # import argparse
     if isinstance(v, bool):
         return v
@@ -96,6 +101,25 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
+
+def strToIntTuple(v):
+    '''
+    convert comma separated integer string to list of integer
+    :param v: comma separated integer
+    :return: list of integer
+    '''
+    tokens = v.split(',')
+    ret_val = []
+    for i in range(len(tokens)):
+        try:
+            ret_val.append(int(tokens[i]))
+        except ValueError:
+            raise argparse.ArgumentTypeError('string of comma separated integer values are expected.')
+
+    return tuple(ret_val)
+
 
 
 def addArgumentsToParser(parser):
@@ -169,6 +193,10 @@ def addArgumentsToParser(parser):
     parser.add_argument('--a-lr', type=float, default=0.005, help='learning rate of actor')
     parser.add_argument('--c-lr', type=float, default=0.005, help='learning rate of critic')
 
+    parser.add_argument('--network-size', type=strToIntTuple, default=(1024, 512, 512, 512, 512),
+                        help='size of network in ML model; string of comma separated integer values are expected')
+    parser.add_argument('--optimizer', type=str, default="Adam", help='optimizer for ML model')
+
     # todo should check nout used argument
     ### currently not used : logstdI, cp, mmp
     # parser.add_argument('--logstdI', type=float, default=0.5)
@@ -236,10 +264,13 @@ def convertSaNameToId(in_sa_name):
     return in_sa_name.strip().replace(' ', '_')
 
 
-########################################################################################################
-''''
-methods for distributed learning
-'''
+
+##
+##
+## methods for distributed training
+##
+##
+
 # The pickle module implements binary protocols
 #   for serializing and de-serializing a Python object structure.
 def doPickling(some_obj):
@@ -322,6 +353,7 @@ def execTrafficSignalOptimization(cmd):
     return r
 
 
+
 def execTrafficSignalOptimization_Old(cmd):
     '''
     set the environment to do TSO(traffic signal optimization)
@@ -357,6 +389,7 @@ def execTrafficSignalOptimization_Old(cmd):
     # r = subprocess.run(cmd, shell=True, env=my_env).wait() # error
 
     return r
+
 
 
 def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
@@ -562,82 +595,6 @@ def generateCommand(args):
     return cmd
 
 
-# def makePPOConfig(args):
-#     '''
-#     make configuration dictionary for PPO
-#     :param args: argument
-#     :return:
-#     '''
-#
-#     cfg = {}
-#
-#     cfg["state"] = args.state
-#     cfg["action"] = args.action
-#     cfg["reward"] = args.reward_func
-#
-#     # cfg["lr"] = args.lr  # 0.005
-#     cfg["gamma"] = args.gamma  # 0.99
-#     cfg["lambda"] = args._lambda  # 0.95
-#     cfg["actor_lr"] = args.a_lr  # 0.005
-#     cfg["critic_lr"] = args.c_lr  # 0.005
-#     cfg["ppo_epoch"] = args.ppo_epoch  # 10
-#     cfg["ppo_eps"] = args.ppo_eps  # 0.1  # used for ppoea
-#
-#     cfg["memory_size"] = args.mem_len
-#     cfg["forget_ratio"] = args.mem_fr
-#
-#     cfg["offset_range"] = args.offset_range  # 2
-#     cfg["control_cycle"] = args.control_cycle  # 5
-#     cfg["add_time"] = args.add_time  # 2
-#
-#     # cfg["network_layers"] = [512, 256, 128, 64, 32]  # TRAIN_CONFIG['network_size']
-#     cfg["network_layers"] = TRAIN_CONFIG['network_size']
-#
-#     # cfg["optimizer"] = Adam
-#     cfg["optimizer"] = TRAIN_CONFIG['optimizer']
-#     return cfg
-#
-#
-#
-# def makePPOProblemVar(conf):
-#     '''
-#     make string by concatenating configuration
-#     this will be used as a prefix of file/path name to store log, model, ...
-#
-#     :param conf:
-#     :return:
-#     '''
-#
-#     problem_var = ""
-#     problem_var += "_state_{}".format(conf["state"])
-#     problem_var += "_action_{}".format(conf["action"])
-#     problem_var += "_reward_{}".format(conf["reward"])
-#
-#     problem_var += "_gamma_{}".format(conf["gamma"])
-#     problem_var += "_lambda_{}".format(conf["lambda"])
-#     problem_var += "_alr_{}".format(conf["actor_lr"])
-#     problem_var += "_clr_{}".format(conf["critic_lr"])
-#
-#     problem_var += "_mLen_{}".format(conf["memory_size"])
-#     problem_var += "_mFR_{}".format(conf["forget_ratio"])
-#     problem_var += "_netSz_{}".format(conf["network_layers"])
-#     problem_var += "_offset_range_{}".format(conf["offset_range"])
-#     problem_var += "_control_cycle_{}".format(conf["control_cycle"])
-#     # if args.method=='ppornd':
-#     #     problem_var += "_gammai_{}".format(args.gamma_i)
-#     #     problem_var += "_rndnetsize_{}".format(TRAIN_CONFIG['rnd_network_size'])
-#     # if args.method=='ppoea':
-#     #     problem_var += "_ppo_epoch_{}".format(args.ppo_epoch)
-#     #     problem_var += "_ppoeps_{}".format(args.ppo_eps)
-#     # if len(args.target_TL.split(","))==1:
-#     #     problem_var += "_{}".format(args.target_TL.split(",")[0])
-#     #
-#     # if args.action == 'gr' or args.action == 'gro':
-#     #     problem_var += "_addTime_{}".format(args.add_time)
-#
-#     return problem_var
-
-
 
 def makeConfigAndProblemVar(args):
     '''
@@ -658,9 +615,14 @@ def makeConfigAndProblemVar(args):
 
     return config, problem_var
 
-'''
-methods for debugging
-'''
+
+
+
+##
+#
+# methods for debugging
+#
+##
 
 
 # ref. https://code.activestate.com/recipes/577504/
