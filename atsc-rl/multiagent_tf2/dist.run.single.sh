@@ -18,7 +18,7 @@ NUM_OPT_MODEL_CANDIDATE=10
 MODEL_STORE_PATH=/home/tsoexp/share/results
 COPY_SIMULATION_OUTPUT="yes"
 
-RESULT_DIR="0628"
+RESULT_DIR="today"
 
 # for single
 NUM_DAEMON=1
@@ -58,4 +58,8 @@ sleep 3
 
 #sleep 3
 
+echo
+echo
+echo ps -def | grep python | grep tsoexp | grep $PORT
 ps -def | grep python | grep tsoexp | grep $PORT
+#ps -def | grep tensorboard | grep tsoexp | grep $TB_PORT

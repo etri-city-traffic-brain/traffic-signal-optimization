@@ -17,7 +17,7 @@
                          [--num-of-learning-daemon NUM_OF_LEARNING_DAEMON] [--model-store-root-path MODEL_STORE_ROOT_PATH]
                          [--num-of-optimal-model-candidate NUM_OF_OPTIMAL_MODEL_CANDIDATE]
                          [--mode {train,test,simulate}] [--scenario-file-path SCENARIO_FILE_PATH]
-                         [--map {dj_all,doan,doan_20211207,sa_1_6_17}] [--target-TL TARGET_TL] [--start-time START_TIME]
+                         [--map {dj_all,doan,sa_1_6_17}] [--target-TL TARGET_TL] [--start-time START_TIME]
                          [--end-time END_TIME] [--method {sappo}] [--action {kc,offset,gr,gro}] [--state {v,d,vd,vdd}]
                          [--reward-func {pn,wt,wt_max,wq,wq_median,wq_min,wq_max,wt_SBV,wt_SBV_max,wt_ABV,tt,cwq}]
                          [--model-num MODEL_NUM] [--result-comp RESULT_COMP] [--io-home IO_HOME] [--epoch EPOCH]

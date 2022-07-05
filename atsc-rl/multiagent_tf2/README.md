@@ -20,7 +20,7 @@
 
     --scenario-file-path SCENARIO_FILE_PATH
       home directory of scenario; relative path
-    --map {dj_all,doan,doan_20211207,sa_1_6_17}
+    --map {dj_all,doan,sa_1_6_17}
       name of map
     --target-TL TARGET_TL
       target signal groups; multiple groups can be separated by comma(ex. --target-TL SA 101,SA 104)

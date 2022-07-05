@@ -242,6 +242,21 @@ def getArgs():
 
 
 
+def __copySimulationOutput(args, fn_origin):
+    import shutil
+    _origin = f'./output/{args.mode}/{fn_origin}'
+    tokens = fn_origin.split(".")
+    _target = f'{args.model_store_root_path}/{tokens[0]}_{args.model_num}.{tokens[1]}'
+
+    try:
+        shutil.copy2(_origin, _target)
+    except IOError as e:
+        print("Unable to copy file. %s" % e)
+    else:
+        if DBG_OPTIONS.PrintCtrlDaemon:
+            print(f'### copy {_origin} {_target}')
+
+
 def validate(args, validation_trials, fn_dist_learning_history):
     '''
     check whether optimization criterior is satified
@@ -268,13 +283,11 @@ def validate(args, validation_trials, fn_dist_learning_history):
 
     ## copy simulation output file to kepp test history
     if args.copy_simulation_output:
-        import shutil
-        _origin = f'./output/{args.mode}/{_RESULT_COMP_.SIMULATION_OUTPUT}'
-        tokens = _RESULT_COMP_.SIMULATION_OUTPUT.split(".")
-        _target = f'{args.model_store_root_path}/{tokens[0]}_{args.model_num}.{tokens[1]}'
-            #   model_store_root_path/_PeriodicOutput_0.csv
-        print(f'### copy {_origin} {_target}')
-        shutil.copy2(_origin, _target)
+        # copy simulation output file
+        __copySimulationOutput(args, _RESULT_COMP_.SIMULATION_OUTPUT)
+
+        # copy phase/reward output
+        __copySimulationOutput(args, _RESULT_COMP_.PHASE_REWARD_OUTPUT)
 
 
     if 0:
@@ -338,8 +351,9 @@ def validate(args, validation_trials, fn_dist_learning_history):
         if DBG_OPTIONS.PrintImprovementRate:
             print("improvement_rate={} got from result comp file".format(improvement_rate))
 
-    waitForDebug("after check....... improvement_rate={}  validation_criteria={} success={} ".
-                 format(improvement_rate, args.validation_criteria, success))
+    if DBG_OPTIONS.PrintCtrlDaemon:
+        waitForDebug("after check....... improvement_rate={}  validation_criteria={} success={} ".
+                     format(improvement_rate, args.validation_criteria, success))
 
     return success
 
