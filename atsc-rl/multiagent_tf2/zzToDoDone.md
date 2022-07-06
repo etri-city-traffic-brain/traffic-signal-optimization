@@ -60,13 +60,16 @@
 ### done history
 * Tag V1.2a-20220706
   * (removal) exclude wt_SBV, wt_SBV_max and wt_ABV from reward functions because it is TOO SLOW
+  
   * use command line arguments instead of configuration file
     * network-size, optimizer
+  
   * (addition) dump average travel time of intersection into output file of optimizer(ft/rl_phase_reward_output.txt) for VizTool
     * DBG_OPTINS.WithAverageTravelTime
     * output file
       * before : step,tl_name,actions,phase,reward,avg_speed
       * after : step,tl_name,actions,phase,reward,avg_speed,avg_travel_time
+      
   * (stablization) Fixed the problem that boost lib could not be found when performing reinforcement learning
     * pass not some but all environment variables of the user when we launch RL program
       * before : some env variables of the user
