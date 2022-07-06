@@ -664,6 +664,10 @@ class SaltRewardMgmtV3:
     class for reward management
      - gather info which will be used to calculate reward
      - calculate reward
+
+     exclude  wt_SBV, wt_SBV_max and wt_ABV from reward functions because it is TOO SLOW.
+      (SBV - sum-based, ABV - average-base)
+
     '''
     def __init__(self, reward_func, gather_unit, action_t, reward_info_collection_cycle, sa_obj, tl_obj, target_name_list, num_target=-1):
         '''
@@ -741,11 +745,11 @@ class SaltRewardMgmtV3:
         dic_calc_reward['wq_max'] = ['max', -1]
         dic_calc_reward['wq_min'] = ['min', -1]
         dic_calc_reward['wt'] = ['sum', -1]
-        dic_calc_reward['wt_ABV'] = ['mean', -1]
+        # dic_calc_reward['wt_ABV'] = ['mean', -1]
         dic_calc_reward['wt_median'] = ['median', -1]
         dic_calc_reward['wt_max'] = ['max', -1]
-        dic_calc_reward['wt_SBV'] = ['sum', -1]
-        dic_calc_reward['wt_SBV_max'] = ['max', -1]
+        # dic_calc_reward['wt_SBV'] = ['sum', -1]
+        # dic_calc_reward['wt_SBV_max'] = ['max', -1]
 
         dic_op_func = {}
         dic_op_func['sum'] = np.sum
@@ -834,14 +838,14 @@ class SaltRewardMgmtV3:
             for l in link_list_0:
                 reward_info = np.append(reward_info,
                                         libsalt.link.getAverageWaitingQLength(l) * sum([l in x for x in lane_list_0]))
-        elif self.reward_func in ['wt_SBV', 'wt_SBV_max']:
-            for l in link_list_0:
-                reward_info = np.append(reward_info,
-                                        libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, sim_steps) / 1000)
-        elif self.reward_func == 'wt_ABV':
-            for l in link_list_0:
-                reward_info = np.append(reward_info,
-                                        libsalt.link.getCurrentAverageWaitingTimeBaseVehicle(l, sim_steps) / 1000)
+        # elif self.reward_func in ['wt_SBV', 'wt_SBV_max']:
+        #     for l in link_list_0:
+        #         reward_info = np.append(reward_info,
+        #                                 libsalt.link.getCurrentWaitingTimeSumBaseVehicle(l, sim_steps) / 1000)
+        # elif self.reward_func == 'wt_ABV':
+        #     for l in link_list_0:
+        #         reward_info = np.append(reward_info,
+        #                                 libsalt.link.getCurrentAverageWaitingTimeBaseVehicle(l, sim_steps) / 1000)
         elif self.reward_func == 'tt':
             for l in link_list_0:
                 reward_info = np.append(reward_info,

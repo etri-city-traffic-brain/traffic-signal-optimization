@@ -145,9 +145,10 @@ def addArgumentsToParser(parser):
                         help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
     parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                         help='v - volume, d - density, vd - volume + density, vdd - volume / density')
-    parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'wt_SBV', 'wt_SBV_max', 'wt_ABV', 'tt', 'cwq'],
+    parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'tt', 'cwq'],
                         default='cwq',
-                        help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length, SBV - sum-based, ABV - average-based')
+                        help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length')
+                        # 'wt_SBV', 'wt_SBV_max', 'wt_ABV'  : SBV - sum-based, ABV - average-based .... TOO SLOW
 
     parser.add_argument("--cumulative-training", type=str2bool, default="FALSE", help='whether do cumulative training based on a previously trained model parameter or not')
 
