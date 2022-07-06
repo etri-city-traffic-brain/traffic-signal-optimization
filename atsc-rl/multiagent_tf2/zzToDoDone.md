@@ -1,29 +1,3 @@
-
-
-python run.py --mode test --map doan --target-TL "SA 101,SA 104"  --action offset --model-num 0
-python run.py --mode test --map doan --target-TL "SA 101,SA 104"  --action gr --model-num 0
-python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func cwq
-python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func pn
-
-python run.py --mode simulate --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
-python run.py --mode train --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
-python run.py --mode test --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn \
-              --model-num 0 --result-comp true
-
-
-python DistCtrlDaemon.py --port 2727 --num-of-learning-daemon 1 --validation-criteria 6.0 \
-          --model-store-root-path /home/tsoexp/share/dl_test_1 --num-of-optimal-model-candidate 3 --scenario-file-path data/envs/salt \
-          --map doan --target-TL 'SA 101, SA 104' --method sappo --state vdd --action gr --reward-func pn --model-save-period 1 --epoch 5
-
-python DistCtrlDaemon.py --port 2727 --num-of-learning-daemon 2 --validation-criteria 10.0 \
-          --model-store-root-path /home/tsoexp/share/dl_test_1 --num-of-optimal-model-candidate 3 --scenario-file-path data/envs/salt \
-          --map doan --target-TL 'SA 101, SA 104, SA 111' --method sappo --state vdd --action gr --reward-func pn --model-save-period 1 \
-          --cumulative-training true --epoch 3
-
-
-python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
-
-
 ### todo
 * experiments
   * increase dimension : [2048, 1024, 512, 256, 128]
@@ -69,10 +43,7 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
     * ref. https://code.tutsplus.com/tutorials/understand-how-much-memory-your-python-objects-use--cms-25609
     
     
-* dockerize
-  * compile salt in the docker image env
-    * from : make a binary outside and copy it to docker image env
-    * to : copy SALT source into docker image env and compile it to make binary
+
 
 * solve questions :  todos in the code
   * can find given questions in the code
@@ -81,18 +52,39 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
 * distributed traffic signal optimization
   * make LearningDaemonThread::__copyTrainedModel() work with various method
     * currently only care sappo
+    * 
 
 <hr>
   
 
 ### done history
-* Tag V1.1b-202206
-  * [0603] fix and extend result compare related stuff
+* Tag V1.2a-20220706
+  * (removal) exclude wt_SBV, wt_SBV_max and wt_ABV from reward functions because it is TOO SLOW
+  
+  * use command line arguments instead of configuration file
+    * network-size, optimizer
+  
+  * (addition) dump average travel time of intersection into output file of optimizer(ft/rl_phase_reward_output.txt) for VizTool
+    * DBG_OPTINS.WithAverageTravelTime
+    * output file
+      * before : step,tl_name,actions,phase,reward,avg_speed
+      * after : step,tl_name,actions,phase,reward,avg_speed,avg_travel_time
+      
+  * (stablization) Fixed the problem that boost lib could not be found when performing reinforcement learning
+    * pass not some but all environment variables of the user when we launch RL program
+      * before : some env variables of the user
+      * now : all env variables of the user
+
+  * (improvement) compile salt in the docker image env
+    * from : make a binary outside and copy it to docker image env
+    * to : copy SALT source into docker image env and compile it to make binary
+    
+  * (improvement) fix and extend result compare related stuff
     * fix : logic to calculate the improvement ratio of travel time
     * extend : calculate improvement rate for each SA
   
 * Tag v1.1a-20220602
-  * add cumulative trainint ,  --cumulative-training 
+  * add cumulative training ,  --cumulative-training 
     * Cumulative training based on a previously trained model parameter
   * add codes to control exploration ratio when we do train : USE_EXPLORATION_EPSILON
   * group split
@@ -130,3 +122,28 @@ python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
   * implement env : sappo
   * implement PPO with TF 2.x
 
+
+
+### dummy.....
+python run.py --mode test --map doan --target-TL "SA 101,SA 104"  --action offset --model-num 0
+python run.py --mode test --map doan --target-TL "SA 101,SA 104"  --action gr --model-num 0
+python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func cwq
+python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action gr --epoch 1 --model-num 0 --reward-func pn
+
+python run.py --mode simulate --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
+python run.py --mode train --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn
+python run.py --mode test --map doan --target-TL "SA 101" --action gr --epoch 1 --model-num 0 --reward-func pn \
+              --model-num 0 --result-comp true
+
+
+python DistCtrlDaemon.py --port 2727 --num-of-learning-daemon 1 --validation-criteria 6.0 \
+          --model-store-root-path /home/tsoexp/share/dl_test_1 --num-of-optimal-model-candidate 3 --scenario-file-path data/envs/salt \
+          --map doan --target-TL 'SA 101, SA 104' --method sappo --state vdd --action gr --reward-func pn --model-save-period 1 --epoch 5
+
+python DistCtrlDaemon.py --port 2727 --num-of-learning-daemon 2 --validation-criteria 10.0 \
+          --model-store-root-path /home/tsoexp/share/dl_test_1 --num-of-optimal-model-candidate 3 --scenario-file-path data/envs/salt \
+          --map doan --target-TL 'SA 101, SA 104, SA 111' --method sappo --state vdd --action gr --reward-func pn --model-save-period 1 \
+          --cumulative-training true --epoch 3
+
+
+python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727

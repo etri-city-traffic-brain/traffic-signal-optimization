@@ -28,6 +28,8 @@ class LearningDaemonThread(threading.Thread):
         if DBG_OPTIONS.PrintExecDaemon:
             print("dbg : thread to connect {}:{} was created".format(ip_addr, port))
 
+
+
     def sendMsg(self, soc, msg_type, msg_contents):
         '''
         send a message
@@ -43,23 +45,16 @@ class LearningDaemonThread(threading.Thread):
             print("## send_msg to {}:{} -- {}".format(self.connect_ip_addr, self.connect_port, send_msg.toString()))
         return pickled_msg
 
+
+
     def receiveMsg(self, soc):
         '''
         receive a message
         :param soc:
         :return:
         '''
-        # if 0:
-        #     recv_msg = soc.recv(2048)
-        # else: # not work
-        #     recv_msg = b""
-        #     while True:
-        #         packet = soc.recv(1024)
-        #         print("received...")
-        #         if not packet:
-        #             break
-        #         recv_msg += packet
-        # print("escape from soc.recv()")
+        #todo check the length of msg...
+        #     there is a possiblity that it is not work if len(msg) is greater than 2048
         recv_msg = soc.recv(2048)
         recv_msg_obj = doUnpickling(recv_msg)
         if DBG_OPTIONS.PrintExecDaemon:
@@ -80,7 +75,8 @@ class LearningDaemonThread(threading.Thread):
         args.infer_model_number = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_MODEL_NUMBER]
 
         cmd = generateCommand(args)
-        waitForDebug("before exec optimizer .... ")
+        if DBG_OPTIONS.PrintExecDaemon:
+            waitForDebug("before exec optimizer .... ")
         result = execTrafficSignalOptimization(cmd)
 
         return result
@@ -94,6 +90,8 @@ class LearningDaemonThread(threading.Thread):
         :return:
         '''
         return self.__copyTrainedModelV2(recv_msg_obj)
+
+
 
     def __copyTrainedModelV1(self, recv_msg_obj):
         '''
@@ -173,6 +171,7 @@ class LearningDaemonThread(threading.Thread):
                                 # A negative value -N indicates that the child was terminated by signal N
 
         return True
+
 
 
     def __copyTrainedModelV2(self, recv_msg_obj):
@@ -262,6 +261,7 @@ class LearningDaemonThread(threading.Thread):
         return True
 
 
+
     def run(self):
 
         # Connect to the server:
@@ -297,6 +297,7 @@ class LearningDaemonThread(threading.Thread):
                 break
 
         soc.close()
+
 
 
 ####

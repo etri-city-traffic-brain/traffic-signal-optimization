@@ -18,13 +18,22 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '-1'  # -1:cpu, 0:first gpu
 
 import gym
 import numpy as np
+import pickle
 import pylab
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Input, Dense
 from tensorflow.keras.models import Model, load_model
-from tensorflow.keras.optimizers import Adam, RMSprop, Adagrad, Adadelta
-
+from tensorflow.keras.optimizers import Adadelta, Adagrad, Adam, Adamax, Ftrl, Nadam, RMSprop, SGD
+__OPTIMIZERS_DIC__={ "adadelta" : Adadelta,
+                     "adagrad"  : Adagrad,
+                     "adam"     : Adam,
+                     "adamax"   : Adamax,
+                     "ftrl"     : Ftrl,
+                     "nadam"    : Nadam,
+                     "rmsprop"  : RMSprop,
+                     "sgd"      : SGD
+                    }
 
 USE_TBX = False
 if USE_TBX:
@@ -42,10 +51,6 @@ if len(gpus) > 0:
         tf.config.experimental.set_memory_growth(gpus[0], True)
     except RuntimeError:
         pass
-
-
-from config import TRAIN_CONFIG
-from DebugConfiguration import DBG_OPTIONS
 
 
 class ActorModel:
@@ -68,6 +73,8 @@ class ActorModel:
         self.model.compile(loss=self.ppo_loss_continuous, optimizer=optimizer(lr=lr))
         # print(self.model.summary())
 
+
+
     def ppo_loss_continuous(self, y_true, y_pred):
         advantages, actions, logp_old_ph, = y_true[:, :1], y_true[:, 1:1 + self.action_space], y_true[:,
                                                                                                1 + self.action_space]
@@ -84,13 +91,20 @@ class ActorModel:
 
         return actor_loss
 
+
+
     def gaussian_likelihood(self, actions, pred):  # for keras custom loss
         log_std = -0.5 * np.ones(self.action_space, dtype=np.float32)
         pre_sum = -0.5 * (((actions - pred) / (K.exp(log_std) + 1e-8)) ** 2 + 2 * log_std + K.log(2 * np.pi))
         return K.sum(pre_sum, axis=1)
 
+
+
     def predict(self, state):
         return self.model.predict(state)
+
+
+
 
 
 class CriticModel:
@@ -111,6 +125,8 @@ class CriticModel:
         self.model = Model(inputs=[X_input, old_values], outputs=value)
         self.model.compile(loss=[self.critic_PPO2_loss(old_values)], optimizer=optimizer(lr=lr))
 
+
+
     def critic_PPO2_loss(self, values):
         def loss(y_true, y_pred):
             LOSS_CLIPPING = 0.2
@@ -125,12 +141,16 @@ class CriticModel:
 
         return loss
 
+
+
     def predict(self, state):
         return self.model.predict([state, np.zeros((state.shape[0], 1))])
 
 
 
-class ReplayMemory :
+
+
+class ReplayMemory:
     '''
     replay memory
     '''
@@ -149,12 +169,16 @@ class ReplayMemory :
         self.dones = []
         self.logp_ts = []
 
+
+
     def getSize(self):
         '''
         returns the size of replay memory
         :return:
         '''
         return len(self.states)
+
+
 
     def clear(self):
         '''
@@ -167,6 +191,8 @@ class ReplayMemory :
         self.next_states.clear()
         self.dones.clear()
         self.logp_ts.clear()
+
+
 
     def reset(self, state, action, reward, next_state, done, logp_t):
         '''
@@ -185,6 +211,7 @@ class ReplayMemory :
         self.next_states = [next_state]
         self.dones = [done]
         self.logp_ts = [logp_t]
+
 
 
     def forget(self):
@@ -225,6 +252,77 @@ class ReplayMemory :
         self.logp_ts.append(logp_t)
 
 
+
+    def objectDump(self, fn):
+        '''
+        dump the contents of ReplayMemory into file
+        :param fn: file name
+        :return:
+        '''
+        with open(fn, 'wb') as file:
+            pickle.dump(self.max_size, file)
+            pickle.dump(self.num_delete, file)
+            pickle.dump(self.states, file)
+            pickle.dump(self.actions, file)
+            pickle.dump(self.rewards, file)
+            pickle.dump(self.next_states, file)
+            pickle.dump(self.dones, file)
+            pickle.dump(self.logp_ts, file)
+
+
+
+    def objectLoad(self, fn):
+        '''
+        load the contents of replay memory from a given filw
+        :param fn: file name
+        :return:
+        '''
+        with open(fn, 'rb') as file:
+            self.max_size = pickle.load(file)  # max_size
+            self.num_delete = pickle.load(file) # max_size * forget_ratio
+            self.states = pickle.load(file)
+            self.actions = pickle.load(file)
+            self.rewards = pickle.load(file)
+            self.next_states = pickle.load(file)
+            self.dones = pickle.load(file)
+            self.logp_ts = pickle.load(file)
+
+
+
+
+
+def testReplayMemory():
+    '''
+    test objectDump()/objectLoad() in ReplayMemory
+    :return:
+    '''
+    max_size = 10
+    forget_ratio = 0.8
+    fn = "foo.rm"
+    rm1 = ReplayMemory(max_size, forget_ratio)
+    for i in range(10):
+        state = [i]*5
+        action = [1,2,3]
+        reward = 0.5
+        next_state = [i+1]*5
+        done = False
+        logp_t = i
+        rm1.store(state, action, reward, next_state, done, logp_t)
+    rm1.objectDump(fn)
+
+    rm2 = ReplayMemory(max_size+1, forget_ratio+1)
+    rm2.objectLoad(fn)
+
+    assert rm1.max_size == rm2.max_size, print("error not equal max_size")
+    for i in range(10):
+        print(f"rm1.states[{i}]={rm1.states[i]} rm2.states[{i}]={rm2.states[i]}")
+        assert rm1.states[i] == rm2.states[i], print(f"error not equal states{i}")
+        assert rm1.next_states[i] == rm2.next_states[i], print(f"error not equal next_states{i}")
+
+
+
+
+
 class PPOAgentTF2:
     '''
     PPO agent
@@ -255,7 +353,7 @@ class PPOAgentTF2:
         self.clr = config["critic_lr"] # 0.00025
         self.epochs = config["ppo_epoch"] # 10  # training epochs
         self.shuffle = True
-        self.optimizer = config["optimizer"] # Adam
+        self.optimizer = __OPTIMIZERS_DIC__[config["optimizer"].lower()] # Adam
 
         # used in getGae()
         self.gamma = config["gamma"]  # 0.99
@@ -293,6 +391,7 @@ class PPOAgentTF2:
         # do not change bellow
         self.log_std = -0.5 * np.ones(self.action_size, dtype=np.float32)
         self.std = np.exp(self.log_std)
+
 
 
     def act(self, state):
@@ -366,10 +465,13 @@ class PPOAgentTF2:
         return action, logp_t
 
 
+
     def gaussian_likelihood(self, action, pred, log_std):
         # https://github.com/hill-a/stable-baselines/blob/master/stable_baselines/sac/policies.py
         pre_sum = -0.5 * (((action - pred) / (np.exp(log_std) + 1e-8)) ** 2 + 2 * log_std + np.log(2 * np.pi))
         return np.sum(pre_sum, axis=1)
+
+
 
     def discount_rewards(self, reward):  # gaes is better... currently not used..
         # Compute the gamma-discounted rewards over an episode
@@ -385,6 +487,8 @@ class PPOAgentTF2:
         discounted_r /= (np.std(discounted_r) + 1e-8)  # divide by standard deviation
         return discounted_r
 
+
+
     def get_gaes(self, rewards, dones, values, next_values, normalize=True):
 
         deltas = [r + self.gamma * (1 - d) * nv - v for r, d, nv, v in zip(rewards, dones, next_values, values)]
@@ -398,60 +502,9 @@ class PPOAgentTF2:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
         return np.vstack(gaes), np.vstack(target)
 
+
+
     def replay(self):
-        return self.replayWithDel()
-
-    def replayWithoutDel(self):
-
-        if not self.is_train :  # no need to replay if it is not the target of training
-            return
-
-        states = self.memory.states
-        actions = self.memory.actions
-        rewards = self.memory.rewards
-        dones = self.memory.dones
-        next_states = self.memory.next_states
-        logp_ts = self.memory.logp_ts
-
-        # reshape memory to appropriate shape for training
-        states = np.vstack(states)
-        next_states = np.vstack(next_states)
-        actions = np.vstack(actions)
-        logp_ts = np.vstack(logp_ts)
-
-        # Get Critic network predictions
-        values = self.critic.predict(states)
-        next_values = self.critic.predict(next_states)
-
-        # Compute discounted rewards and advantages
-        # discounted_r = self.discount_rewards(rewards)
-        # advantages = np.vstack(discounted_r - values)
-        advantages, target = self.get_gaes(rewards, dones, np.squeeze(values), np.squeeze(next_values))
-
-        # stack everything to numpy array
-        # pack all advantages, predictions and actions to y_true and when they are received
-        # in custom loss function we unpack it
-        y_true = np.hstack([advantages, actions, logp_ts])
-
-        # training Actor and Critic networks
-        a_loss = self.actor.model.fit(states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
-        c_loss = self.critic.model.fit([states, values], target, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
-
-        # calculate loss parameters (should be done in loss, but couldn't find working way how to do that with disabled eager execution)
-        pred = self.actor.predict(states)
-        log_std = -0.5 * np.ones(self.action_size, dtype=np.float32)
-        logp = self.gaussian_likelihood(actions, pred, log_std)
-        approx_kl = np.mean(logp_ts - logp)
-        approx_ent = np.mean(-logp)
-
-        if USE_TBX:
-            self.writer.add_scalar('Data/actor_loss_per_replay', np.sum(a_loss.history['loss']), self.replay_count)
-            self.writer.add_scalar('Data/critic_loss_per_replay', np.sum(c_loss.history['loss']), self.replay_count)
-            self.writer.add_scalar('Data/approx_kl_per_replay', approx_kl, self.replay_count)
-            self.writer.add_scalar('Data/approx_ent_per_replay', approx_ent, self.replay_count)
-        self.replay_count += 1
-
-    def replayWithDel(self):
 
         if not self.is_train:  # no need to replay if it is not the target of training
             return
@@ -462,22 +515,6 @@ class PPOAgentTF2:
         dones = self.memory.dones
         next_states = self.memory.next_states
         logp_ts = self.memory.logp_ts
-
-
-        # if DBG_OPTIONS.PrintReplayMemory :
-        #     sz_states = sys.getsizeof(states)
-        #     sz_next_states = sys.getsizeof(next_states)
-        #     sz_actions = sys.getsizeof(actions)
-        #     sz_logp_ts = sys.getsizeof(logp_ts)
-        #     sz_rewards = sys.getsizeof(rewards)
-        #
-        #     num_entry = len(states)
-        #
-        #     print(f"num_entry={num_entry} sz_states={sz_states} sz_n_states={sz_next_states} sz_act={sz_actions} sz_logp_ts={sz_logp_ts} sz_rewards={sz_rewards}")
-        #     print(f"states={states}")
-        #     print(f"actions={actions}")
-        #     print(f"rewards={rewards}")
-
 
         # reshape memory to appropriate shape for training
         states = np.vstack(states)
@@ -537,13 +574,37 @@ class PPOAgentTF2:
         self.replay_count += 1
 
 
+
     def loadModel(self, fn_prefix):
         self.actor.model.load_weights(f"{fn_prefix}_{self.id}_actor.h5")
         self.critic.model.load_weights(f"{fn_prefix}_{self.id}_critic.h5")
 
+
+
     def saveModel(self, fn_prefix):
         self.actor.model.save_weights(f"{fn_prefix}_{self.id}_actor.h5")
         self.critic.model.save_weights(f"{fn_prefix}_{self.id}_critic.h5")
+
+
+
+    def dumpReplayMemory(self, fn):
+        '''
+        dump the contents of replay memory into file
+        :param fn:
+        :return:
+        '''
+        self.memory.objectDump(fn)
+
+
+
+    def loadReplayMemory(self, fn):
+        '''
+        load the contents of replay memory from a given file
+        :param fn:
+        :return:
+        '''
+        self.memory.objectLoad(fn)
+
 
 
     pylab.figure(figsize=(18, 9))
@@ -576,6 +637,8 @@ class PPOAgentTF2:
             SAVING = ""
 
         return self.average_[-1], SAVING
+
+
 
 
 ## need to create one for each policy
@@ -613,12 +676,9 @@ def makePPOConfig(args):
     cfg["epsilon_decay"] = args.epsilon_decay  # epsilon decay for exploration
     cfg["epoch_exploration_decay"] = args.epoch_exploration_decay  # epsilon decay for exploration
 
+    cfg["network_layers"] = args.network_size
 
-    # cfg["network_layers"] = [512, 256, 128, 64, 32]  # TRAIN_CONFIG['network_size']
-    cfg["network_layers"] = TRAIN_CONFIG['network_size']
-
-    # cfg["optimizer"] = Adam
-    cfg["optimizer"] = TRAIN_CONFIG['optimizer']
+    cfg["optimizer"] = args.optimizer
     return cfg
 
 
@@ -758,28 +818,6 @@ def test(env, agent, test_episodes=100):  # evaluate
 ORG = False
 
 
-# def makePPOConfig(args):
-#     config = {}
-#
-#     config["lr"] = args.lr # 0.005
-#     config["ppo_epoch"] = args.ppo_epoch # 10
-#     config["gamma"] = args.gamma  # 0.99
-#     config["lambda"] = args._lambda # 0.95
-#     config["actor_lr"] = args.a_lr  # 0.005
-#     config["critic_lr"] = args.c_lr  # 0.005
-#     config["ppo_eps"] = args.ppo_eps # 0.1
-#
-#     config["memory_size"] = args.mem_len
-#     config["forget_ratio"] = args.mem_fr
-#
-#     config["offset_range"] = args.offset_range  # 2
-#     config["control_cycle"] = args.control_cycle # 5
-#     config["add_time"] = args.add_time # 2
-#
-#     config["network_layers"] =  [512, 256, 128, 64, 32] # TRAIN_CONFIG['network_size']
-#     config["optimizer"] = Adam
-#     return config
-
 
 if __name__ == "__main__":
     # import argparse
@@ -819,7 +857,9 @@ if __name__ == "__main__":
         args.offset_range = 2
         args.control_cycle = 5
         args.add_time = 2
-        args.optimizer = Adam
+        # args.optimizer = Adam
+        args.optimizer = "Adam"
+
 
     config = makePPOConfig(args)
 

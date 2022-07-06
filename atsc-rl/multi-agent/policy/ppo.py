@@ -129,6 +129,12 @@ class PPOAgent:
         return v_loss, kl, ent
 
     def get_action(self, state, sess):
+        if 1:
+            #log_std = sess.run([self.actor.log_std])
+            std = sess.run([self.actor.std])
+            #print(f'##### self.actor.std={std}  self.actor.log_std={log_std}')
+            print(f'##### self.actor.std={std}')
+
         if self.mode=='train':
             action, v, logp_pi = sess.run([self.actor.pi, self.critic.v, self.actor.logp_pi],
                                                feed_dict={self.actor.state: state, self.critic.state: state})

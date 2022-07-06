@@ -4,6 +4,7 @@ import numpy as np
 
 import libsalt
 
+from deprecated import deprecated
 
 class SaltActionMgmt:
     '''
@@ -126,8 +127,8 @@ class SaltActionMgmt:
         return phase_array_list
 
 
-
-    def __getGreenRatioOffsetAppliedPhaseArray_org(self, curr_sim_step, an_sa_obj, actions):
+    @deprecated
+    def __getGreenRatioOffsetAppliedPhaseArrayV1(self, curr_sim_step, an_sa_obj, actions):
         '''
         get green-ratio and offset actions applied phase array list
 

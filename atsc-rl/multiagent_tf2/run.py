@@ -13,9 +13,10 @@ import os
 import pandas as pd
 import shutil
 import tensorflow as tf
-from tensorflow.keras.optimizers import Adam
 import time
 import sys
+
+from deprecated import deprecated
 
 # check environment
 if 'SALT_HOME' in os.environ:
@@ -31,13 +32,12 @@ else:
 
 import libsalt
 
-from config import TRAIN_CONFIG
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
-from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection
+from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection, getAverageTravelTimeOfIntersection
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
-from env.SaltEnvUtil import getScenarioRelatedBeginEndTime, getSimulationStartStepAndEndStep
+from env.SaltEnvUtil import getSimulationStartStepAndEndStep
 from env.SaltEnvUtil import makePosssibleSaNameList
 
 from env.SappoEnv import SaltSappoEnvV3
@@ -47,7 +47,7 @@ from env.SappoRewardMgmt import SaltRewardMgmtV3
 from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
-from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
@@ -96,7 +96,6 @@ def makeDirectories(dir_name_list):
 
 
 
-
 def createEnvironment(args):
     '''
     create environment
@@ -112,20 +111,7 @@ def createEnvironment(args):
     return env
 
 
-
-# def calculateTrialLength(args):
-#     '''
-#     calculate a length of trial using simulation start & end time (from scenario file)
-#     :param args:
-#     :return: length of trial
-#     '''
-#     scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-#     start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-#     end_time = args.end_time if args.end_time < scenario_end else scenario_end
-#     trial_len = end_time - start_time
-#     return trial_len, start_time, end_time
-
-
+@deprecated
 def storeExperience(trial, step, agent, cur_state, action, reward, new_state, done, logp_t):
     '''
     store experience
@@ -153,6 +139,29 @@ def storeExperience(trial, step, agent, cur_state, action, reward, new_state, do
 
 
 
+@deprecated
+def storeExperience2(do_reset, agent, cur_state, action, reward, new_state, done, logp_t):
+    '''
+    store experience
+
+    :param trial: trial
+    :param step: simulation step
+    :param agent:
+    :param cur_state:
+    :param action:
+    :param reward:
+    :param new_state:
+    :param done:
+    :param logp_t:
+    :return:
+    '''
+
+    if do_reset:
+        agent.memory.reset(cur_state, action, reward, new_state, done, logp_t)
+    else:
+        agent.memory.store(cur_state, action, reward, new_state, done, logp_t)
+
+
 
 def makeLoadModelFnPrefixV1(args, problem_var, is_train_target=False):
     '''
@@ -173,6 +182,7 @@ def makeLoadModelFnPrefixV1(args, problem_var, is_train_target=False):
         fn_prefix = "{}/{}-trial_{}".format(args.infer_model_path, args.method.upper(), args.model_num)
 
     return fn_prefix
+
 
 
 def makeLoadModelFnPrefixV2(args, problem_var, is_train_target=False):
@@ -196,6 +206,7 @@ def makeLoadModelFnPrefixV2(args, problem_var, is_train_target=False):
     return fn_prefix
 
 
+
 def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
@@ -213,7 +224,7 @@ def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
     ## get model num to load
     if args.mode=="train":
         if is_train_target: # i.e., target-TL
-            if args.cumulative_training :
+            if args.cumulative_training and ( int(args.infer_model_num) >= 0 ) :
                 load_model_num = args.model_num
             else:
                 return fn_prefix # no need to load pre-trained model
@@ -238,6 +249,7 @@ def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
     return fn_prefix
 
 
+
 def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
     '''
     make a prefix of file name which indicates saved trained model parameters
@@ -249,6 +261,8 @@ def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
     :return:
     '''
     return makeLoadModelFnPrefixV3(args, problem_var, is_train_target)
+
+
 
 def trainSappo(args):
     '''
@@ -269,7 +283,6 @@ def trainSappo(args):
     # set start_/end_time which will be used to train
     args.start_time = start_time
     args.end_time = end_time
-
 
 
     ## make configuration dictionary & make some string variables
@@ -312,6 +325,7 @@ def trainSappo(args):
     agent_reward1, agent_reward40 = [], []
 
     total_reward = 0
+    fn_replay_memory_object = ""
 
     ## create PPO Agent
     if 1:
@@ -340,22 +354,29 @@ def trainSappo(args):
             state_size = (state_space,)
             agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
 
+            #todo should care file name ...
+            #     Should we use shared storage for distributed training?   No...
+            #        Training will be done at the same node while distributed training is doing
+            # for CumulateReplayMemory
+            # load stored replay memory if is_train_target and args.cumulative_training and (args.infer_model_num >=0)
+            if is_train_target and args.cumulative_training and (int(args.infer_model_num) >= 0) :
+                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                                                                     _FN_PREFIX_.REPLAY_MEMORY, agent.id)
+                # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path, _FN_PREFIX_.REPLAY_MEMORY, agent.id)
+
+                agent.loadReplayMemory(fn_replay_memory_object)
+                if DBG_OPTIONS.PrintTrain:
+                    print(f"### loaded len(replay memory for {agent.id})={len(agent.memory.states)}")
+
             fn_prefix = makeLoadModelFnPrefix(args, problem_var, is_train_target)
             if len(fn_prefix) > 0:
-                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")  # should delete
+                if DBG_OPTIONS.PrintTrain:
+                    waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
                 agent.loadModel(fn_prefix)
             else:
-                waitForDebug(
-                    f"agent for {target_sa} will training without loading a pre-trained model parameter")  # should delete
-
-
-            #     if is_train_target == False:
-            #         # make a prefix of file name which indicates saved trained model parameters
-            #         fn_prefix = makeLoadModelFnPrefix(args, problem_var)
-            #
-            #         waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}") # should delete
-            #
-            #         agent.loadModel(fn_prefix)
+                if DBG_OPTIONS.PrintTrain:
+                    waitForDebug(
+                        f"agent for {target_sa} will training without loading a pre-trained model parameter")
 
 
             ppo_agent.append(agent)
@@ -385,7 +406,9 @@ def trainSappo(args):
 
             episodic_reward = 0
             episodic_agent_reward = [0] * agent_num
-            start = time.time()
+
+            if DBG_OPTIONS.PrintTrain:
+                start = time.time()
 
         # collect current state information
         cur_states = env.reset()
@@ -418,8 +441,8 @@ def trainSappo(args):
                 if env.sa_name_list[i] not in env.target_sa_name_list:
                     continue
 
-                storeExperience(trial, t, ppo_agent[i], cur_states[i], actions[i], rewards[i],
-                                new_states[i], done, logp_ts[i])
+                ppo_agent[i].memory.store(cur_states[i], actions[i], rewards[i], new_states[i], done, logp_ts[i])
+
                 # update observation
                 cur_states[i] = new_states[i]
                 episodic_reward += rewards[i]
@@ -530,9 +553,35 @@ def trainSappo(args):
         else:
             appendLine(fn_opt_model_info, fn_optimal_model)
 
+        # for CumulateReplayMemory
+        # todo dump-replay-memory 이용하도록 정리해야 한다.
+        if args.cumulative_training:
+            for i in range(agent_num):
+                if not ppo_agent[i].is_train : # if it is not the target of training
+                    continue
+
+                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                                                                        _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
+
+                # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path,
+                #                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
+                ppo_agent[i].dumpReplayMemory(fn_replay_memory_object)
+                # print(f"### dumped len(replay memory for  {ppo_agent[i].id})={len(ppo_agent[i].memory.states)}")
+        else:
+            print(f"args.cumulative-training is {args.cumulative_training}")
+
+
         return optimal_model_num
 
+
+
 def testSappo(args):
+    '''
+    test trained model
+
+    :param args:
+    :return:
+    '''
 
     ## load environment
     env = createEnvironment(args)
@@ -568,7 +617,8 @@ def testSappo(args):
             # make a prefix of file name which indicates saved trained model parameters
             fn_prefix = makeLoadModelFnPrefix(args, problem_var, True)
 
-            waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
+            if DBG_OPTIONS.PrintTrain:
+                waitForDebug(f"agent for {target_sa} will load model parameters from {fn_prefix}")
 
             agent.loadModel(fn_prefix)
 
@@ -596,7 +646,9 @@ def testSappo(args):
 
         ep_reward_list = []  # To store reward history of each episode
         episodic_reward = 0
-        start = time.time()
+
+        if DBG_OPTIONS.PrintTrain:
+            start = time.time()
 
 
     # collect current state information
@@ -643,35 +695,58 @@ def testSappo(args):
 
     # Mean of last 40 episodes
     avg_reward = np.mean(ep_reward_list[-40:])
-    print("Avg Reward is ==> {}".format(avg_reward))
-    print("episode time :", time.time() - start)  # execution time =  current time - start time
+    if DBG_OPTIONS.PrintTrain:
+        print("Avg Reward is ==> {}".format(avg_reward))
+        print("episode time :", time.time() - start)  # execution time =  current time - start time
 
     # compare traffic simulation results
     if args.result_comp:
-        #todo
         ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
         rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
 
-        total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num)
+        comp_skip = _RESULT_COMPARE_SKIP_
+        result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
+        __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
 
-        result_fn = "{}/output/test/{}_{}.csv".format(args.io_home, problem_var, args.model_num)
-        total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
-
-        if 1 : # args.dist
-            # todo   Let's think about which path would be better to save it
-            #                 dist learning history
-            dst_fn = "{}/{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
-            shutil.copy2(result_fn, dst_fn)
-
-            df = pd.read_csv(result_fn, index_col=0)
-            for sa in env.target_sa_name_list:
-                __printImprovementRate(df, sa)
-            __printImprovementRate(df, 'total')
+        if DBG_OPTIONS.ResultCompareSkipWarmUp: # comparison excluding warm-up time
+            comp_skip = args.warmup_time
+            result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
+            __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
 
     return avg_reward
 
 
-def __printImprovementRate(df, target):
+def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
+    '''
+    compare result of fxied-time-control and RL-agent-control
+    and save the comparison results
+
+    :param args:
+    :param env:
+    :param ft_output: result of traffic signal control by fixed-time
+    :param rl_output: result of traffic signal control by RL-agent
+    :param problem_var:
+    :param comp_skip: time interval to exclude from result comparison
+    :return:
+    '''
+    result_fn = "{}/output/test/{}_s{}_{}.csv".format(args.io_home, problem_var, comp_skip, args.model_num)
+    dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
+    total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
+
+    shutil.copy2(result_fn, dst_fn)
+
+    return result_fn
+
+
+def __printImprovementRate(env, result_fn, msg="Skip one hour"):
+    df = pd.read_csv(result_fn, index_col=0)
+    for sa in env.target_sa_name_list:
+        __printImprovementRateInternal(df, sa, msg)
+    __printImprovementRateInternal(df, 'total', msg)
+
+
+def __printImprovementRateInternal(df, target, msg="Skip one hour"):
     ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
     rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
     ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']
@@ -680,7 +755,8 @@ def __printImprovementRate(df, target):
     ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
     rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
     imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
-    print(f'Average Travel Time ({target}): {imp_rate}% improved')
+    print(f'{msg} Average Travel Time ({target}): {imp_rate}% improved')
+
 
 
 def fixedTimeSimulate(args):
@@ -709,7 +785,8 @@ def fixedTimeSimulate(args):
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
-    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed')
+
+    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time')
 
     reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
                                        args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
@@ -725,8 +802,11 @@ def fixedTimeSimulate(args):
     sim_step = libsalt.getCurrentStep()
 
     prev_avg_speed_list = []
+    prev_avg_travel_time_list = []
     for tlid in target_tl_id_list:
         prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, target_tl_obj, num_hop=0))
+        prev_avg_travel_time_list.append(getAverageTravelTimeOfIntersection(tlid, target_tl_obj, num_hop=0))
+
 
     for i in range(trial_len):
         libsalt.simulationStep()
@@ -734,7 +814,8 @@ def fixedTimeSimulate(args):
 
         # todo 일정 주기로 보상 값을 얻어와서 기록한다.
         appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
-                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list, prev_avg_speed_list)
+                               target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list,
+                               prev_avg_speed_list, prev_avg_travel_time_list)
 
 
     print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
@@ -742,61 +823,11 @@ def fixedTimeSimulate(args):
     prev_avg_speed_list.clear()
     del prev_avg_speed_list
 
+    # used to save AverageTravelTime
+    prev_avg_travel_time_list.clear()
+    del prev_avg_travel_time_list
+
     libsalt.close()
-
-
-def testOutOfMemory(num_epoch, args):
-    # scenario_begin, scenario_end = getScenarioRelatedBeginEndTime(args.scenario_file_path)
-    # start_time = args.start_time if args.start_time > scenario_begin else scenario_begin
-    # end_time = args.end_time if args.end_time < scenario_end else scenario_end
-    # trial_len = end_time - start_time
-
-    start_time, end_time = getSimulationStartStepAndEndStep(args)
-    trial_len = end_time - start_time
-
-    salt_scenario = copyScenarioFiles(args.scenario_file_path)
-    possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
-    target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, possible_sa_name_list, salt_scenario)
-    target_sa_name_list = list(target_sa_obj.keys())
-    target_tl_id_list = list(target_tl_obj.keys())
-
-
-    ### 가시화 서버용 교차로별 고정 시간 신호 기록용
-    output_ft_dir = f'{args.io_home}/output/{args.mode}'
-    fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
-    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward')
-
-    # reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
-    #                                    args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
-    #                                    target_sa_name_list, len(target_sa_name_list))
-
-    for ep in range(num_epoch):
-
-        ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
-        libsalt.start(salt_scenario)
-        libsalt.setCurrentStep(start_time)
-
-        actions = []
-
-        sim_step = libsalt.getCurrentStep()
-
-        for i in range(trial_len):
-            libsalt.simulationStep()
-            sim_step += 1
-
-            # #  i>= args.warmup_time:
-            # # todo 일정 주기로 보상 값을 얻어와서 기록한다.
-            # appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
-            #                        target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list)
-
-
-        # print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
-        libsalt.close()
-
-        time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
-        import gc
-        gc.collect()
-        print(f'{ep}-th done : {time_data}\n\n')
 
 
 
@@ -830,11 +861,5 @@ if __name__ == "__main__":
 
     elif args.mode == 'simulate':
         fixedTimeSimulate(args)
-        # test_out_of_memory = True
-        # if test_out_of_memory:
-        #     num_epoch = 200
-        #     testOutOfMemory(200, args)
-        # else:
-        #     fixedTimeSimulate(args)
 
 

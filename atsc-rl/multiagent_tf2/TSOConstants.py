@@ -5,8 +5,9 @@ constants
 '''
 
 
-ONE_HOUR = 3600 # 1 hour is 3600 seconds(=60 *60)
-RESULT_COMPARE_SKIP = ONE_HOUR
+ONE_HOUR = 3600 # 1 hour is 3600 seconds(=60 * 60)
+TEN_MINUTE = 600 # ten minute is 600 seconds(=10 * 60)
+_RESULT_COMPARE_SKIP_ = TEN_MINUTE # ONE_HOUR
 
 class _INTERVAL_:
     '''
@@ -32,7 +33,10 @@ class _FN_PREFIX_ :
     RESULT_COMP = "zz.result_comp"
 
     # file name to save the history of distributed learning
-    DIST_LEARNING_HISTORY = 'zz.dist_learning_history.txt'
+    DIST_LEARNING_HISTORY = 'zz.dist_learning_history.csv'
+
+    # (a prefix of) file name to save the contents of replay memory
+    REPLAY_MEMORY = 'zz.replay_memory'
 
 
 
@@ -75,7 +79,8 @@ class _RESULT_COMP_:
     used to indicate the improvement rate from DataFrame object
     '''
     SIMULATION_OUTPUT='_PeriodicOutput.csv'
-    SPEED_GATHER_INTERVAL = 60 # 60 seconds; interval for gathering the average speed of intersection
+    PHASE_REWARD_OUTPUT='rl_phase_reward_output.txt'
+    SPEED_GATHER_INTERVAL = 30 # seconds; interval for gathering the average speed of intersection
     ROW_NAME = "total"
     COLUMN_NAME = 'imp_SumTravelTime_sum_0hop'
 

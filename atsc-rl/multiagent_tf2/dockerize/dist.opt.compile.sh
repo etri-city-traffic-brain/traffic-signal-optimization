@@ -11,8 +11,7 @@
 DEFAULT_VERSION="v1.1a.20220531" # "v0.0a"   # "v2.1a.0622"
 VERSION=${1:-$DEFAULT_VERSION}
 
-#DEFAULT_DOCKERFILE="Dockerfile.opt.centos"  # based on CentOS
-DEFAULT_DOCKERFILE="Dockerfile.opt"
+DEFAULT_DOCKERFILE="Dockerfile.opt.compile" # compile within docker env
 DOCKERFILE=${2:-$DEFAULT_DOCKERFILE}
 
 DEFAULT_IMAGE_NAME="optimizer"
@@ -46,11 +45,12 @@ if [ "$COPY_BINARY" = "yes" ]; then
     mkdir ./to_install_uniq/salt
     mkdir ./to_install_uniq/optimizer
 
-    # 0.2 copy SALT binary
-    cp -r $SALT_HOME/bin ./to_install_uniq/salt
-    cp -r $SALT_HOME/tools ./to_install_uniq/salt
-    cp -r ./to_install_uniq/additional/salt_data/salt*.* ./to_install_uniq/salt/bin
-    cp -r ./to_install_uniq/additional/salt_data/sample ./to_install_uniq/salt
+    # 0.2 copy SALT source
+    cp -r $SALT_HOME/* ./to_install_uniq/salt
+    # cp -r $SALT_HOME/bin ./to_install_uniq/salt
+    # cp -r $SALT_HOME/tools ./to_install_uniq/salt
+    # cp -r ./to_install_uniq/additional/salt_data/salt*.* ./to_install_uniq/salt/bin
+    # cp -r ./to_install_uniq/additional/salt_data/sample ./to_install_uniq/salt
 
     # 0.3 copy OPTIMIZER binary 
     cp -r $OPT_HOME/*.py ./to_install_uniq/optimizer
