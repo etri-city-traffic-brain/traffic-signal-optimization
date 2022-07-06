@@ -59,7 +59,7 @@
 
 ### done history
 * Tag V1.2a-20220706
-  * exclude wt_SBV, wt_SBV_max and wt_ABV from reward functions because it is TOO SLOW
+  * (removal) exclude wt_SBV, wt_SBV_max and wt_ABV from reward functions because it is TOO SLOW
   * use command line arguments instead of configuration file
     * network-size, optimizer
   * (addition) dump average travel time of intersection into output file of optimizer(ft/rl_phase_reward_output.txt) for VizTool
@@ -77,8 +77,8 @@
     * to : copy SALT source into docker image env and compile it to make binary
     
   * (improvement) fix and extend result compare related stuff
-  * fix : logic to calculate the improvement ratio of travel time
-  * extend : calculate improvement rate for each SA
+    * fix : logic to calculate the improvement ratio of travel time
+    * extend : calculate improvement rate for each SA
   
 * Tag v1.1a-20220602
   * add cumulative training ,  --cumulative-training 
