@@ -1,4 +1,11 @@
 ### todo
+* change validation-criteria into target-improvement-rate
+  * change
+    * README_DIST.md, dist.run.single.sh, dist_learning.sh
+    * DistCtrlDaemon.py
+  * remove file
+    * run.single.sh
+    
 * experiments
   * increase dimension : [2048, 1024, 512, 256, 128]
   * change control_cycle
