@@ -243,7 +243,7 @@ def addArgumentsToParser(parser):
                         help="concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
 
     parser.add_argument('--infer-model-path', type=str, default=".",
-                        help="directory path which are use to find the inference model")
+                        help="directory path which will be use to find the inference model")
 
     parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
                         help="number of candidate to compare reward to find optimal model")
