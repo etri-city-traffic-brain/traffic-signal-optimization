@@ -216,10 +216,10 @@ def addArgumentsToParser(parser):
 
     ### SAPPO OFFSET
     parser.add_argument('--offset-range', type=int, default=2, help="offset side range")
-    parser.add_argument('--control-cycle', type=int, default=5, help='')
+    parser.add_argument('--control-cycle', type=int, default=5, help='how open change the traffic signal table by ML agent')
 
     ### GREEN RATIO args
-    parser.add_argument('--add-time', type=int, default=2, help='')
+    parser.add_argument('--add-time', type=int, default=2, help='unit of duration change when we do green-ratio adjustment')
 
     ### currently not used : [for DDQN] replay-size, batch-size, tau, lr-update-period, lr-update-decay
     # parser.add_argument('--replay-size', type=int, default=2000) # dqn replay memory size
@@ -240,8 +240,7 @@ def addArgumentsToParser(parser):
     ##     infer-model-path : to specify the path that model which will be used to inference was stored
     ##     num-of-optimal-model-candidate : number of optimal model candidate
     parser.add_argument('--infer-TL', type=str, default="",
-                        help="concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
-
+                        help="signal group to do inference with pre-trained model; concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
     parser.add_argument('--infer-model-path', type=str, default=".",
                         help="directory path which will be use to find the inference model")
 
