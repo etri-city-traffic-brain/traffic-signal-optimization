@@ -231,7 +231,7 @@ def getArgs():
     # parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
     #                     help="number of candidate to compare reward to find optimal model")
     parser.add_argument("--copy-simulation-output",  type=str2bool, default=False,
-                        help="whether do copy simulation output(PeriodicOutput.csv) to keep test history")
+                        help="whether do copy simulation output(PeriodicOutput.csv) to keep test history or not")
 
     ### add argument for single node learning
     parser = addArgumentsToParser(parser)
