@@ -133,7 +133,7 @@ def addArgumentsToParser(parser):
                 # doan : SA 101, SA 104, SA 107, SA 111
                 # sa_1_6_17 : SA 1,SA 6,SA 17
     parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
-                        help="target signal groups; multiple groups can be separated by comma(ex. --target-TL SA 101,SA 104)")
+                        help="target signal groups; multiple groups can be separated by comma(ex. --target-TL 'SA 101,SA 104')")
     parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
@@ -240,7 +240,7 @@ def addArgumentsToParser(parser):
     ##     infer-model-path : to specify the path that model which will be used to inference was stored
     ##     num-of-optimal-model-candidate : number of optimal model candidate
     parser.add_argument('--infer-TL', type=str, default="",
-                        help="signal group to do inference with pre-trained model; concatenate signal group with comma(ex. --infer_TL SA 101,SA 104)")
+                        help="signal groups to do inference with pre-trained model; multiple groups can be separated by comma(ex. --infer_TL 'SA 101,SA 104')")
     parser.add_argument('--infer-model-path', type=str, default=".",
                         help="directory path which will be use to find the inference model")
 
