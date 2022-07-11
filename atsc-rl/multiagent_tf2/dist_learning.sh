@@ -18,8 +18,11 @@ if [ 1 ]; then
   #EXEC_DAEMON_IPS=(  "129.254.182.176" ,  "129.254.182.176"  )
   PORT=2727 #3001  3101  3201  3301
   TB_PORT=6016 #7001 7101 7201 7301
-  EXEC_DIR=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2
-  ACTIVATE_CONDA_ENV_P3_8="source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate p3.8 "
+  #EXEC_DIR=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2
+  EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
+  CONDA_ENV_NAME="UniqOpt.p3.8"
+  ACTIVATE_CONDA_ENV="source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate $CONDA_ENV_NAME "
+
 
   ## set libsalt path
   SALT_HOME=/home/tsoexp/z.uniq/traffic-simulator
