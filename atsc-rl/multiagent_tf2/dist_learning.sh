@@ -1,75 +1,137 @@
 #!/bin/bash
 #
-
 ##
 ## script control
 ##
 DO_SIMULATE=false # whether do simulation with fixed signal to get ground zero performance or not
-DO_EVAL=true # whether do execution or not;  do evaluate command if true, otherwise just dump commands
+DO_EVAL=true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
 
 # 0. set parameters
 if [ 1 ]; then
-  ##
+  #######
   ## env related parameters
   ##
+
+  ###--- account(user id)
   ACCOUNT="tsoexp"
-  CTRL_DAEMON_IP="129.254.182.176"  # 101.79.1.126
-  EXEC_DAEMON_IPS=( "129.254.182.176" )   # (  "101.79.1.112" )
-  #EXEC_DAEMON_IPS=(  "129.254.182.176" ,  "129.254.182.176"  )
-  PORT=2727 #3001  3101  3201  3301
-  TB_PORT=6016 #7001 7101 7201 7301
-  #EXEC_DIR=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2
+  #
+
+  ###--- ip address of node to run control daemon
+  CTRL_DAEMON_IP="129.254.184.123"  # 101.79.1.126
+
+  ###--- ip address of nodes to run execution daemon
+  EXEC_DAEMON_IPS=( "129.254.184.123" 
+                    "129.254.184.184"
+                    "129.254.184.238"
+                    "129.254.184.248")
+  #
+  # 129.254.184.239		uniq1
+  # 129.254.184.241		uniq2
+  # 129.254.184.123		uniq3
+  # 129.254.184.184		uniq4
+  # 129.254.184.238		uniq5
+  # 129.254.184.248		uniq6
+  # 129.254.184.53		uniq7
+  # 129.254.184.54		uniq8
+
+  ###--- number of execution daemon
+  NUM_EXEC_DAEMON=${#EXEC_DAEMON_IPS[@]}
+
+  ###--- port to communicate btn ctrl daemon and exec daemon
+  PORT=2727 #2727 3001  3101  3201  3301
+
+  ###--- port for tensorboard 
+  TB_PORT=6006 #6006 7001 7101 7201 7301
+
+  ###--- directory for traffic signal optimization(TSO) execution
   EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
+
+  ###--- conda environment for TSO
   CONDA_ENV_NAME="UniqOpt.p3.8"
   ACTIVATE_CONDA_ENV="source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate $CONDA_ENV_NAME "
 
-
-  ## set libsalt path
+  ###-- libsalt path
   SALT_HOME=/home/tsoexp/z.uniq/traffic-simulator
 
-  #  CTRL_DAEMON_IP="101.79.1.126" # "129.254.182.176"
-  #  EXEC_DAEMON_IPS=(  "101.79.1.112"   "101.79.1.115"  "101.79.1.116"  "101.79.1.126"  )
-
-
-  ##
+  #######
   ## exec program
   ##
+  ###--- control daemon for distributed training
   CTRL_DAEMON="DistCtrlDaemon.py"
+
+  ###--- execution daemon for distributed training
   EXEC_DAEMON="DistExecDaemon.py"
+
+  ###-- reinforcement learning main
   RL_PROG="run.py"
 
-  ##
+  #######
   ## output file : to save verbosely dumped messages
   ##
-  POST_OUT=`date +"%F-%H-%M-%S"`
-  CTRL_OUT="zz.out.ctrl.$POST_OUT"
-  EXEC_OUT="zz.out.exec.$POST_OUT"
-  TB_OUT="zz.out.tb.$POST_OUT"
+  ###--- postfix of file name
+  FN_POSTFIX=`date +"%F-%H-%M-%S"`
 
-  ##
+  ###--- for control daemon
+  FN_CTRL_OUT="zz.out.ctrl.$FN_POSTFIX"
+
+  ###--- for execution daemon
+  FN_EXEC_OUT="zz.out.exec.$FN_POSTFIX"
+
+  ###--- for tensorboard
+  FN_TB_OUT="zz.out.tb.$FN_POSTFIX"
+
+
+  #######
   ## Reinforcement Learning related parameters
   ##
+  ###--- to access simulation scenario file(relative path)
   RL_SCENARIO_FILE_PATH="data/envs/salt"
+
+  ###--- name of map to simulate
   RL_MAP="doan"
-  RL_TARGET="SA 101, SA 104, SA 111" # SA 101,SA 104,SA 107,SA 111"
+
+  ###--- target to train
+  RL_TARGET="SA 101, SA 104, SA 107, SA 111" # SA 101,SA 104,SA 107,SA 111"
+
+  ###--- RL method
   RL_METHOD="sappo"
+
+  ###--- state, action, reward for RL
   RL_STATE="vdd" # v, d, vd, vdd
   RL_ACTION="gr"  # offset, gr, gro, kc
-  RL_REWARD="pn"  # wq, cwq, pn, wt, tt
-  RL_EPOCH=1
-  RL_MODEL_SAVE_PERIOD=2
+  RL_REWARD="wq"  # wq, cwq, pn, wt, tt
+
+  ###--- training epoch
+  RL_EPOCH=5	# 200
+
+  ###--- interval for model saving : how open save model
+  RL_MODEL_SAVE_PERIOD=1
 
 
+  #######
   ## distributed Reinforcement Learning related parameters
+  ##
+  ###--- training improvement goal
   IMPROVEMENT_GOAL=20.0
-  NUM_EXEC_DAEMON=${#EXEC_DAEMON_IPS[@]}
-  MODEL_STORE_ROOT_PATH="/home/tsoexp/share/dl_test_1"
-  NUM_OF_OPTIMAL_MODEL_CANDIDATE=10
-  MODEL_STORE_PATH=/home/tsoexp/share/results
-  COPY_SIMULATION_OUTPUT="yes" # yes, true, t, TRUE, ... no, False, f
-  RESULT_DIR="0701"
-  CUMULATIVE_TRAINING="True"
+
+  ###-- shared directory;
+  ###-- should be accessed by all ctrl/exec daemon
+  MODEL_STORE_ROOT_PATH="/home/tsoexp/share/dist_training"
+
+  ###--- directory to save training result
+  TODAY=`date +"%g%m%d"`  # 220701
   EXP_OPTION="rm"
+  RESULT_DIR=${TODAY}/${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # 220701/gr_wq_rm
+
+
+  ###--- number of optimal model candidate
+  NUM_OF_OPTIMAL_MODEL_CANDIDATE=10
+
+  ###--- whether do copy simulation output file or not : PeriodicOutput, rl_phase_reward_output,
+  COPY_SIMULATION_OUTPUT="yes" # yes, true, t, TRUE, ... no, False, f
+
+  ###-- whether do cumulative training or not : model, replay memory
+  CUMULATIVE_TRAINING="True"
 
 fi
 
@@ -86,7 +148,7 @@ then
   INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
-  CMD="$CMD \" $ACTIVATE_CONDA_ENV_P3_8; "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
   CMD="$CMD cd $EXEC_DIR; "
   CMD="$CMD $INNER_CMD \" "
   echo [%] $CMD
@@ -99,6 +161,12 @@ then
 
   #  python run.py --mode simulate --map $RL_MAP --target-TL $RL_TARGET --method $RL_METHOD --state $RL_STATE  \
   #         --action $RL_ACTION --reward-func $RL_REWARD
+  echo
+  echo
+  echo "Simulation with fixed signal to get ground zero performance was done."
+  echo "So base performance with dixed signal was gathered."
+  echo "Now... do set DO_SIMULATE false, and launch this shell script to do distributed training"
+  exit
 fi
 
 
@@ -109,7 +177,7 @@ if [ 1 ]; then
   INNER_CMD="$INNER_CMD --validation-criteria $IMPROVEMENT_GOAL "
   INNER_CMD="$INNER_CMD --num-of-optimal-model-candidate $NUM_OF_OPTIMAL_MODEL_CANDIDATE "
   INNER_CMD="$INNER_CMD --cumulative-training $CUMULATIVE_TRAINING "
-	INNER_CMD="$INNER_CMD --model-store-root-path $MODEL_STORE_ROOT_PATH/$RESULT_DIR/${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} "
+	INNER_CMD="$INNER_CMD --model-store-root-path $MODEL_STORE_ROOT_PATH/$RESULT_DIR "
   INNER_CMD="$INNER_CMD --copy-simulation-output $COPY_SIMULATION_OUTPUT "
 
   INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
@@ -119,12 +187,14 @@ if [ 1 ]; then
 
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
-  CMD="$CMD \" $ACTIVATE_CONDA_ENV_P3_8; "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
   CMD="$CMD cd $EXEC_DIR; "
   # CMD="$CMD $INNER_CMD  \" &"
-  CMD="$CMD $INNER_CMD > $CTRL_OUT 2>&1 & \" &"
+  CMD="$CMD $INNER_CMD > $FN_CTRL_OUT 2>&1 & \" &"
 
+  echo
   echo [%] $CMD
+  echo
 
   ## 2.2 evaluate command
   if $DO_EVAL
@@ -144,20 +214,24 @@ do
   INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT "
 
   CMD="ssh $ACCOUNT@$ip  "
-  CMD="$CMD \" $ACTIVATE_CONDA_ENV_P3_8; "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
   CMD="$CMD cd $EXEC_DIR; "
   # CMD="$CMD $INNER_CMD \" &"
-  CMD="$CMD $INNER_CMD > $EXEC_OUT 2>&1 & \" &"
+  CMD="$CMD $INNER_CMD > $FN_EXEC_OUT 2>&1 & \" &"
 
+  echo
   echo [%] $CMD
+  echo
 
   ## 2.2 evaluate command
   if $DO_EVAL
   then
     eval $CMD
   fi
-
 done
+
+sleep 5
+
 
 
 # 4. launch tensorboard daemon
@@ -168,19 +242,20 @@ do
 
 
   CMD="ssh $ACCOUNT@$ip  "
-  CMD="$CMD \" $ACTIVATE_CONDA_ENV_P3_8; "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
   CMD="$CMD cd $EXEC_DIR; "
   # CMD="$CMD $INNER_CMD \" &"
-  CMD="$CMD $INNER_CMD > $TB_OUT 2>&1 & \" &"
+  CMD="$CMD $INNER_CMD > $FN_TB_OUT 2>&1 & \" &"
 
+  echo
   echo [%] $CMD
+  echo
 
   ## 2.2 evaluate command
   if $DO_EVAL
   then
     eval $CMD
   fi
-
 done
 
 #!/bin/bash
@@ -192,26 +267,6 @@ done
 #DEFAULT_CTRL_DAEMON_IP="129.254.182.176"
 #CTRL_DAEMON_IP=${1:-$DEFAULT_CTRL_DAEMON_IP}
 
-
 #if [ 1 --eq 0 ]; then
-  #-- following is work well
-  # echo ssh $ACCOUNT@$ip  "source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate p3.8; cd /tmp/CSD; python ClientDaemon.py --ip_addr $CTRL_DAEMON_IP  --port $PORT"
-  # ssh $ACCOUNT@$ip  "source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate p3.8; cd /tmp/CSD; python ClientDaemon.py --ip_addr $CTRL_DAEMON_IP  --port $PORT" &
-  ##
-
-  #-- following is nor work well
-  # echo  ssh $ACCOUNT@$ip "cd /tmp/CSD; python ClientDaemon.py --ip_addr $CTRL_DAEMON_IP  --port $PORT"
-  # ssh $ACCOUNT@$ip "cd /tmp/CSD; python ClientDaemon.py --ip_addr $CTRL_DAEMON_IP  --port $PORT" &   # error
-  ##
-  # echo ssh $ACCOUNT@$ip ". ~/.bashrc; cd /tmp/CSD; python ClientDaemon.py --ip_addr $CTRL_DAEMON_IP  --port $PORT" & # error
-  # ssh $ACCOUNT@$ip ". ~/.bashrc; cd /tmp/CSD; python ClientDaemon.py --ip_addr $CTRL_DAEMON_IP  --port $PORT" & # error
-
-
-  #python DistCtrlDaemon.py --port 2727 --map doan --target "SA 101" --num-of-learning-daemon 1 --validation-criteria 5.0
-  #python DistCtrlDaemon.py --port 2727 --map doan --target "SA 101, SA 104" --num-of-learning-daemon 2 --validation-criteria 5.0
-  #python DistCtrlDaemon.py --port 2727 --map doan  --target "SA 101, SA 104" --num-of-learning-daemon 2 --action gr --validation-criteria 5.0 --epoch 1 --model-save-period 1
-  #
-  #python DistExecDaemon.py --ip-addr 129.254.182.176  --port 2727
-
   # python run.py --mode train --map doan --target "SA 101,SA 104" --action offset --epoch
 # fi
