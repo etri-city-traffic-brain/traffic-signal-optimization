@@ -273,9 +273,6 @@ def trainSappo(args):
     :return:
     '''
 
-    ## load envs
-    env = createEnvironment(args)
-
     ## calculate trial length using argument and scenario file
     start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
@@ -284,6 +281,8 @@ def trainSappo(args):
     args.start_time = start_time
     args.end_time = end_time
 
+    ## load envs
+    env = createEnvironment(args)
 
     ## make configuration dictionary & make some string variables
     #  : problem_var, fn_train_epoch_total_reward, fn_train_epoch_tl_reward
@@ -583,9 +582,6 @@ def testSappo(args):
     :return:
     '''
 
-    ## load environment
-    env = createEnvironment(args)
-
     ## calculate trial length using argument and scenario file
     start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
@@ -594,6 +590,8 @@ def testSappo(args):
     args.start_time = start_time
     args.end_time = end_time
 
+    ## load environment
+    env = createEnvironment(args)
 
     ## make configuration dictionary & construct problem_var string to be used to create file names
     ppo_config, problem_var = makeConfigAndProblemVar(args)

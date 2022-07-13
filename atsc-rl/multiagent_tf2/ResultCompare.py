@@ -309,7 +309,6 @@ def testCompareResult():
 
     args = parseArgument()
 
-    env = createEnvironment(args)
     ## calculate trial length using argument and scenario file
     start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
@@ -317,6 +316,8 @@ def testCompareResult():
     # set start_/end_time which will be used to test
     args.start_time = start_time
     args.end_time = end_time
+
+    env = createEnvironment(args)
 
     ppo_config, problem_var = makeConfigAndProblemVar(args)
 
