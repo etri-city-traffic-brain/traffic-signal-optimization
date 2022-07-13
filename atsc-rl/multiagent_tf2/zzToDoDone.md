@@ -65,6 +65,9 @@
   
 
 ### done history
+* Tag V1.3a-202208
+  * (addition) add some func.s into shell script for distributed trainging such as simulate, train, terminate, clean, ...
+    * Rename dist_learning.sh to dist_training.sh
 * Tag V1.2a-20220706
   * (removal) exclude wt_SBV, wt_SBV_max and wt_ABV from reward functions because it is TOO SLOW
   
