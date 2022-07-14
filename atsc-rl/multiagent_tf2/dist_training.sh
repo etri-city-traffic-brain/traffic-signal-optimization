@@ -384,6 +384,7 @@ then
 
   echo "You should check START_DAY is valid in this script if running RL process is not found."
   echo "You should set this value using the day training was started."
+  echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
 
 #-- 1.5 terminate process forcely using kill command
 elif [ "$OPERATION" == "$OP_TERMINATE" ]
@@ -451,6 +452,7 @@ then
 
   echo "You should check START_DAY is valid in this script if running RL process is not found."
   echo "You should set this value using the day training was started."
+  echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
 
 
 #
