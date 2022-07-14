@@ -24,8 +24,8 @@ display_usage() {
   echo "        simulate : do with fixed traffic signal to get ground zero performance"
   echo "        train : do distributed training"
   echo "        tensorboard : do launch tensorboard daemon"
-  echo "        monitor : check whether processes for distributed training are alive "
-  echo "        terminate : do terminate all processes for distributed training"
+  echo "        monitor : check whether processes for distributed training are alive; should check START_DAY value"
+  echo "        terminate : do terminate all processes for distributed training; should check START_DAY value"
   echo "        clean : remove daemon dump log file such as zz.out.ctrl/exec/tb"
   echo "        clean-all : remove some files which were generated when we do training such as zz.out.*, logs, model, output/train, output/test, scenario history file,..."
   echo
@@ -55,10 +55,12 @@ if [ 1 ]; then
   CTRL_DAEMON_IP="129.254.184.123"  # 101.79.1.126
 
   ###--- ip address of nodes to run execution daemon
-  EXEC_DAEMON_IPS=( "129.254.184.123" 
-                    "129.254.184.184"
-                    "129.254.184.238"
-                    "129.254.184.248")
+  EXEC_DAEMON_IPS=(
+                    "129.254.184.123" 
+                    "129.254.184.184" 
+                    "129.254.184.238" 
+                    "129.254.184.248" 
+                  )
   #
   # 129.254.184.239		uniq1
   # 129.254.184.241		uniq2
@@ -124,10 +126,34 @@ if [ 1 ]; then
   RL_SCENARIO_FILE_PATH="data/envs/salt"
 
   ###--- name of map to simulate
-  RL_MAP="doan"
+  RL_MAP="doan" # one of { doan, sa_1_6_17, dj_all }
+  #RL_MAP="sa_1_6_17" # one of { doan, sa_1_6_17, dj_all }
+  #RL_MAP="dj_all" # one of { doan, sa_1_6_17, dj_all }
 
-  ###--- target to train
-  RL_TARGET="SA 101, SA 104, SA 107, SA 111" # SA 101,SA 104,SA 107,SA 111"
+  ###-- set target to train
+  if [ "$RL_MAP" == "doan" ]
+  then
+    ###--- target to train
+    RL_TARGET="SA 101, SA 104, SA 107, SA 111" # SA 101,SA 104,SA 107,SA 111"
+  elif [ "$RL_MAP" == "sa_1_6_17" ]
+  then
+    ###--- target to train
+    RL_TARGET="SA 1, SA 6, SA 17"  # SA 1, SA 6, SA 17
+  elif [ "$RL_MAP" == "dj_all" ]
+  then
+    ###--- target to train
+    ####-- candidate1
+    #RL_TARGET="SA 13, SA 72"
+       # 51 TLs = SA 13(29 TLs) + SA 72(23 TLs)
+
+    ####-- candidate2
+    RL_TARGET="SA 56, SA 101, SA 28, SA 55, SA 32" 
+       # 59 TLs = SA 56(15 TLs) + SA 101(10 TLs) + SA 28(12 TLs) + SA 55(10 TLs) + SA 32(12 TLs)" 
+
+    ####-- candidate3
+    #RL_TARGET="SA 1, SA 6, SA 17, SA 61"
+       # 53 TLs = SA 1(13 TLs) + SA 6(11 TLs) + SA 17(19 TLs) + SA 61(10 TLs)
+  fi
 
   ###--- RL method
   RL_METHOD="sappo"
@@ -138,7 +164,7 @@ if [ 1 ]; then
   RL_REWARD="wq"  # wq, cwq, pn, wt, tt
 
   ###--- training epoch
-  RL_EPOCH=5	# 200
+  RL_EPOCH=200	# 200
 
   ###--- interval for model saving : how open save model
   RL_MODEL_SAVE_PERIOD=1
@@ -155,9 +181,22 @@ if [ 1 ]; then
   MODEL_STORE_ROOT_PATH="/home/tsoexp/share/dist_training"
 
   ###--- directory to save training result
-  TODAY=`date +"%g%m%d"`  # 220701
-  EXP_OPTION="rm"
-  RESULT_DIR=${TODAY}/${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # 220701/gr_wq_rm
+  if [ "$OPERATION" == "$OP_TRAIN" ]
+  then
+    START_DAY=`date +"%g%m%d"`  # 220701
+  else  # for monitor, terminate, 
+    # should set this value using the day training was started
+    START_DAY="220714"
+  fi
+
+  EXP_OPTION="all" # all , sa101, sa6, rm
+  #
+  # SA 101, SA 104 ==> SA101,SA104 ==>SA101_SA104
+  #EXP_OPTION="${RL_TARGET// /}" # remove blank
+  #EXP_OPTION="${EXP_OPTION//,/_}" # replace comma(,) to underscore(_)
+  
+  RESULT_DIR_LEAF=${RL_MAP}_${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # ex., doan_gr_wq_all
+  RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
 
 
   ###--- number of optimal model candidate
@@ -327,9 +366,8 @@ then
 
     ### rl prog
     ### construct command
-    RESULT_DIR_POSTFIX=${RL_ACTION}_${RL_REWARD}_${EXP_OPTION}
     CMD="ssh $ACCOUNT@$ip  "
-    CMD="$CMD ps -def | grep $RL_PROG | grep $TODAY | grep $RESULT_DIR_POSTFIX "
+    CMD="$CMD ps -def | grep $RL_PROG | grep $START_DAY | grep $RESULT_DIR_LEAF "
     echo [%] $CMD
     eval $CMD
     echo
@@ -344,6 +382,8 @@ then
     echo
   done
 
+  echo "You should check START_DAY is valid in this script if running RL process is not found."
+  echo "You should set this value using the day training was started."
 
 #-- 1.5 terminate process forcely using kill command
 elif [ "$OPERATION" == "$OP_TERMINATE" ]
@@ -381,9 +421,8 @@ then
 
     ### rl prog
     ### construct command
-    RESULT_DIR_POSTFIX=${RL_ACTION}_${RL_REWARD}_${EXP_OPTION}
     CMD="ssh $ACCOUNT@$ip  "
-    CMD="$CMD ps -def | grep $RL_PROG | grep $TODAY | grep $RESULT_DIR_POSTFIX| awk '{print $"
+    CMD="$CMD ps -def | grep $RL_PROG | grep $START_DAY | grep $RESULT_DIR_LEAF | awk '{print $"
     CMD="${CMD}2}' "
 
     pid=`eval $CMD`
@@ -409,6 +448,9 @@ then
       eval $CMD
     fi
   done
+
+  echo "You should check START_DAY is valid in this script if running RL process is not found."
+  echo "You should set this value using the day training was started."
 
 
 #
