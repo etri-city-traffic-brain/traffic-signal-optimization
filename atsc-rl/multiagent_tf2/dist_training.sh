@@ -14,20 +14,30 @@ OP_MONITOR="monitor"  # check whether processes ifor distributed training are al
 OP_TERMINATE="terminate" # do terminate forcely
 OP_CLEAN="clean" # do clean : remove daemon dump file (i.e.,  zz.out.*)
 OP_CLEAN_ALL="clean-all" # remove files which were generated when we do training
+OP_SHOW_RESULT="show-result" # dump training result by showing the calculated improvement rate of each round
 OP_USAGE="usage" # show usage
 
 DO_EVAL=true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
 
 display_usage() {
   echo
-  echo "[%] dist_util.py [simulate|train|tensorboard|monitor|terminate|clean]"
-  echo "        simulate : do with fixed traffic signal to get ground zero performance"
-  echo "        train : do distributed training"
-  echo "        tensorboard : do launch tensorboard daemon"
-  echo "        monitor : check whether processes for distributed training are alive; should check START_DAY value"
-  echo "        terminate : do terminate all processes for distributed training; should check START_DAY value"
-  echo "        clean : remove daemon dump log file such as zz.out.ctrl/exec/tb"
-  echo "        clean-all : remove some files which were generated when we do training such as zz.out.*, logs, model, output/train, output/test, scenario history file,..."
+  echo "[%] dist_util.py OPERATION [START-DAY] "
+  echo "        OPERATION : one of [simulate|train|tensorboard|monitor|terminate|clean] "
+  echo "            simulate : do with fixed traffic signal to get ground zero performance"
+  echo "            train : do distributed training"
+  echo "            tensorboard : do launch tensorboard daemon"
+  echo "            monitor : check whether processes for distributed training are alive"
+  echo "                      You should check START-DAY value"
+  echo "            terminate : do terminate all processes for distributed training"
+  echo "                      You should check START-DAY value"
+  echo "            clean : remove daemon dump log file such as zz.out.ctrl/exec/tb"
+  echo "            clean-all : remove some files which were generated when we do training "
+  echo "                        such as zz.out.*, logs, model, output/train, output/test, scenario history file,..."
+  echo "            show-result : dump training result by showing the calculated improvement rate of each round"
+  echo "                      You should check START-DAY value"
+  echo "        START-DAY : start day of training; yymmdd;"
+  echo "                    You should pass this value which indicates the day training was started."
+  echo "                    valid if operation is one of [monitor|terminate|show-result] "
   echo
 }
 
@@ -56,10 +66,10 @@ if [ 1 ]; then
 
   ###--- ip address of nodes to run execution daemon
   EXEC_DAEMON_IPS=(
-                    "129.254.184.123" 
-                    "129.254.184.184" 
-                    "129.254.184.238" 
-                    "129.254.184.248" 
+                    "129.254.184.123"
+                    "129.254.184.184"
+                    "129.254.184.238"
+                    "129.254.184.248"
                   )
   #
   # 129.254.184.239		uniq1
@@ -161,7 +171,7 @@ if [ 1 ]; then
   ###--- state, action, reward for RL
   RL_STATE="vdd" # v, d, vd, vdd
   RL_ACTION="gr"  # offset, gr, gro, kc
-  RL_REWARD="wq"  # wq, cwq, pn, wt, tt
+  RL_REWARD="cwq"  # wq, cwq, pn, wt, tt
 
   ###--- training epoch
   RL_EPOCH=200	# 200
@@ -181,13 +191,7 @@ if [ 1 ]; then
   MODEL_STORE_ROOT_PATH="/home/tsoexp/share/dist_training"
 
   ###--- directory to save training result
-  if [ "$OPERATION" == "$OP_TRAIN" ]
-  then
-    START_DAY=`date +"%g%m%d"`  # 220701
-  else  # for monitor, terminate, 
-    # should set this value using the day training was started
-    START_DAY="220714"
-  fi
+  START_DAY=`date +"%g%m%d"`  # 220701
 
   EXP_OPTION="all" # all , sa101, sa6, rm
   #
@@ -208,6 +212,7 @@ if [ 1 ]; then
   ###-- whether do cumulative training or not : model, replay memory
   CUMULATIVE_TRAINING="True"
 
+  DIST_RESULT_FILE="zz.dist_learning_history.csv" # contains improved performance rate of each round ; distributed training history
 fi
 
 
@@ -341,6 +346,16 @@ then
 #
 elif [ "$OPERATION" == "$OP_MONITOR" ]
 then
+  ## (0) check command is valid and set START_DAY value
+  if [ $# -ne 2 ]
+  then
+    echo "invalid argument...The number of argument should be 2. "
+    display_usage
+    exit
+  fi
+
+  START_DAY=$2
+
   ## (1) ctrl daemon
   echo "##"
   echo "## " ${CTRL_DAEMON_IP}
@@ -382,13 +397,20 @@ then
     echo
   done
 
-  echo "You should check START_DAY is valid in this script if running RL process is not found."
-  echo "You should set this value using the day training was started."
   echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
 
 #-- 1.5 terminate process forcely using kill command
 elif [ "$OPERATION" == "$OP_TERMINATE" ]
 then
+  ## (0) check command is valid and set START_DAY value
+  if [ $# -ne 2 ]
+  then
+    echo "invalid argument...The number of argument should be 2. "
+    display_usage
+  fi
+
+  START_DAY=$2
+
   ## (1) ctrl daemon
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD ps -def | grep $CTRL_DAEMON | grep $PORT | awk '{print $"
@@ -450,8 +472,6 @@ then
     fi
   done
 
-  echo "You should check START_DAY is valid in this script if running RL process is not found."
-  echo "You should set this value using the day training was started."
   echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
 
 
@@ -510,6 +530,32 @@ then
     echo [%] $CMD
     eval $CMD
   done
+
+
+
+
+#
+#-- 1.8 show result : dump training result by showing the calculated improvement rate of each round
+#
+elif [ "$OPERATION" == "$OP_SHOW_RESULT" ]
+then
+  ## (0) check command is valid and set START_DAY value
+  if [ $# -ne 2 ]
+  then
+    echo "invalid argument...The number of argument should be 2. "
+    display_usage
+    exit
+  fi
+
+  START_DAY=$2
+
+  RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
+
+  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
+  CMD="$CMD \" cat $MODEL_STORE_ROOT_PATH/$RESULT_DIR/$DIST_RESULT_FILE \" "
+  echo [%] $CMD
+  eval $CMD
+
 
 #
 #-- error : entered argument is not valid
