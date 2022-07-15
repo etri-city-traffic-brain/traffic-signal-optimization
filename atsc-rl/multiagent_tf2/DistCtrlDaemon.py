@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import datetime
 import socket
 import threading
 import time
@@ -474,6 +475,10 @@ if __name__ == '__main__':
 
     validation_trials = 0
     while checked_result != _CHECK_.SUCCESS:
+
+        ## get start time of current round
+        curent_round_start_time = datetime.datetime.now()
+
         done = 0
         num_clients = len(serving_client_dic.values())
 
@@ -492,6 +497,14 @@ if __name__ == '__main__':
 
         ### check if re-learning is needed
         checked_result = validate(args, validation_trials, fn_dist_learning_history)
+
+        ## get end time of current round
+        curent_round_end_time = datetime.datetime.now()
+
+        ## calculate & dump elapsed time of current round
+        current_round_elapsed_time = curent_round_end_time - curent_round_start_time
+        print(f'Time taken for {validation_trials}-th round experiment was {current_round_elapsed_time.seconds} seconds')
+
 
         ### set the checked result : state
         for sc in serving_client_dic.values():
