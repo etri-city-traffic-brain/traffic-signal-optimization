@@ -411,20 +411,9 @@ then
 
   START_DAY=$2
 
-  ## (1) ctrl daemon
-  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
-  CMD="$CMD ps -def | grep $CTRL_DAEMON | grep $PORT | awk '{print $"
-  CMD="${CMD}2}'"
 
-  pid=`eval $CMD`
-  if [[ -n "$pid" ]] ; then
-    CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
-    CMD="$CMD kill -9 $pid"
-    echo $CMD ... terminate $CTRL_DAEMON
-    eval $CMD
-  fi
 
-  ## (2) exec node
+  ## (1) exec node
   for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ### exec daemon
@@ -471,6 +460,20 @@ then
       eval $CMD
     fi
   done
+
+
+  ## (2) ctrl daemon
+  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
+  CMD="$CMD ps -def | grep $CTRL_DAEMON | grep $PORT | awk '{print $"
+  CMD="${CMD}2}'"
+
+  pid=`eval $CMD`
+  if [[ -n "$pid" ]] ; then
+    CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
+    CMD="$CMD kill -9 $pid"
+    echo $CMD ... terminate $CTRL_DAEMON
+    eval $CMD
+  fi
 
   echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
 
