@@ -7,6 +7,7 @@
 #  python run.py --mode train --map doan --target "SA 101,SA 104" --action offset   --reward-func pn --reward-gather-unit sa   --model-save-period 10  --epoch 1000
 #
 import argparse
+import datetime
 import gc
 import numpy as np
 import os
@@ -831,6 +832,10 @@ def fixedTimeSimulate(args):
 
 if __name__ == "__main__":
 
+    ## dump launched time
+    launched = datetime.datetime.now()
+    print(f'launched at {launched}')
+
     args = parseArgument()
 
     dir_name_list = [
@@ -861,3 +866,10 @@ if __name__ == "__main__":
         fixedTimeSimulate(args)
 
 
+    ## dump terminated time
+    terminated = datetime.datetime.now()
+    print(f'terminated at {terminated}')
+
+    ## calculate & dump duration
+    interval = terminated-launched
+    print(f'Time taken for experiment was {interval.seconds} seconds')
