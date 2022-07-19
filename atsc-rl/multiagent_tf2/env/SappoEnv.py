@@ -9,15 +9,19 @@ import numpy as np
 
 import libsalt
 
+from DebugConfiguration import DBG_OPTIONS
 
-from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection, getAverageTravelTimeOfIntersection
+
+from env.SaltEnvUtil import appendPhaseRewards, getStatisticalInfoOfIntersection
+from env.SaltEnvUtil import appendStatisticallInfoIntoDic, initStatisticalInfoDic
+
+
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getSimulationStartStepAndEndStep
 from env.SaltEnvUtil import makePosssibleSaNameList
 from env.SappoActionMgmt import SaltActionMgmt
 from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmtV3
-from DebugConfiguration import DBG_OPTIONS
 from TSOUtil import writeLine
 
 
@@ -168,13 +172,13 @@ class SaltSappoEnvV3(gym.Env):
 
             self.simulation_steps = 0
 
-            self.prev_avg_speed_list = []
-            self.prev_avg_travel_time_list = []
+            self.st_info_dic = initStatisticalInfoDic()
 
             if self.args.mode == 'test':
                 self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
 
-                writeLine(self.fn_rl_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time')
+                writeLine(self.fn_rl_phase_reward_output,
+                          'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
 
 
     def __getNextTimeToAct(self, current_step, sa_cycle, control_cycle):
@@ -303,8 +307,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list,
-                                       self.prev_avg_travel_time_list)
+                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
 
         elif self.args.action == "kc":  # keep or change
             idx_of_next_act_sa = list(range(self.agent_num))
@@ -323,9 +326,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list,
-                                       self.prev_avg_travel_time_list)
-
+                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
 
             ## apply keep-change actions : second step
             next_phase_list = self.action_mgmt.applyKeepChangeActionSecondStep(self.simulation_steps, actions, self.tl_obj)
@@ -341,8 +342,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list,
-                                       self.prev_avg_travel_time_list)
+                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
 
         # for SAs to apply action next time (다음 번에 action을 적용할 SA들에 대해)
         #   1) calculate reward, 2) gather state info, 3) increase time to act
@@ -389,12 +389,12 @@ class SaltSappoEnvV3(gym.Env):
         self.simulation_steps = libsalt.getCurrentStep()
 
         if self.args.mode == 'test':
-            self.prev_avg_speed_list.clear()
-            self.prev_avg_travel_time_list.clear()
+            for k in self.st_info_dic:
+                self.st_info_dic[k].clear()
 
             for tlid in self.target_tl_id_list:
-                self.prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, self.tl_obj, num_hop=0))
-                self.prev_avg_travel_time_list.append(getAverageTravelTimeOfIntersection(tlid, self.tl_obj, num_hop=0))
+                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, self.tl_obj, num_hop=0)
+                self.st_info_dic = appendStatisticallInfoIntoDic(self.st_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
 
         #-- warming up
         ##--- make dummy actions to write output file
@@ -414,9 +414,7 @@ class SaltSappoEnvV3(gym.Env):
             if self.args.mode == 'test':
                 appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                    actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                   self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list,
-                                   self.prev_avg_travel_time_list)
-
+                                   self.tl_obj, self.target_tl_id_list, self.st_info_dic)
 
         self.simulation_steps = libsalt.getCurrentStep()
 
@@ -450,8 +448,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.prev_avg_speed_list,
-                                       self.prev_avg_travel_time_list)
+                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
 
                 if self.simulation_steps % self.reward_info_collection_cycle == 0:
                     # self.reward_mgmt.gatherRewardRelatedInfo(self.action_t, self.simulation_steps, self.reward_info_collection_cycle)

@@ -12,7 +12,7 @@ from deprecated import deprecated
 
 import libsalt
 
-import DebugConfiguration
+from DebugConfiguration import DBG_OPTIONS
 from TSOConstants import _REWARD_GATHER_UNIT_, _RESULT_COMP_
 
 
@@ -259,7 +259,7 @@ def getPossibleActionList(args, duration, min_dur, max_dur, green_idx, actionLis
         npsum += np.sum(maxGreen[green_idx] < newDur)
         if npsum == 0:
             new_actionList.append(action)
-    if DebugConfiguration.DBG_OPTIONS.PrintSaRelatedInfo:
+    if DBG_OPTIONS.PrintSaRelatedInfo:
         print('len(actionList)', len(actionList), 'len(new_actionList)', len(new_actionList))
 
     return new_actionList
@@ -479,7 +479,7 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
     ## build incomming LANE related info by executing the simulator
     target_tl_obj, _lane_len = constructLaneRelatedInfo(args, salt_scenario, target_tl_obj)
 
-    if DebugConfiguration.DBG_OPTIONS.PrintSaRelatedInfo:
+    if DBG_OPTIONS.PrintSaRelatedInfo:
         print("target_tl_obj")
         pprint.pprint(target_tl_obj, width=200, compact=True)
 
@@ -570,14 +570,14 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_0_list'].append(target_tl_obj[tl_obj]['in_lane_list_0'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_1_list'].append(target_tl_obj[tl_obj]['in_lane_list_1'])
 
-    if DebugConfiguration.DBG_OPTIONS.PrintSaRelatedInfo:
+    if DBG_OPTIONS.PrintSaRelatedInfo:
         print("sa_obj")
         pprint.pprint(sa_obj, width=200, compact=True)
 
     return target_tl_obj, sa_obj, _lane_len
 
 
-
+@deprecated(reason="use another function : getStatisticalInfoOfIntersection")
 def getAverageSpeedOfIntersection(tl_id, tl_obj, num_hop=0):
     '''
     get average speed of given intersection
@@ -598,7 +598,7 @@ def getAverageSpeedOfIntersection(tl_id, tl_obj, num_hop=0):
     return np.average(link_speed_list)
 
 
-
+@deprecated(reason="use another function : getStatisticalInfoOfIntersection")
 def getAverageTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
     '''
     get average travel time of given intersection
@@ -615,7 +615,7 @@ def getAverageTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
 
     # todo check which one is suitable
     # todo check : performance improvement rate
-    if 1: # avg_avg
+    if DBG_OPTIONS.AVG_AVG: # avg_avg
         link_avg_time_list = []
         for link_id in link_list:
             sum_travel_time = libsalt.link.getSumTravelTime(link_id)
@@ -639,24 +639,159 @@ def getAverageTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
     return avg_tt
 
 
-@deprecated(reason="use another function : appendPhaseRewards")
-def appendPhaseRewards_V1(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list):
-    '''
-    write reward to given file
-    this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool
-    currently not used.... do not write average travel time
 
-    :param fn: file name to store reward
-    :param sim_step: simulation step
-    :param actions: applied actions
-    :param reward_mgmt: object for reward mgmt
-    :param sa_obj: object which holds information about SAs
-    :param sa_name_list:  list of name of SA
-    :param tl_obj: object which holds information about TLs
-    :param tl_id_list: list of TL id
-    :param prev_avg_speed_list: previous average speed
+
+@deprecated(reason="use another function : getStatisticalInfoOfIntersection")
+def getSumTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
+    '''
+    get sum travel time of given intersection
+
+    :param tl_id: inersection identifier
+    :param tl_obj:  objects which holds TL information
+    :param num_hop: number of hop to calculate speed
     :return:
     '''
+    link_list = tl_obj[tl_id]['in_edge_list_0']
+
+    if num_hop>0:
+        link_list += tl_obj[tl_id]['in_edge_list_1']
+
+    sum_travel_time = 0.0
+    for link_id in link_list:
+        sum_travel_time += libsalt.link.getSumTravelTime(link_id)
+
+    return sum_travel_time
+
+
+
+
+
+def initStatisticalInfoDic():
+    '''
+    initialize dictionary for statistical information
+    '''
+    info_dic = {}
+    info_dic["avg_speed"] = []
+    info_dic["avg_travel_time"] = []
+    info_dic["sum_passed"] = []
+    info_dic["sum_travel_time"] = []
+    return info_dic
+
+
+
+def appendStatisticallInfoIntoDic(info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time):
+    '''
+    append info to dictionary for holding statistical info
+    :param info_dic: dic
+    :param avg_speed:
+    :param avg_tt:
+    :param sum_passed:
+    :param sum_travel_time:
+    :return:
+    '''
+    info_dic["avg_speed"].append(avg_speed)
+    info_dic["avg_travel_time"].append(avg_tt)
+    info_dic["sum_passed"].append(sum_passed)
+    info_dic["sum_travel_time"].append(sum_travel_time)
+    return info_dic
+
+
+
+def replaceStatisticallInfo(info_dic, ith, avg_speed, avg_tt, sum_passed, sum_travel_time):
+    '''
+    append info to dictionary for holding statistical info
+    :param info_dic: dic
+    :param ith: index which indicates to replace
+    :param avg_speed:
+    :param avg_tt:
+    :param sum_passed:
+    :param sum_travel_time:
+    :return:
+    '''
+    info_dic["avg_speed"][ith] = avg_speed
+    info_dic["avg_travel_time"][ith] = avg_tt
+    info_dic["sum_passed"][ith] = sum_passed
+    info_dic["sum_travel_time"][ith]  = sum_travel_time
+    return info_dic
+
+
+
+def getStatisticalInfoFromDic(info_dic, ith):
+    '''
+    append info to dictionary for holding statistical info
+    :param info_dic: dic
+    :param ith: index which indicates to get
+
+    :return:
+    '''
+    avg_speed = info_dic["avg_speed"][ith]
+    avg_tt = info_dic["avg_travel_time"][ith]
+    sum_passed = info_dic["sum_passed"][ith]
+    sum_travel_time = info_dic["sum_travel_time"][ith]
+    return avg_speed, avg_tt, sum_passed, sum_travel_time
+
+
+
+def getStatisticalInfoOfIntersection(tl_id, tl_obj, num_hop=0):
+    '''
+    get statistical information of given intersection
+
+    statistical information : average speed, travel time, passed vehicle num
+
+    :param tl_id: inersection identifier
+    :param tl_obj:  objects which holds TL information
+    :param num_hop: number of hop to calculate speed
+    :return:
+    '''
+    link_list = tl_obj[tl_id]['in_edge_list_0']
+
+    if num_hop>0:
+        link_list += tl_obj[tl_id]['in_edge_list_1']
+    link_speed_list = []
+    link_avg_time_list = []
+    sum_travel_time = 0
+    sum_passed = 0
+    for link_id in link_list:
+        # average speed
+        link_speed_list.append(libsalt.link.getAverageSpeed(link_id))
+
+        # passed vehicle num
+        passed = libsalt.link.getSumPassed(link_id)
+
+        # travel time
+        travel_time = libsalt.link.getSumTravelTime(link_id)
+        if passed > 0:
+            avg_tt = travel_time / passed
+        else:
+            avg_tt = 0
+
+        link_avg_time_list.append(avg_tt)
+        sum_passed += passed
+        sum_travel_time += travel_time
+
+    avg_speed = np.average(link_speed_list)
+    avg_tt = np.average(link_avg_time_list)
+
+    return avg_speed, avg_tt, sum_passed, sum_travel_time
+
+
+
+def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, st_info_dic):
+    '''
+        write reward to given file
+        this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool
+
+        :param fn: file name to store reward
+        :param sim_step: simulation step
+        :param actions: applied actions
+        :param reward_mgmt: object for reward mgmt
+        :param sa_obj: object which holds information about SAs
+        :param sa_name_list:  list of name of SA
+        :param tl_obj: object which holds information about TLs
+        :param tl_id_list: list of TL id
+        :param st_info_dic: dictionary which homds statistical information such as average speed, average travel time, sum travel time, num of passed vehicles
+        :return:
+        '''
 
     f = open(fn, mode='a+', buffering=-1, encoding='utf-8', errors=None,
              newline=None, closefd=True, opener=None)
@@ -669,7 +804,7 @@ def appendPhaseRewards_V1(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_li
             sa_reward = reward_mgmt.calculateSARewardInstantly(sa_idx, sim_step)
             sa_reward_list.append(sa_reward)
 
-        for i in  range(len(tl_id_list)):
+        for i in range(len(tl_id_list)):
             tlid = tl_id_list[i]
 
             sa_name = tl_obj[tlid]['signalGroup']
@@ -682,22 +817,26 @@ def appendPhaseRewards_V1(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_li
                 tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
                 tl_action = actions[sa_idx][tl_idx]
 
-            if sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL:
-                avg_speed = prev_avg_speed_list[i]
-            else:
-                avg_speed = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
-                prev_avg_speed_list[i] = avg_speed
 
-            # step,tl_name,actions,phase,reward
-            f.write("{},{},{},{},{},{}\n".format(sim_step,
-                                              tl_obj[tlid]['crossName'],
-                                              tl_action,
-                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                              reward,
-                                              avg_speed))
+            if (sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL) == 0:
+                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, tl_obj, num_hop=0)
+                st_info_dic = replaceStatisticallInfo(st_info_dic, i, avg_speed, avg_tt, sum_passed, sum_travel_time)
+            else:
+                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoFromDic(st_info_dic, i)
+
+            f.write("{},{},{},{},{},{},{},{},{}\n".format(sim_step,
+                                                       tl_obj[tlid]['crossName'],
+                                                       tl_action,
+                                                       libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
+                                                       reward,
+                                                       avg_speed,
+                                                       avg_tt,
+                                                       sum_passed,
+                                                       sum_travel_time))
+
         sa_reward_list.clear()
 
-    else: # reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.TL
+    else:  # reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.TL
         for i in range(len(tl_id_list)):
             tlid = tl_id_list[i]
 
@@ -711,125 +850,22 @@ def appendPhaseRewards_V1(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_li
                 tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
                 tl_action = actions[sa_idx][tl_idx]
 
-            if sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL:
-                avg_speed = prev_avg_speed_list[i]
+            if (sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL) == 0:
+                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, tl_obj, num_hop=0)
+                st_info_dic = replaceStatisticallInfo(st_info_dic, i, avg_speed, avg_tt, sum_passed, sum_travel_time)
             else:
-                avg_speed = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
-                prev_avg_speed_list[i] = avg_speed
-
-            # step,tl_name,actions,phase,reward
-            f.write("{},{},{},{},{},{}\n".format(sim_step,
-                                              tl_obj[tlid]['crossName'],
-                                              tl_action,
-                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                              reward,
-                                              avg_speed))
-
-    f.close()
+                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoFromDic(st_info_dic, i)
 
 
-
-def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, prev_avg_speed_list, prev_avg_travel_time_list):
-    '''
-    write reward to given file
-    this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool
-
-    :param fn: file name to store reward
-    :param sim_step: simulation step
-    :param actions: applied actions
-    :param reward_mgmt: object for reward mgmt
-    :param sa_obj: object which holds information about SAs
-    :param sa_name_list:  list of name of SA
-    :param tl_obj: object which holds information about TLs
-    :param tl_id_list: list of TL id
-    :param prev_avg_speed_list: previous average speed
-    :param prev_avg_travel_time_list: previous average travel time
-    :return:
-    '''
-
-    f = open(fn, mode='a+', buffering=-1, encoding='utf-8', errors=None,
-             newline=None, closefd=True, opener=None)
-
-    num_target = len(sa_name_list)
-    sa_reward_related_info_list = []
-    if reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.SA:
-        sa_reward_list = []
-        for sa_idx in range(num_target):
-            sa_reward = reward_mgmt.calculateSARewardInstantly(sa_idx, sim_step)
-            sa_reward_list.append(sa_reward)
-
-        for i in  range(len(tl_id_list)):
-            tlid = tl_id_list[i]
-
-            sa_name = tl_obj[tlid]['signalGroup']
-            sa_idx = sa_name_list.index(sa_name)
-
-            reward = sa_reward_list[sa_idx]
-
-            tl_action = 0
-            if len(actions) != 0:
-                tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
-                tl_action = actions[sa_idx][tl_idx]
-
-            # if sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL:
-            #     avg_speed = prev_avg_speed_list[i]
-            # else:
-            #     avg_speed = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
-            #     prev_avg_speed_list[i] = avg_speed
-
-            if (sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL) == 0:
-                prev_avg_speed_list[i] = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
-                prev_avg_travel_time_list[i] = getAverageTravelTimeOfIntersection(tlid,tl_obj, num_hop=0)
-
-            avg_speed = prev_avg_speed_list[i]
-            avg_tt = prev_avg_travel_time_list[i]
-
-            # step,tl_name,actions,phase,reward
-            f.write("{},{},{},{},{},{},{}\n".format(sim_step,
-                                              tl_obj[tlid]['crossName'],
-                                              tl_action,
-                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                              reward,
-                                              avg_speed,
-                                              avg_tt))
-        sa_reward_list.clear()
-
-    else: # reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.TL
-        for i in range(len(tl_id_list)):
-            tlid = tl_id_list[i]
-
-            sa_name = tl_obj[tlid]['signalGroup']
-            sa_idx = sa_name_list.index(sa_name)
-
-            reward = reward_mgmt.calculateTLRewardInstantly(sa_idx, tlid, sim_step)
-
-            tl_action = 0
-            if len(actions) != 0:
-                tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
-                tl_action = actions[sa_idx][tl_idx]
-
-            # if sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL:
-            #     avg_speed = prev_avg_speed_list[i]
-            # else:
-            #     avg_speed = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
-            #     prev_avg_speed_list[i] = avg_speed
-
-            if (sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL) == 0:
-                prev_avg_speed_list[i] = getAverageSpeedOfIntersection(tlid, tl_obj, num_hop=0)
-                prev_avg_travel_time_list[i] = getAverageTravelTimeOfIntersection(tlid,tl_obj, num_hop=0)
-
-            avg_speed = prev_avg_speed_list[i]
-            avg_tt = prev_avg_travel_time_list[i]
-
-
-            # step,tl_name,actions,phase,reward
-            f.write("{},{},{},{},{},{},{}\n".format(sim_step,
-                                              tl_obj[tlid]['crossName'],
-                                              tl_action,
-                                              libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
-                                              reward,
-                                              avg_speed,
-                                              avg_tt))
+            f.write("{},{},{},{},{},{},{},{},{}\n".format(sim_step,
+                                                       tl_obj[tlid]['crossName'],
+                                                       tl_action,
+                                                       libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid),
+                                                       reward,
+                                                       avg_speed,
+                                                       avg_tt,
+                                                       sum_passed,
+                                                       sum_travel_time))
 
     f.close()
 

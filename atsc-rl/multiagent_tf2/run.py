@@ -35,7 +35,8 @@ import libsalt
 
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
-from env.SaltEnvUtil import appendPhaseRewards, getAverageSpeedOfIntersection, getAverageTravelTimeOfIntersection
+from env.SaltEnvUtil import appendPhaseRewards, getStatisticalInfoOfIntersection, initStatisticalInfoDic, appendStatisticallInfoIntoDic
+
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
 from env.SaltEnvUtil import getSimulationStartStepAndEndStep
@@ -785,7 +786,7 @@ def fixedTimeSimulate(args):
     output_ft_dir = f'{args.io_home}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
 
-    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time')
+    writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
 
     reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
                                        args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
@@ -800,12 +801,11 @@ def fixedTimeSimulate(args):
 
     sim_step = libsalt.getCurrentStep()
 
-    prev_avg_speed_list = []
-    prev_avg_travel_time_list = []
-    for tlid in target_tl_id_list:
-        prev_avg_speed_list.append(getAverageSpeedOfIntersection(tlid, target_tl_obj, num_hop=0))
-        prev_avg_travel_time_list.append(getAverageTravelTimeOfIntersection(tlid, target_tl_obj, num_hop=0))
+    st_info_dic = initStatisticalInfoDic()
 
+    for tlid in target_tl_id_list:
+        avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, target_tl_obj,  num_hop=0)
+        st_info_dic = appendStatisticallInfoIntoDic(st_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
 
     for i in range(trial_len):
         libsalt.simulationStep()
@@ -814,17 +814,14 @@ def fixedTimeSimulate(args):
         # todo 일정 주기로 보상 값을 얻어와서 기록한다.
         appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
                                target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list,
-                               prev_avg_speed_list, prev_avg_travel_time_list)
+                               st_info_dic)
 
 
     print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
 
-    prev_avg_speed_list.clear()
-    del prev_avg_speed_list
-
-    # used to save AverageTravelTime
-    prev_avg_travel_time_list.clear()
-    del prev_avg_travel_time_list
+    for k in st_info_dic:
+        st_info_dic[k].clear()
+    del st_info_dic
 
     libsalt.close()
 

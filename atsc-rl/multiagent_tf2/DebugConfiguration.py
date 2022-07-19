@@ -16,7 +16,6 @@ class DBG_OPTIONS :
 
         ##-- ing
         IngCompResult = False
-        NEW_PPO = True # std 값 변경 되게 하기 위함  #  현재 적용되어 있지 않음. diff ppoTF2.py.org ppoTF2v2.py
 
 
 

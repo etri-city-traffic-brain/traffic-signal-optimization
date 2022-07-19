@@ -65,6 +65,9 @@
   
 
 ### done history
+* Tag V1.3a-202208
+  * add some statistical info into TSO output file for viz tool
+    * sum travel time, num of passed vehicle, ... 
 * Tag V1.2a-20220719
   * (addition) add some func.s into shell script for distributed trainging such as simulate, train, terminate, clean, ...
     * Rename dist_learning.sh to dist_training.sh
