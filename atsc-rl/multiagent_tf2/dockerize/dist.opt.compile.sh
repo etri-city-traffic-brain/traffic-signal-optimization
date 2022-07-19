@@ -60,7 +60,7 @@ if [ "$COPY_BINARY" = "yes" ]; then
     #cp -r ./to_install_uniq/additional/opt_data/magic ./to_install_uniq/optimizer
 
     cp -r $OPT_HOME/README_DIST.md ./to_install_uniq/optimizer
-    cp -r $OPT_HOME/dist_learning.sh ./to_install_uniq/optimizer
+    cp -r $OPT_HOME/dist_training.sh ./to_install_uniq/optimizer
     cp -r $OPT_HOME/sshKeyGenAndCopy.sh ./to_install_uniq/optimizer
 
 fi
