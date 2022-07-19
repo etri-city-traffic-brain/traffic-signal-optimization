@@ -65,7 +65,7 @@
   
 
 ### done history
-* Tag V1.3a-20220719
+* Tag V1.2a-20220719
   * (addition) add some func.s into shell script for distributed trainging such as simulate, train, terminate, clean, ...
     * Rename dist_learning.sh to dist_training.sh
 * Tag V1.2a-20220706
