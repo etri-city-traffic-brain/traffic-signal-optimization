@@ -16,6 +16,7 @@ class DBG_OPTIONS :
 
         ##-- ing
         IngCompResult = False
+        RichActionOutput = True # actions#oofse#duration_per_phase
 
 
 
@@ -49,6 +50,9 @@ class DBG_OPTIONS :
         PrintServingThread = True      # print messages which are related to serving thread
         PrintStep = False              # print progress msgs every step : inferred actions
         PrintTrain = True              # print messages which are related to train such as episode elapsed time, gc time, avg reward, ...
+
+        PrintState = False              # print observateion
+        PrintAction = False             # print action related things
 
 
 

@@ -12,8 +12,12 @@ import libsalt
 from DebugConfiguration import DBG_OPTIONS
 
 
-from env.SaltEnvUtil import appendPhaseRewards, getStatisticalInfoOfIntersection
-from env.SaltEnvUtil import appendStatisticallInfoIntoDic, initStatisticalInfoDic
+from env.SaltEnvUtil import appendPhaseRewards, gatherTsoOutputInfo
+from env.SaltEnvUtil import appendTsoOutputInfo, initTsoOutputInfo
+
+if DBG_OPTIONS.RichActionOutput:
+    from env.SaltEnvUtil import appendTsoOutputInfoSignal
+    from env.SaltEnvUtil import replaceTsoOutputInfoOffset, replaceTsoOutputInfoDuration
 
 
 from env.SaltEnvUtil import copyScenarioFiles
@@ -172,7 +176,9 @@ class SaltSappoEnvV3(gym.Env):
 
             self.simulation_steps = 0
 
-            self.st_info_dic = initStatisticalInfoDic()
+            # dictionary to hold TSO output information
+            #   : will be dumped into TSO output file(rl_phase_reward_output.txt)
+            self.tso_output_info_dic = initTsoOutputInfo()
 
             if self.args.mode == 'test':
                 self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
@@ -280,7 +286,35 @@ class SaltSappoEnvV3(gym.Env):
         #-- action에 따라 신호 페이즈 집합(self.action_mgmt.apply_phase_array_list)을 변경한다.
         #   지난 번 step에서 새로운 action을 적용할 시간이 도래한 것들에 대해 action 적용하여 변경
         for i in self.idx_of_act_sa:
-            self.action_mgmt.changePhaseArray(self.simulation_steps, i, actions[i])
+            if DBG_OPTIONS.RichActionOutput:
+                offset_list, duration_list = self.action_mgmt.changePhaseArray(self.simulation_steps, i, actions[i])
+
+                if self.args.mode=='test':
+                    sa_name = self.sa_name_list[i]
+                    an_sa_obj = self.sa_obj[sa_name]
+                    an_sa_tlid_list = an_sa_obj['tlid_list']
+
+                    if len(offset_list):
+                        if DBG_OPTIONS.PrintAction:
+                            print(f'DBG offset_list_{i}={offset_list} changed')
+
+                        for j in range(len(offset_list)):
+                            tlid = an_sa_tlid_list[j]
+                            ith = self.target_tl_id_list.index(tlid)
+                            assert ith < len(self.tso_output_info_dic["offset"]), print(f'ith={ith} len(self.tso_output_info_dic["offset"])={len(self.tso_output_info_dic["offset"])}')
+                            replaceTsoOutputInfoOffset(self.tso_output_info_dic, ith, offset_list[j])
+
+                    if len(duration_list):
+                        if DBG_OPTIONS.PrintAction:
+                            print(f'DBG duration_list_{i}={duration_list} changed')
+
+                        for j in range(len(duration_list)):
+                            tlid = an_sa_tlid_list[j]
+                            ith = self.target_tl_id_list.index(tlid)
+                            replaceTsoOutputInfoDuration(self.tso_output_info_dic, ith, duration_list[j])
+
+            else:
+                self.action_mgmt.changePhaseArray(self.simulation_steps, i, actions[i])
 
         # apply changed phase array and increase simulation steps
         if self.args.action in set(["offset", "gr", "gro"]):
@@ -307,7 +341,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
         elif self.args.action == "kc":  # keep or change
             idx_of_next_act_sa = list(range(self.agent_num))
@@ -326,7 +360,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
             ## apply keep-change actions : second step
             next_phase_list = self.action_mgmt.applyKeepChangeActionSecondStep(self.simulation_steps, actions, self.tl_obj)
@@ -342,7 +376,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
         # for SAs to apply action next time (다음 번에 action을 적용할 SA들에 대해)
         #   1) calculate reward, 2) gather state info, 3) increase time to act
@@ -389,12 +423,25 @@ class SaltSappoEnvV3(gym.Env):
         self.simulation_steps = libsalt.getCurrentStep()
 
         if self.args.mode == 'test':
-            for k in self.st_info_dic:
-                self.st_info_dic[k].clear()
+            for k in self.tso_output_info_dic:
+                self.tso_output_info_dic[k].clear()
 
             for tlid in self.target_tl_id_list:
-                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, self.tl_obj, num_hop=0)
-                self.st_info_dic = appendStatisticallInfoIntoDic(self.st_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
+                avg_speed, avg_tt, sum_passed, sum_travel_time = gatherTsoOutputInfo(tlid, self.tl_obj, num_hop=0)
+
+                if DBG_OPTIONS.RichActionOutput:
+                    #todo should consider the possibility that TOD can be changed
+                    offset = self.tl_obj[tlid]['offset']
+                    duration = self.tl_obj[tlid]['duration']
+
+                    if DBG_OPTIONS.PrintAction:
+                        cross_name = self.tl_obj[tlid]['crossName']
+                        green_idx = self.tl_obj[tlid]['green_idx']
+                        print(
+                            f'cross_name={cross_name} offset={offset} duration={duration} green_idx={green_idx}  green_idx[0]={green_idx[0]}')
+
+                    appendTsoOutputInfoSignal(self.tso_output_info_dic, offset, duration)
+                self.tso_output_info_dic = appendTsoOutputInfo(self.tso_output_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
 
         #-- warming up
         ##--- make dummy actions to write output file
@@ -414,7 +461,7 @@ class SaltSappoEnvV3(gym.Env):
             if self.args.mode == 'test':
                 appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                    actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                   self.tl_obj, self.target_tl_id_list, self.st_info_dic)
+                                   self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
         self.simulation_steps = libsalt.getCurrentStep()
 
@@ -448,7 +495,7 @@ class SaltSappoEnvV3(gym.Env):
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
                                        actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
-                                       self.tl_obj, self.target_tl_id_list, self.st_info_dic)
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
                 if self.simulation_steps % self.reward_info_collection_cycle == 0:
                     # self.reward_mgmt.gatherRewardRelatedInfo(self.action_t, self.simulation_steps, self.reward_info_collection_cycle)

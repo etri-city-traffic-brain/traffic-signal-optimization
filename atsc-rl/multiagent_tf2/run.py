@@ -35,7 +35,10 @@ import libsalt
 
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
-from env.SaltEnvUtil import appendPhaseRewards, getStatisticalInfoOfIntersection, initStatisticalInfoDic, appendStatisticallInfoIntoDic
+from env.SaltEnvUtil import appendPhaseRewards, gatherTsoOutputInfo, initTsoOutputInfo, appendTsoOutputInfo
+
+if DBG_OPTIONS.RichActionOutput:
+    from env.SaltEnvUtil import appendTsoOutputInfoSignal
 
 from env.SaltEnvUtil import copyScenarioFiles
 from env.SaltEnvUtil import getSaRelatedInfo
@@ -669,14 +672,23 @@ def testSappo(args):
         for i in idx_of_act_sa:
             observation = cur_states[i].reshape(1, -1)  # [1,2,3]  ==> [ [1,2,3] ]
 
+            if DBG_OPTIONS.PrintState:
+                print(f"DBG in testSappo() observation={observation}")
+
             # obtain actions : infer by feeding current state to agent
             actions[i], _ = ppo_agent[i].act(observation)
             actions[i] = actions[i][0]
+
+            if DBG_OPTIONS.PrintAction :
+                print(f"DBG in testSappo() actions_{i}={actions[i]}")
 
             # convert inferred result into discrete action to be applied to environment
             sa_name = env.target_sa_name_list[i]
             discrete_action = env.action_mgmt.convertToDiscreteAction(sa_name, actions[i])
             discrete_actions[i] = discrete_action
+
+            if DBG_OPTIONS.PrintAction:
+                print(f"DBG in testSappo() discrete_actions_{i}={discrete_actions[i]}")
 
         # 2. apply actions to environment
         new_states, rewards, done, _ = env.step(discrete_actions)
@@ -801,11 +813,24 @@ def fixedTimeSimulate(args):
 
     sim_step = libsalt.getCurrentStep()
 
-    st_info_dic = initStatisticalInfoDic()
+    tso_output_info_dic = initTsoOutputInfo()
 
     for tlid in target_tl_id_list:
-        avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, target_tl_obj,  num_hop=0)
-        st_info_dic = appendStatisticallInfoIntoDic(st_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
+        avg_speed, avg_tt, sum_passed, sum_travel_time = gatherTsoOutputInfo(tlid, target_tl_obj, num_hop=0)
+
+        if DBG_OPTIONS.RichActionOutput:
+            #todo should consider the possibility that TOD can be changed
+            offset = target_tl_obj[tlid]['offset']
+            duration = target_tl_obj[tlid]['duration']
+
+            if DBG_OPTIONS.PrintAction:
+                cross_name = target_tl_obj[tlid]['crossName']
+                green_idx = target_tl_obj[tlid]['green_idx']
+                print(f'cross_name={cross_name} offset={offset} duration={duration} green_idx={green_idx}  green_idx[0]={green_idx[0]}')
+                    # cross_name=진터네거리 offset=144 duration=[18, 4, 72, 4, 18, 4, 28, 4, 25, 3] green_idx=(array([0, 2, 4, 6, 8]),)  green_idx[0]=[0 2 4 6 8]
+
+            appendTsoOutputInfoSignal(tso_output_info_dic, offset, duration)
+        tso_output_info_dic = appendTsoOutputInfo(tso_output_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
 
     for i in range(trial_len):
         libsalt.simulationStep()
@@ -814,14 +839,14 @@ def fixedTimeSimulate(args):
         # todo 일정 주기로 보상 값을 얻어와서 기록한다.
         appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
                                target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list,
-                               st_info_dic)
+                               tso_output_info_dic)
 
 
     print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
 
-    for k in st_info_dic:
-        st_info_dic[k].clear()
-    del st_info_dic
+    for k in tso_output_info_dic:
+        tso_output_info_dic[k].clear()
+    del tso_output_info_dic
 
     libsalt.close()
 

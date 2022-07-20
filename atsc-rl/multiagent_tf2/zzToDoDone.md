@@ -6,6 +6,9 @@
   * remove file
     * run.single.sh
     
+* result compare
+  * use scenario id
+  
 * experiments
   * increase dimension : [2048, 1024, 512, 256, 128]
   * change control_cycle

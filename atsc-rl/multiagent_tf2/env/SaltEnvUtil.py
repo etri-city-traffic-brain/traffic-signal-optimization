@@ -577,7 +577,7 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
     return target_tl_obj, sa_obj, _lane_len
 
 
-@deprecated(reason="use another function : getStatisticalInfoOfIntersection")
+@deprecated(reason="use another function : gatherTsoOutputInfo")
 def getAverageSpeedOfIntersection(tl_id, tl_obj, num_hop=0):
     '''
     get average speed of given intersection
@@ -598,7 +598,7 @@ def getAverageSpeedOfIntersection(tl_id, tl_obj, num_hop=0):
     return np.average(link_speed_list)
 
 
-@deprecated(reason="use another function : getStatisticalInfoOfIntersection")
+@deprecated(reason="use another function : gatherTsoOutputInfo")
 def getAverageTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
     '''
     get average travel time of given intersection
@@ -641,7 +641,7 @@ def getAverageTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
 
 
 
-@deprecated(reason="use another function : getStatisticalInfoOfIntersection")
+@deprecated(reason="use another function : gatherTsoOutputInfo")
 def getSumTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
     '''
     get sum travel time of given intersection
@@ -666,22 +666,27 @@ def getSumTravelTimeOfIntersection(tl_id, tl_obj, num_hop=0):
 
 
 
-def initStatisticalInfoDic():
+def initTsoOutputInfo():
     '''
-    initialize dictionary for statistical information
+    initialize dictionary to hold traffic signal optimization output
     '''
     info_dic = {}
     info_dic["avg_speed"] = []
     info_dic["avg_travel_time"] = []
     info_dic["sum_passed"] = []
     info_dic["sum_travel_time"] = []
+
+    if DBG_OPTIONS.RichActionOutput:
+        info_dic["offset"]=[]
+        info_dic["duration"]=[]
+
     return info_dic
 
 
 
-def appendStatisticallInfoIntoDic(info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time):
+def appendTsoOutputInfo(info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time):
     '''
-    append info to dictionary for holding statistical info
+    append statisitcal info to the dictionary for holding traffic signal optimization output
     :param info_dic: dic
     :param avg_speed:
     :param avg_tt:
@@ -696,10 +701,43 @@ def appendStatisticallInfoIntoDic(info_dic, avg_speed, avg_tt, sum_passed, sum_t
     return info_dic
 
 
-
-def replaceStatisticallInfo(info_dic, ith, avg_speed, avg_tt, sum_passed, sum_travel_time):
+def __convertDurationListIntoString(duration, separator):
     '''
-    append info to dictionary for holding statistical info
+     convert list into string
+    :param duration: list, ex., [40, 3, 72, 3]
+    :param separator:
+    :retuen:  40_3_72_3 if separator is underscore(_)
+    '''
+    duration_str = str(duration)
+    table = duration_str.maketrans({']':'',  # remove ]
+                                    '[':'',  # remove [
+                                    ' ':'',  # remove space
+                                    ',':separator}) # convert comma into space
+    duration_str = duration_str.translate(table)
+    return duration_str
+
+
+# if DBG_OPTIONS.RichActionOutput
+def appendTsoOutputInfoSignal(info_dic, offset, duration):
+    '''
+    append traffic signal info to the dictionary for holding traffic signal optimization output
+    :param info_dic: dic
+    :param offset: int
+    :param duration: list, ex., [18, 4, 72, 4, 18, 4, 28, 4, 25, 3]
+    :retuen:
+    '''
+    info_dic["offset"].append(offset) # offset=144
+
+    duration_str = __convertDurationListIntoString(duration, '_')
+
+    info_dic["duration"].append(duration_str)
+
+    return info_dic
+
+
+def replaceTsoOutputInfo(info_dic, ith, avg_speed, avg_tt, sum_passed, sum_travel_time):
+    '''
+    append info to the dictionary for holding traffic signal optimization output
     :param info_dic: dic
     :param ith: index which indicates to replace
     :param avg_speed:
@@ -714,11 +752,30 @@ def replaceStatisticallInfo(info_dic, ith, avg_speed, avg_tt, sum_passed, sum_tr
     info_dic["sum_travel_time"][ith]  = sum_travel_time
     return info_dic
 
+def replaceTsoOutputInfoOffset(info_dic, ith, offset):
+    info_dic["offset"][ith] = offset
+
+    return info_dic
 
 
-def getStatisticalInfoFromDic(info_dic, ith):
+def replaceTsoOutputInfoDuration(info_dic, ith, duration):
+    duration_str = __convertDurationListIntoString(duration, '_')
+    info_dic["duration"][ith] = duration_str
+    return info_dic
+
+def replaceTsoOutputInfoSignal(info_dic, ith, offset, duration=[]):
+    info_dic["offset"][ith] = offset
+
+    if len(duration):
+        duration_str = __convertDurationListIntoString(duration, '_')
+        info_dic["duration"][ith] = duration_str
+
+    return info_dic
+
+
+def getTsoOutputInfo(info_dic, ith):
     '''
-    append info to dictionary for holding statistical info
+    append info to the dictionary for holding traffic signal optimization output
     :param info_dic: dic
     :param ith: index which indicates to get
 
@@ -730,13 +787,17 @@ def getStatisticalInfoFromDic(info_dic, ith):
     sum_travel_time = info_dic["sum_travel_time"][ith]
     return avg_speed, avg_tt, sum_passed, sum_travel_time
 
+def getTsoOutputInfoSignal(info_dic, ith):
+    offset = info_dic["offset"][ith]
+    duration = info_dic["duration"][ith]
+    return offset, duration
 
 
-def getStatisticalInfoOfIntersection(tl_id, tl_obj, num_hop=0):
+def gatherTsoOutputInfo(tl_id, tl_obj, num_hop=0):
     '''
-    get statistical information of given intersection
+    gather TSO-related information of given intersection
 
-    statistical information : average speed, travel time, passed vehicle num
+    TSO-related information : average speed, travel time, passed vehicle num
 
     :param tl_id: inersection identifier
     :param tl_obj:  objects which holds TL information
@@ -776,7 +837,7 @@ def getStatisticalInfoOfIntersection(tl_id, tl_obj, num_hop=0):
 
 
 
-def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, st_info_dic):
+def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list, tl_obj, tl_id_list, tso_output_info_dic):
     '''
         write reward to given file
         this func is called in TEST-, SIMULATE-mode to write reward info which will be used by visualization tool
@@ -789,7 +850,7 @@ def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list,
         :param sa_name_list:  list of name of SA
         :param tl_obj: object which holds information about TLs
         :param tl_id_list: list of TL id
-        :param st_info_dic: dictionary which homds statistical information such as average speed, average travel time, sum travel time, num of passed vehicles
+        :param tso_output_info_dic: dictionary which holds TSO-relates output information such as average speed, average travel time, sum travel time, num of passed vehicles
         :return:
         '''
 
@@ -817,12 +878,17 @@ def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list,
                 tl_idx = sa_obj[sa_name]['tlid_list'].index(tlid)
                 tl_action = actions[sa_idx][tl_idx]
 
-
+            # getTsoOutputInfo() & getTsoOutputInfoSignal() 합치자.
             if (sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL) == 0:
-                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, tl_obj, num_hop=0)
-                st_info_dic = replaceStatisticallInfo(st_info_dic, i, avg_speed, avg_tt, sum_passed, sum_travel_time)
+                avg_speed, avg_tt, sum_passed, sum_travel_time = gatherTsoOutputInfo(tlid, tl_obj, num_hop=0)
+                tso_output_info_dic = replaceTsoOutputInfo(tso_output_info_dic, i, avg_speed, avg_tt, sum_passed, sum_travel_time)
             else:
-                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoFromDic(st_info_dic, i)
+                avg_speed, avg_tt, sum_passed, sum_travel_time = getTsoOutputInfo(tso_output_info_dic, i)
+
+            # getTsoOutputInfo() & getTsoOutputInfoSignal() 합치자.
+            if DBG_OPTIONS.RichActionOutput:
+                offset, duration = getTsoOutputInfoSignal(tso_output_info_dic, i)
+                tl_action = f'{tl_action}#{offset}#{duration}'
 
             f.write("{},{},{},{},{},{},{},{},{}\n".format(sim_step,
                                                        tl_obj[tlid]['crossName'],
@@ -851,11 +917,14 @@ def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list,
                 tl_action = actions[sa_idx][tl_idx]
 
             if (sim_step % _RESULT_COMP_.SPEED_GATHER_INTERVAL) == 0:
-                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoOfIntersection(tlid, tl_obj, num_hop=0)
-                st_info_dic = replaceStatisticallInfo(st_info_dic, i, avg_speed, avg_tt, sum_passed, sum_travel_time)
+                avg_speed, avg_tt, sum_passed, sum_travel_time = gatherTsoOutputInfo(tlid, tl_obj, num_hop=0)
+                tso_output_info_dic = replaceTsoOutputInfo(tso_output_info_dic, i, avg_speed, avg_tt, sum_passed, sum_travel_time)
             else:
-                avg_speed, avg_tt, sum_passed, sum_travel_time = getStatisticalInfoFromDic(st_info_dic, i)
+                avg_speed, avg_tt, sum_passed, sum_travel_time = getTsoOutputInfo(tso_output_info_dic, i)
 
+            if DBG_OPTIONS.RichActionOutput:
+                offset, duration = getTsoOutputInfoSignal(tso_output_info_dic, i)
+                tl_action = f'{tl_action}#{offset}#{duration}'
 
             f.write("{},{},{},{},{},{},{},{},{}\n".format(sim_step,
                                                        tl_obj[tlid]['crossName'],

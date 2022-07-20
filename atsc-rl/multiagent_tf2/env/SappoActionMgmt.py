@@ -6,6 +6,9 @@ import libsalt
 
 from deprecated import deprecated
 
+from DebugConfiguration import DBG_OPTIONS
+
+
 class SaltActionMgmt:
     '''
     a class for Salt action mgmt
@@ -70,6 +73,7 @@ class SaltActionMgmt:
         for i in range(len(offset_list)):
             out_phase_arr = np.roll(in_phase_arr_list[i], offset_list[i])
             out_phase_arr_list.append(out_phase_arr)
+
         return out_phase_arr_list
 
 
@@ -88,12 +92,19 @@ class SaltActionMgmt:
         phase_sum_list = []
         phase_list = []
         phase_array_list = []
+
+        if DBG_OPTIONS.RichActionOutput:
+            duration_list=[]
+
         for tlid_idx in range(len(tlid_list)):
             tlid = tlid_list[tlid_idx]
             green_idx = an_sa_obj["green_idx_list"][tlid_idx][0]
             # min_dur = an_sa_obj["minDur_list"][tlid_idx]
             # maxDur = an_sa_obj['maxDur_list'][tlid_idx]
             currDur = an_sa_obj['duration_list'][tlid_idx]
+
+            if DBG_OPTIONS.RichActionOutput:
+                new_duration = currDur.copy()
 
             mpv = libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector
             mpv = list(mpv)
@@ -106,6 +117,11 @@ class SaltActionMgmt:
                 _m = list(mpv[gi])
                 _m[0] = currDur[gi] + int(action[_i]) * self.args.add_time
                 mpv[gi] = tuple(_m)
+
+                if DBG_OPTIONS.RichActionOutput:
+                    new_duration[gi]=_m[0]
+            if DBG_OPTIONS.RichActionOutput:
+                duration_list.append(new_duration)
 
             scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
             libsalt.trafficsignal.setTLSPhaseVector(curr_sim_step, tlid, scheduleID, mpv)
@@ -124,7 +140,10 @@ class SaltActionMgmt:
                 phase_arr = np.append(phase_arr, np.ones(tl_phase_list_include_y[i]) * i)
             phase_array_list.append(np.roll(phase_arr, an_sa_obj['offset_list'][tlid_idx]))
 
-        return phase_array_list
+        if DBG_OPTIONS.RichActionOutput:
+            return phase_array_list, duration_list
+        else:
+            return phase_array_list
 
 
     @deprecated
@@ -208,11 +227,27 @@ class SaltActionMgmt:
                 offset_acctions.append(actions[i])
 
         ## 2. do green ratio adjustment
-        in_phase_array_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, gr_actions)
+        if DBG_OPTIONS.RichActionOutput:
+            in_phase_array_list,  duration_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, gr_actions)
+        else:
+            in_phase_array_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, gr_actions)
 
         ## 3. do offset adjustment
-        phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_acctions)
-        return phase_array_list
+        # offset + action
+        offset_list = [x + y for x, y in zip(an_sa_obj['offset_list'], offset_acctions)]
+
+        if DBG_OPTIONS.PrintAction:
+            print(f"DBG offset_list={an_sa_obj['offset_list']} orignal")
+
+        if 0: # changed 20220720PM
+            phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_acctions)
+        else:
+            phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_list)
+
+        if DBG_OPTIONS.RichActionOutput:
+            return phase_array_list, offset_list, duration_list
+        else:
+            return phase_array_list
 
 
     def applyCurrentTrafficSignalPhaseToEnv(self, current_sim_step):
@@ -312,8 +347,17 @@ class SaltActionMgmt:
         sa = self.sa_name_list[sa_idx]
         an_sa_obj = self.sa_obj[sa]
 
+        if DBG_OPTIONS.RichActionOutput:
+            offset_list = []
+            duration_list = []
+
+        if DBG_OPTIONS.PrintAction:
+            print(f'DBG actions={actions}')
+
         if self.args.action == 'offset':
             # offset + action
+            if DBG_OPTIONS.PrintAction:
+                print(f"DBG offset_list={an_sa_obj['offset_list']} orignal")
             offset_list = [x + y for x, y in zip(an_sa_obj['offset_list'], actions)]
             sa_phase_array = self.initial_phase_array_list[sa_idx]
             self.apply_phase_array_list[sa_idx] = self.__getOffsetAppliedPhaseArray(sa_phase_array, offset_list)
@@ -322,12 +366,22 @@ class SaltActionMgmt:
             pass # nothing to do
 
         elif self.args.action == 'gr':  # green ratio : ref. step() at sappo_green_single.py
-            self.apply_phase_array_list[sa_idx] = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
-
+            if DBG_OPTIONS.RichActionOutput:
+                self.apply_phase_array_list[sa_idx], duration_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
+            else:
+                self.apply_phase_array_list[sa_idx] = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj,
+                                                                                            actions)
         elif self.args.action == 'gro':  # green ratio+offset : ref. step() at sappo_green_offset_single.py
-            self.apply_phase_array_list[sa_idx] = self.__getGreenRatioOffsetAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
+            if DBG_OPTIONS.RichActionOutput:
+                self.apply_phase_array_list[sa_idx], offset_list, duration_list = self.__getGreenRatioOffsetAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
+            else:
+                self.apply_phase_array_list[sa_idx] = self.__getGreenRatioOffsetAppliedPhaseArray(curr_sim_step,
+                                                                                                  an_sa_obj, actions)
 
-        return 0
+        if DBG_OPTIONS.RichActionOutput:
+            return offset_list, duration_list
+        else:
+            return 0
 
 
 
