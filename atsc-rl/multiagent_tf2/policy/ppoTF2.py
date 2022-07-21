@@ -53,6 +53,8 @@ if len(gpus) > 0:
         pass
 
 
+from DebugConfiguration import DBG_OPTIONS
+
 class ActorModel:
     '''
     actor model
@@ -706,7 +708,9 @@ def makePPOProblemVar(conf):
     problem_var += "_mFR_{}".format(conf["forget_ratio"])
     problem_var += "_netSz_{}".format(conf["network_layers"])
     problem_var += "_offset_range_{}".format(conf["offset_range"])
-    problem_var += "_control_cycle_{}".format(conf["control_cycle"])
+
+    if DBG_OPTIONS.AddControlCycleIntoProblemVar:
+        problem_var += "_control_cycle_{}".format(conf["control_cycle"])
 
     # error message = 'File name too long'
     if 0:

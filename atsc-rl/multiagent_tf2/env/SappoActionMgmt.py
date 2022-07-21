@@ -239,7 +239,7 @@ class SaltActionMgmt:
         if DBG_OPTIONS.PrintAction:
             print(f"DBG offset_list={an_sa_obj['offset_list']} orignal")
 
-        if 0: # changed 20220720PM
+        if 0: # changed 20220720PM : todo should check which one is correct
             phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_acctions)
         else:
             phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_list)

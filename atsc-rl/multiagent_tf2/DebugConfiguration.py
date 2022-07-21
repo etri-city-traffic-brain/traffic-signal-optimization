@@ -12,7 +12,8 @@ class DBG_OPTIONS :
         ResultCompareSkipWarmUp = False # skip warm-up-time to compare result
         RunWithDistributed = True  # find & store optimal model info  for distributed learning
         MaintainServerThreadState = False  # maintain a state of thread
-
+        AddControlCycleIntoProblemVar = False # add control_cycle into problemVar or not;
+                         # problemVar is used to construct the file name where the trained model is stored
 
         ##-- ing
         IngCompResult = False
