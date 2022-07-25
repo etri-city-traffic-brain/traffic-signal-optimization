@@ -15,9 +15,10 @@ class DBG_OPTIONS :
         AddControlCycleIntoProblemVar = False # add control_cycle into problemVar or not;
                          # problemVar is used to construct the file name where the trained model is stored
 
+        RichActionOutput = True # actions#oofse#duration_per_phase
+
         ##-- ing
         IngCompResult = False
-        RichActionOutput = True # actions#oofse#duration_per_phase
 
 
 
@@ -52,8 +53,8 @@ class DBG_OPTIONS :
         PrintStep = False              # print progress msgs every step : inferred actions
         PrintTrain = True              # print messages which are related to train such as episode elapsed time, gc time, avg reward, ...
 
-        PrintState = False              # print observateion
-        PrintAction = False             # print action related things
+        PrintState = True              # print observateion
+        PrintAction = True             # print action related things
 
 
 
