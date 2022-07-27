@@ -211,6 +211,13 @@ class SaltSappoEnvV3(gym.Env):
     # todo : state 관련된 것들도 하나의 클래스로 묶으면 좋을 것 같다....
     #                get_obj(), getState()에 분산되어 있다.
     def __getState(self, an_sa_obj, tl_objs):
+        if DBG_OPTIONS.MergeAfterNormalize:
+            return self.__getState_V2(an_sa_obj, tl_objs)
+        else:
+            return self.__getState_V1(an_sa_obj, tl_objs)
+
+    def __getState_V1(self, an_sa_obj, tl_objs):
+
         '''
         gather state information of given SA
 
@@ -253,10 +260,84 @@ class SaltSappoEnvV3(gym.Env):
                 obs = np.append(vddMatrix, tlMatrix)
 
         # normalize : 0 .. 1
+        # todo think : Is there any possibility of side effect when value of one fild is large
+        #            .... density인 경우에는 tlMatrix의 값이 너무 크지 않은가?
+        #            .... num passed vehicle이 포함된 경우에는 이 값이 너무 크지 않은가?
+        #            .... 수집 주기가 cycle length 라면 항상 phaseIdx는 같은 값이지 않나?
+        #             각각에 대해 정규화 후에 합치는 것은 하나의 대안이 될 수 있다?  ref. __getState_V2()
         obs = obs + np.finfo(float).eps
         obs = obs / np.max(obs)
 
         return obs
+
+    def __normalize(self, obs_matrix):
+        obs_matrix = obs_matrix + np.finfo(float).eps
+        obs_matrix = obs_matrix / np.max(obs_matrix)
+        return obs_matrix
+
+    def __getState_V2(self, an_sa_obj, tl_objs):
+        '''
+        gather state information of given SA
+
+        difference from V1 : merge after normalization
+
+        :param an_sa_obj:
+        :param tl_objs:
+        :return:
+        '''
+
+
+        obs = []
+        density_matrix = []
+        passed_matrix = []
+        vdd_matrix = []
+        tl_matrix = []
+
+        max_num_phase = 0
+
+        for tlid in an_sa_obj['tlid_list']:
+            cur_tl_num_phase = len(tl_objs[tlid]['duration'])
+            if max_num_phase < cur_tl_num_phase:
+                max_num_phase = cur_tl_num_phase
+
+            # print(f'tlid={tlid} cur_tl_num_phase={cur_tl_num_phase}  max_num_phase = {max_num_phase}')
+            lane_list = tl_objs[tlid]['in_lane_list']
+            lane_list_0 = tl_objs[tlid]['in_lane_list_0']
+
+            for lane in lane_list_0:
+                if self.args.state == 'd':
+                    density_matrix = np.append(density_matrix, libsalt.lane.getAverageDensity(lane))
+                if self.args.state == 'v':
+                    passed_matrix = np.append(passed_matrix, libsalt.lane.getNumVehPassed(lane))
+                if self.args.state == 'vd':
+                    density_matrix = np.append(density_matrix, libsalt.lane.getAverageDensity(lane))
+                    passed_matrix = np.append(passed_matrix, libsalt.lane.getNumVehPassed(lane))
+                if self.args.state == 'vdd':
+                    vdd_matrix = np.append(vdd_matrix, libsalt.lane.getNumVehPassed(lane) / (
+                                libsalt.lane.getAverageDensity(lane) + sys.float_info.epsilon))
+
+            tl_matrix = np.append(tl_matrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid))
+
+        # tl_matrix = self.__normailze(tl_matrix)
+        tl_matrix = tl_matrix/(max_num_phase - 1)  # normalize
+
+        if self.args.state == 'd':
+            density_matrix = self.__normalize(density_matrix)
+            obs = np.append(density_matrix, tl_matrix)
+        if self.args.state == 'v':
+            passed_matrix = self.__normalize(passed_matrix)
+            obs = np.append(passed_matrix, tl_matrix)
+        if self.args.state == 'vd':
+            density_matrix = self.__normalize(density_matrix)
+            passed_matrix = self.__normalize(passed_matrix)
+            obs = np.append(density_matrix, passed_matrix)
+            obs = np.append(obs, tl_matrix)
+        if self.args.state == 'vdd':
+            vdd_matrix = self.__normalize(vdd_matrix)
+            obs = np.append(vdd_matrix, tl_matrix)
+
+        return obs
+
 
 
 
@@ -296,8 +377,8 @@ class SaltSappoEnvV3(gym.Env):
                     an_sa_tlid_list = an_sa_obj['tlid_list']
 
                     if len(offset_list):
-                        if DBG_OPTIONS.PrintAction:
-                            print(f'DBG offset_list_{i}={offset_list} changed')
+                        # if DBG_OPTIONS.PrintAction:
+                        #     print(f'DBG offset_list_{i}={offset_list} changed')
 
                         for j in range(len(offset_list)):
                             tlid = an_sa_tlid_list[j]
@@ -306,8 +387,8 @@ class SaltSappoEnvV3(gym.Env):
                             replaceTsoOutputInfoOffset(self.tso_output_info_dic, ith, offset_list[j])
 
                     if len(duration_list):
-                        if DBG_OPTIONS.PrintAction:
-                            print(f'DBG duration_list_{i}={duration_list} changed')
+                        # if DBG_OPTIONS.PrintAction:
+                        #     print(f'DBG duration_list_{i}={duration_list} changed')
 
                         for j in range(len(duration_list)):
                             tlid = an_sa_tlid_list[j]

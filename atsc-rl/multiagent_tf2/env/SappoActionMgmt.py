@@ -379,6 +379,12 @@ class SaltActionMgmt:
                                                                                                   an_sa_obj, actions)
 
         if DBG_OPTIONS.RichActionOutput:
+            if DBG_OPTIONS.PrintAction:
+                print(f'DBG offset_list_{sa_idx}={offset_list} changed ... in ActionMgmt')
+            if len(duration_list):
+                if DBG_OPTIONS.PrintAction:
+                    print(f'DBG duration_list_{sa_idx}={duration_list} changed  ... in ActionMgmt')
+
             return offset_list, duration_list
         else:
             return 0
