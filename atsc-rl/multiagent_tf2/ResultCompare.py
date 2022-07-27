@@ -287,6 +287,14 @@ def testCompareResult():
         parser = argparse.ArgumentParser()
 
         parser = addArgumentsToParser(parser)
+        # ft_output = pd.read_csv()
+        # rl_output = pd.read_csv(")
+
+        parser.add_argument('--fn-ft-output', type=str, default=f"./output/simulate/{_RESULT_COMP_.SIMULATION_OUTPUT}",
+                            help="output file name for fixed time-based TSO")
+        parser.add_argument('--fn-rl-output', type=str, default=f"./output/test/{_RESULT_COMP_.SIMULATION_OUTPUT}",
+                            help="output file name for RL-based TSO")
+
 
         args = parser.parse_args()
 
@@ -321,8 +329,11 @@ def testCompareResult():
 
     ppo_config, problem_var = makeConfigAndProblemVar(args)
 
-    ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
-    rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
+
+    ft_output = pd.read_csv(args.fn_ft_output)
+    rl_output = pd.read_csv(args.fn_rl_output)
+
+    # print(f'##\n##\nft_output={ft_output}\nrl_output={rl_output}')
 
     total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, args.warmup_time)
 
@@ -351,6 +362,8 @@ def __printImprovementRate(df, target):
     ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
     rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
     imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
+    print(f"ft_sum_travel_time={ft_sum_travel_time}  ft_passed_num={ft_passed_num}")
+    print(f"rl_sum_travel_time={rl_sum_travel_time}  rl_passed_num={rl_passed_num}")
     print(f'Average Travel Time ({target}): {imp_rate}% improved')
 
 #
@@ -358,7 +371,10 @@ def __printImprovementRate(df, target):
 # python run.py --mode test --map doan --target-TL "SA 101, SA 104" --model-num 0
 #
 #  python ResultCompare.py --map doan --target-TL "SA 101, SA 104"
-
+#
+#  python ResultCompare.py --map doan --target-TL "SA 101" --warmup-time 600
+#  python ResultCompare.py --map doan --target-TL "SA 101" --warmup-time 600 --fn-ft-output ./output/simulate/_PeriodicOutput.csv --fn-rl-output /home/tsoexp/share/dist_training/220715/doan_gr_cwq_all/_PeriodicOutput_1.csv
+#  python ResultCompare.py --map doan --target-TL "SA 101" --fn-ft-output ./output/simulate/_PeriodicOutput.csv --fn-rl-output /home/tsoexp/share/dist_training/220715/doan_gr_cwq_all/_PeriodicOutput_1.csv
 if __name__ == '__main__':
     DBG_OPTIONS.PrintResultCompare = True
     DBG_OPTIONS.IngCompResult = True
