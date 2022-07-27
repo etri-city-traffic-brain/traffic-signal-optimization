@@ -225,20 +225,20 @@ class SaltSappoEnvV3(gym.Env):
         tlMatrix = []
 
         for tlid in an_sa_obj['tlid_list']:
-            link_list = tl_objs[tlid]['in_lane_list']
-            link_list_0 = tl_objs[tlid]['in_lane_list_0']
+            lane_list = tl_objs[tlid]['in_lane_list']
+            lane_list_0 = tl_objs[tlid]['in_lane_list_0']
 
-            for link in link_list_0:
+            for lane in lane_list_0:
                 if self.args.state == 'd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
+                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(lane))
                 if self.args.state == 'v':
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
+                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(lane))
                 if self.args.state == 'vd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(link))
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(link))
+                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(lane))
+                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(lane))
                 if self.args.state == 'vdd':
-                    vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(link) / (
-                                libsalt.lane.getAverageDensity(link) + sys.float_info.epsilon))
+                    vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(lane) / (
+                                libsalt.lane.getAverageDensity(lane) + sys.float_info.epsilon))
 
             tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid))
 
@@ -252,6 +252,7 @@ class SaltSappoEnvV3(gym.Env):
             if self.args.state == 'vdd':
                 obs = np.append(vddMatrix, tlMatrix)
 
+        # normalize : 0 .. 1
         obs = obs + np.finfo(float).eps
         obs = obs / np.max(obs)
 
