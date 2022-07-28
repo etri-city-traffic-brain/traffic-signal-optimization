@@ -265,14 +265,16 @@ class SaltSappoEnvV3(gym.Env):
         #            .... num passed vehicle이 포함된 경우에는 이 값이 너무 크지 않은가?
         #            .... 수집 주기가 cycle length 라면 항상 phaseIdx는 같은 값이지 않나?
         #             각각에 대해 정규화 후에 합치는 것은 하나의 대안이 될 수 있다?  ref. __getState_V2()
-        obs = obs + np.finfo(float).eps
-        obs = obs / np.max(obs)
+        if DBG_OPTIONS.DoNormalize:
+            obs = obs + np.finfo(float).eps
+            obs = obs / np.max(obs)
 
         return obs
 
     def __normalize(self, obs_matrix):
-        obs_matrix = obs_matrix + np.finfo(float).eps
-        obs_matrix = obs_matrix / np.max(obs_matrix)
+        if DBG_OPTIONS.DoNormalize:
+            obs_matrix = obs_matrix + np.finfo(float).eps
+            obs_matrix = obs_matrix / np.max(obs_matrix)
         return obs_matrix
 
     def __getState_V2(self, an_sa_obj, tl_objs):

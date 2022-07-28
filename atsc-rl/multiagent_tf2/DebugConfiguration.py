@@ -21,6 +21,8 @@ class DBG_OPTIONS :
         IngCompResult = False
         MergeAfterNormalize = False  # ref. __getState() at SappoEnv.py
                    # merge after normalize when we do collect info about a given environment
+        DoNormalize = True   # ref. __getState() at SappoEnv.py
+                   # whether do normalize or not when we gather state info. ; default is True
 
 
     ## bebug message : Options which are related to debug message
