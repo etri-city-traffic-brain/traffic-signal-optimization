@@ -171,7 +171,8 @@ class ReplayMemory:
         self.dones = []
         self.logp_ts = []
 
-
+        if DBG_OPTIONS.NewModelUpdate:
+            self.replay_size = self.max_size * (1.0 - forget_ratio)
 
     def getSize(self):
         '''
@@ -228,6 +229,32 @@ class ReplayMemory:
         self.next_states = np.delete(self.next_states, nrc, axis=0).tolist()
         self.dones = np.delete(self.dones, nrc, axis=0).tolist()
         self.logp_ts = np.delete(self.logp_ts, nrc, axis=0).tolist()
+
+
+    if DBG_OPTIONS.NewModelUpdate:
+        def chooseExperienceToReplay(self):
+            c_states, c_actions, c_rewards, c_dones, c_next_states, c_logp_ts = [], [], [], [], [], []
+
+            cur_mem_size = self.getSize()
+
+            if cur_mem_size <= self.replay_size:
+                c_states = self.states
+                c_actions = self.actions
+                c_rewards = self.rewards
+                c_dones = self.dones
+                c_next_states = self.next_states
+                c_logp_ts = self.logp_ts
+            else:
+                nrc = np.random.choice(range(cur_mem_size), int(self.replay_size), replace=False)
+                for i in nrc:
+                    c_states.append(self.states[i])
+                    c_actions.append(self.actions[i])
+                    c_rewards.append(self.rewards[i])
+                    c_dones.append(self.dones[i])
+                    c_next_states.append(self.next_states[i])
+                    c_logp_ts.append(self.logp_ts[i])
+
+            return c_states, c_actions, c_rewards, c_dones, c_next_states, c_logp_ts
 
 
 
@@ -504,9 +531,11 @@ class PPOAgentTF2:
             gaes = (gaes - gaes.mean()) / (gaes.std() + 1e-8)
         return np.vstack(gaes), np.vstack(target)
 
-
-
     def replay(self):
+        # return self.replayOrgSucc()
+        return self.replayNew()
+
+    def replayOrgSucc(self):
 
         if not self.is_train:  # no need to replay if it is not the target of training
             return
@@ -574,6 +603,83 @@ class PPOAgentTF2:
             self.writer.add_scalar('Data/approx_ent_per_replay', approx_ent, self.replay_count)
 
         self.replay_count += 1
+
+
+
+    def replayNew(self):
+
+        if not self.is_train:  # no need to replay if it is not the target of training
+            return
+
+
+        if DBG_OPTIONS.NewModelUpdate:
+            states, actions, rewards, dones, next_states, logp_ts = self.memory.chooseExperienceToReplay()
+            print("got replay items in replayNew() at PPOAgentTF2")
+        else:
+            states = self.memory.states
+            actions = self.memory.actions
+            rewards = self.memory.rewards
+            dones = self.memory.dones
+            next_states = self.memory.next_states
+            logp_ts = self.memory.logp_ts
+
+        # reshape memory to appropriate shape for training
+        states = np.vstack(states)
+        next_states = np.vstack(next_states)
+        actions = np.vstack(actions)
+        logp_ts = np.vstack(logp_ts)
+
+        # Get Critic network predictions
+        values = self.critic.predict(states)
+        next_values = self.critic.predict(next_states)
+
+        # Compute discounted rewards and advantages
+        # discounted_r = self.discount_rewards(rewards)
+        # advantages = np.vstack(discounted_r - values)
+        advantages, target = self.get_gaes(rewards, dones, np.squeeze(values), np.squeeze(next_values))
+
+        # stack everything to numpy array
+        # pack all advantages, predictions and actions to y_true and when they are received
+        # in custom loss function we unpack it
+        y_true = np.hstack([advantages, actions, logp_ts])
+
+        # training Actor and Critic networks
+        a_loss = self.actor.model.fit(states, y_true, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
+        c_loss = self.critic.model.fit([states, values], target, epochs=self.epochs, verbose=0, shuffle=self.shuffle)
+
+        # calculate loss parameters (should be done in loss, but couldn't find working way how to do that with disabled eager execution)
+        pred = self.actor.predict(states)
+        log_std = -0.5 * np.ones(self.action_size, dtype=np.float32)
+        logp = self.gaussian_likelihood(actions, pred, log_std)
+        approx_kl = np.mean(logp_ts - logp)
+        approx_ent = np.mean(-logp)
+
+        if 1:
+            # from TSOUtil import total_size
+            # num_entry = len(states)
+            # sz_states = total_size(states, verbose=False)
+            # sz_next_states = total_size(next_states, verbose=False)
+            # sz_actions = total_size(actions, verbose=False)
+            # sz_logp_ts = total_size(logp_ts, verbose=False)
+            # sz_y_true= total_size(y_true)
+            #
+            # print(f"num_entry={num_entry} sz_states={sz_states} sz_n_states={sz_next_states} sz_act={sz_actions} sz_logp_ts={sz_logp_ts} sz_y_true={sz_y_true}")
+
+            del states
+            del next_states
+            del actions
+            del logp_ts
+            del y_true
+            gc.collect()
+
+        if USE_TBX:
+            self.writer.add_scalar('Data/actor_loss_per_replay', np.sum(a_loss.history['loss']), self.replay_count)
+            self.writer.add_scalar('Data/critic_loss_per_replay', np.sum(c_loss.history['loss']), self.replay_count)
+            self.writer.add_scalar('Data/approx_kl_per_replay', approx_kl, self.replay_count)
+            self.writer.add_scalar('Data/approx_ent_per_replay', approx_ent, self.replay_count)
+
+        self.replay_count += 1
+
 
 
 

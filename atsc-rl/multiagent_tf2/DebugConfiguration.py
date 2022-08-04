@@ -24,6 +24,7 @@ class DBG_OPTIONS :
         DoNormalize = True   # ref. __getState() at SappoEnv.py
                    # whether do normalize or not when we gather state info. ; default is True
 
+        NewModelUpdate = True # model update using only some of the experiences stored in replay memory
 
     ## bebug message : Options which are related to debug message
     if WITH_DBG_MSG :

@@ -8,6 +8,10 @@
     
 * result compare
   * use scenario id
+ 
+* model update
+  * we should make learn(model update) using only some of the experiences stored in replay memory   
+  * we should touch func. replay() in PPOAgentTF2
   
 * experiments
   * increase dimension : [2048, 1024, 512, 256, 128]
