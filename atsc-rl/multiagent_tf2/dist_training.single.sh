@@ -210,6 +210,9 @@ if [ 1 ]; then
   ###--- interval for model saving : how open save model
   RL_MODEL_SAVE_PERIOD=1
 
+  ###--- replay memory length
+  RL_MODEL_MEM_LEN=500  # default 1000
+
 
   #######
   ## distributed Reinforcement Learning related parameters
@@ -300,6 +303,7 @@ then
   INNER_CMD="$INNER_CMD--map $RL_MAP --target-TL '$RL_TARGET' --method $RL_METHOD "
   INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
   INNER_CMD="$INNER_CMD --model-save-period $RL_MODEL_SAVE_PERIOD --epoch $RL_EPOCH "
+  INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN "
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
