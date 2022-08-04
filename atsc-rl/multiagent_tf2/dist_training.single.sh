@@ -229,8 +229,8 @@ if [ 1 ]; then
   # SA 101, SA 104 ==> SA101,SA104 ==>SA101_SA104
   #EXP_OPTION="${RL_TARGET// /}" # remove blank
   #EXP_OPTION="${EXP_OPTION//,/_}" # replace comma(,) to underscore(_)
-  
-  RESULT_DIR_LEAF=${RL_MAP}_${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # ex., doan_gr_wq_all
+
+  RESULT_DIR_LEAF=${RL_MAP}_${RL_STATE}_${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # ex., doan_vdd_gr_wq_all
   RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
 
 
