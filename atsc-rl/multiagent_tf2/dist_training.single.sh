@@ -64,7 +64,7 @@ if [ 1 ]; then
   ###--- ip address of node to run control daemon
   CTRL_DAEMON_IP="129.254.182.176"  # 101.79.1.126
 
-  ###--- directory for traffic signal optimization(TSO) execution
+  ###--- directory for traffic signal optimization(TSO) execution : Controller
   #CTRL_DIR="/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
   CTRL_DIR="/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
 
@@ -86,7 +86,7 @@ if [ 1 ]; then
   # 129.254.184.54		uniq8
   # 129.254.182.176		6th
 
-  ###--- directories for traffic signal optimization(TSO) execution
+  ###--- directories for traffic signal optimization(TSO) execution : Executor
   ###    EXEC_DIRS should pair with EXEC_DAEMON_IPS
   #EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
   EXEC_DIRS=(
