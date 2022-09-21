@@ -212,7 +212,7 @@ if [ 1 ]; then
 
   ###--- replay memory length
   RL_MODEL_MEM_LEN=500  # default 1000
-
+  FORGET_RATIO=0.5 # default 0.8  .. RL_MODEL_MEM_LEN * (1-FORGET_RATIO) experiences are used to update model
 
   #######
   ## distributed Reinforcement Learning related parameters
@@ -303,7 +303,7 @@ then
   INNER_CMD="$INNER_CMD--map $RL_MAP --target-TL '$RL_TARGET' --method $RL_METHOD "
   INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
   INNER_CMD="$INNER_CMD --model-save-period $RL_MODEL_SAVE_PERIOD --epoch $RL_EPOCH "
-  INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN "
+  INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
