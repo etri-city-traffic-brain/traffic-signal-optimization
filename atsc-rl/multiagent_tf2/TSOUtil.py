@@ -546,6 +546,7 @@ def generateCommand(args):
     cmd = cmd + ' --c-lr {}'.format(args.c_lr)
     cmd = cmd + ' --actionp {}'.format(args.actionp)
 
+    cmd = cmd + ' --network-size {}'.format(args.network_size)
     cmd = cmd + ' --mem-len {}'.format(args.mem_len)
     cmd = cmd + ' --mem-fr {}'.format(args.mem_fr)
     cmd = cmd + ' --offset-range {}'.format(args.offset_range)
