@@ -114,7 +114,7 @@ def strToIntTuple(v):
     ret_val = []
     for i in range(len(tokens)):
         try:
-            ret_val.append(int(tokens[i]))
+            ret_val.append(int(tokens[i].strip()))
         except ValueError:
             raise argparse.ArgumentTypeError('string of comma separated integer values are expected.')
 

@@ -15,14 +15,15 @@ OP_TERMINATE="terminate" # do terminate forcely
 OP_CLEAN="clean" # do clean : remove daemon dump file (i.e.,  zz.out.*)
 OP_CLEAN_ALL="clean-all" # remove files which were generated when we do training
 OP_SHOW_RESULT="show-result" # dump training result by showing the calculated improvement rate of each round
+OP_TEST="test" # do test with trained model
 OP_USAGE="usage" # show usage
 
 DO_EVAL=true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
 
 display_usage() {
   echo
-  echo "[%] dist_util.py OPERATION [START-DAY] "
-  echo "        OPERATION : one of [simulate|train|tensorboard|monitor|terminate|clean] "
+  echo "[%] dist_training.py OPERATION [START-DAY] [TEST-MODEL-NUMBER] "
+  echo "        OPERATION : one of [simulate|train|tensorboard|monitor|terminate|clean|clean-all|show-result|test] "
   echo "            simulate : do with fixed traffic signal to get ground zero performance"
   echo "            train : do distributed training"
   echo "            tensorboard : do launch tensorboard daemon"
@@ -35,16 +36,24 @@ display_usage() {
   echo "                        such as zz.out.*, logs, model, output/train, output/test, scenario history file,..."
   echo "            show-result : dump training result by showing the calculated improvement rate of each round"
   echo "                      You should check START-DAY value"
+  echo "            test : do test with trained model"
+  echo "                      You should check START-DAY value"
+  echo ""
   echo "        START-DAY : start day of training; yymmdd;"
   echo "                    You should pass this value which indicates the day training was started."
-  echo "                    valid if operation is one of [monitor|terminate|show-result] "
-  echo
+  echo "                    valid if operation is one of [monitor|terminate|show-result|test] "
+  echo ""
+  echo "        TEST-MODEL-NUMBER : model number to do test"
+  echo "                    valid if operation is one of [test] "
+  echo ""
+  echo "    ex., "
+  echo "        [%] dist_training.sh train "
+  echo "        [%] dist_training.sh terminate 220923 "
+  echo "        [%] dist_training.sh test 220923 15 "
 }
-
 
 if [ "$OPERATION" == "$OP_USAGE" ]; then
   display_usage
-  echo "in usage"
   exit
 fi
 
@@ -62,7 +71,7 @@ if [ 1 ]; then
   #
 
   ###--- ip address of node to run control daemon
-  CTRL_DAEMON_IP="129.254.184.123"  # 101.79.1.126
+  CTRL_DAEMON_IP="129.254.182.176" # "129.254.184.123"  # 101.79.1.126
 
   ###--- ip address of nodes to run execution daemon
   EXEC_DAEMON_IPS=(
@@ -87,11 +96,13 @@ if [ 1 ]; then
   ###--- port to communicate btn ctrl daemon and exec daemon
   PORT=2727 #2727 3001  3101  3201  3301
 
-  ###--- port for tensorboard 
+  ###--- port for tensorboard
   TB_PORT=6006 #6006 7001 7101 7201 7301
 
   ###--- directory for traffic signal optimization(TSO) execution
-  EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
+  ###    You must deploy the code for execution to the same location specified below on all nodes.
+  #EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
+  EXEC_DIR="/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
 
   ###--- conda environment for TSO
   CONDA_ENV_NAME="UniqOpt.p3.8"
@@ -128,6 +139,9 @@ if [ 1 ]; then
   ###--- for tensorboard
   FN_TB_OUT="${FN_PREFIX}.tb.${FN_POSTFIX}"
 
+  ###--- for test
+  FN_TEST_OUT="${FN_PREFIX}.test.${FN_POSTFIX}"
+
 
   #######
   ## Reinforcement Learning related parameters
@@ -136,8 +150,8 @@ if [ 1 ]; then
   RL_SCENARIO_FILE_PATH="data/envs/salt"
 
   ###--- name of map to simulate
-  RL_MAP="doan" # one of { doan, sa_1_6_17, dj_all }
-  #RL_MAP="sa_1_6_17" # one of { doan, sa_1_6_17, dj_all }
+  #RL_MAP="doan" # one of { doan, sa_1_6_17, dj_all }
+  RL_MAP="sa_1_6_17" # one of { doan, sa_1_6_17, dj_all }
   #RL_MAP="dj_all" # one of { doan, sa_1_6_17, dj_all }
 
   ###-- set target to train
@@ -157,8 +171,8 @@ if [ 1 ]; then
        # 51 TLs = SA 13(29 TLs) + SA 72(23 TLs)
 
     ####-- candidate2
-    RL_TARGET="SA 56, SA 101, SA 28, SA 55, SA 32" 
-       # 59 TLs = SA 56(15 TLs) + SA 101(10 TLs) + SA 28(12 TLs) + SA 55(10 TLs) + SA 32(12 TLs)" 
+    RL_TARGET="SA 56, SA 101, SA 28, SA 55, SA 32"
+       # 59 TLs = SA 56(15 TLs) + SA 101(10 TLs) + SA 28(12 TLs) + SA 55(10 TLs) + SA 32(12 TLs)"
 
     ####-- candidate3
     #RL_TARGET="SA 1, SA 6, SA 17, SA 61"
@@ -170,7 +184,7 @@ if [ 1 ]; then
 
   ###--- state, action, reward for RL
   RL_STATE="vdd" # v, d, vd, vdd
-  RL_ACTION="gr"  # offset, gr, gro, kc
+  RL_ACTION="gro"  # offset, gr, gro, kc
   RL_REWARD="cwq"  # wq, cwq, pn, wt, tt
 
   ###--- training epoch
@@ -178,6 +192,16 @@ if [ 1 ]; then
 
   ###--- interval for model saving : how open save model
   RL_MODEL_SAVE_PERIOD=1
+
+
+  ###-- network-size
+  NETWORK_SIZE="1024,512,512,512,512" # string of comma separated integer values are expected
+
+
+  ###--- replay memory length
+  RL_MODEL_MEM_LEN=500  # default 1000
+  FORGET_RATIO=0.5 # default 0.8  .. RL_MODEL_MEM_LEN * (1-FORGET_RATIO) experiences are used to update model
+
 
 
   #######
@@ -198,7 +222,7 @@ if [ 1 ]; then
   # SA 101, SA 104 ==> SA101,SA104 ==>SA101_SA104
   #EXP_OPTION="${RL_TARGET// /}" # remove blank
   #EXP_OPTION="${EXP_OPTION//,/_}" # replace comma(,) to underscore(_)
-  
+
   RESULT_DIR_LEAF=${RL_MAP}_${RL_STATE}_${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # ex., doan_vdd_gr_wq_all
   RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
 
@@ -222,7 +246,7 @@ fi
 #
 
 #
-#-- 1.1 simulate : get the performance before doing reinforcement learning as a base perdormance
+#-- 1.1 simulate : get the performance before doing reinforcement learning as a base performance
 #
 if [ "$OPERATION" == "$OP_SIMULATE" ]
 then
@@ -266,9 +290,11 @@ then
   INNER_CMD="$INNER_CMD --copy-simulation-output $COPY_SIMULATION_OUTPUT "
 
   INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
-  INNER_CMD="$INNER_CMD--map $RL_MAP --target-TL '$RL_TARGET' --method $RL_METHOD "
+  INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' --method $RL_METHOD "
   INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
   INNER_CMD="$INNER_CMD --model-save-period $RL_MODEL_SAVE_PERIOD --epoch $RL_EPOCH "
+  INNER_CMD="$INNER_CMD --network-size $NETWORK_SIZE "
+  INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
@@ -299,7 +325,7 @@ then
     CMD="$CMD cd $EXEC_DIR; "
     # CMD="$CMD $INNER_CMD \" &"
     CMD="$CMD $INNER_CMD > $FN_EXEC_OUT 2>&1 & \" &"
-  
+
     echo
     echo [%] $CMD
     echo
@@ -507,7 +533,7 @@ then
 
 
 #
-#-- 1.7 clean-all : remove some files which were generated when we do training 
+#-- 1.7 clean-all : remove some files which were generated when we do training
 #                   such as zz.out.*, zz.optimal_model_info*, logs, model,
 #                            output/train, output/test, scenario history file,...
 #
@@ -558,6 +584,62 @@ then
   CMD="$CMD \" cat $MODEL_STORE_ROOT_PATH/$RESULT_DIR/$DIST_RESULT_FILE \" "
   echo [%] $CMD
   eval $CMD
+
+
+#
+#-- 1.9 test : test with trained model
+#
+elif [ "$OPERATION" == "$OP_TEST" ]
+then
+  START_DAY=$2
+
+  DEFAULT_TEST_MODEL_NUM="0"
+  TEST_MODEL_NUM=${3:-$DEFAULT_TEST_MODEL_NUM}
+
+  RESULT_DIR_LEAF=${RL_MAP}_${RL_STATE}_${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # ex., doan_vdd_gr_wq_all
+  RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
+
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python run.py "
+  INNER_CMD="$INNER_CMD  --mode test "
+  INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
+  INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' "
+  INNER_CMD="$INNER_CMD --method $RL_METHOD "
+  INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
+  INNER_CMD="$INNER_CMD --epoch 1 "
+  INNER_CMD="$INNER_CMD --network-size $NETWORK_SIZE "
+  INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
+
+  INNER_CMD="$INNER_CMD --model-num  $TEST_MODEL_NUM "
+  INNER_CMD="$INNER_CMD --infer-model-path  $MODEL_STORE_ROOT_PATH/$RESULT_DIR "
+  INNER_CMD="$INNER_CMD --result-comp True "
+
+
+
+  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
+  #CMD="$CMD cd $CTRL_DIR; "
+  CMD="$CMD cd $EXEC_DIR; "
+  CMD="$CMD $INNER_CMD > $FN_TEST_OUT 2>&1 & \" &"
+
+
+  echo ""
+  echo [%] $CMD
+  echo [%] $CMD > $FN_TEST_OUT
+  echo
+
+  ## (1.2) evaluate command
+  if $DO_EVAL
+  then
+    eval $CMD
+  fi
+
+  echo "The trained model whose model number is $TEST_MODEL_NUM is now being evaluated"
+  echo "    Stored location of the trained model : $MODEL_STORE_ROOT_PATH/$RESULT_DIR"
+  echo ""
+  echo "You should make sure that performance of ground zero was collected for comparison with the performance of a trained model."
+  echo "Visit following directory to see Test Results"
+  #echo "    $CTRL_DIR/output/test  "
+  echo "    $EXEC_DIR/output/test  "
 
 
 #
