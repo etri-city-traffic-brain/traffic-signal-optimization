@@ -128,7 +128,7 @@ def addArgumentsToParser(parser):
                         help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
 
     parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/', help='home directory of scenario; relative path')
-    parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17'], default='sa_1_6_17',
+    parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17', 'cdd1', 'cdd2', 'cdd3'], default='sa_1_6_17',
                         help='name of map')
                 # doan : SA 101, SA 104, SA 107, SA 111
                 # sa_1_6_17 : SA 1,SA 6,SA 17
