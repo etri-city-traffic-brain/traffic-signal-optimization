@@ -52,7 +52,7 @@
       python DistExecDaemon.py --ip_addr 129.254.182.176  --port 2727
       ```
 * you can run with dist_learning.sh after setup Passwordless SSH Login
-  * you should some values before run shell script
+  * you should change some values before run shell script
     * env related parameters, (distributed) reinforcement related parameters, ...
   * How to Set Up Passwordless SSH Login
     * ref. https://phoenixnap.com/kb/setup-passwordless-ssh
