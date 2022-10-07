@@ -150,15 +150,26 @@ if [ 1 ]; then
   RL_SCENARIO_FILE_PATH="data/envs/salt"
 
   ###--- name of map to simulate
-  #RL_MAP="doan" # one of { doan, sa_1_6_17, dj_all }
-  RL_MAP="sa_1_6_17" # one of { doan, sa_1_6_17, dj_all }
-  #RL_MAP="dj_all" # one of { doan, sa_1_6_17, dj_all }
+  RL_MAP="doan" # one of { doan, cdd1, cdd2, cdd3, sa_1_6_17, dj_all }
+
 
   ###-- set target to train
   if [ "$RL_MAP" == "doan" ]
   then
     ###--- target to train
     RL_TARGET="SA 101, SA 104, SA 107, SA 111" # SA 101,SA 104,SA 107,SA 111"
+  elif [ "$RL_MAP" == "cdd1" ]  # 51 TS
+  then
+    ###--- target to train
+    RL_TARGET="SA 72, SA 13"
+  elif [ "$RL_MAP" == "cdd2" ]  # 59 TS
+  then
+    ###--- target to train
+    RL_TARGET="SA 28, SA 32, SA 55, SA 56, SA 101"
+  elif [ "$RL_MAP" == "cdd3" ]  # 53 TS
+  then
+    ###--- target to train
+    RL_TARGET="SA 1, SA 6, SA 17, SA 61"
   elif [ "$RL_MAP" == "sa_1_6_17" ]
   then
     ###--- target to train
