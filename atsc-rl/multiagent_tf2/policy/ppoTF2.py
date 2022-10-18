@@ -22,7 +22,7 @@ import pickle
 import pylab
 import tensorflow as tf
 from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.layers import Input, Dense, Add, BatchNormalization, Layer 
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.optimizers import Adadelta, Adagrad, Adam, Adamax, Ftrl, Nadam, RMSprop, SGD
 __OPTIMIZERS_DIC__={ "adadelta" : Adadelta,
@@ -39,7 +39,7 @@ USE_TBX = False
 if USE_TBX:
     from tensorboardX import SummaryWriter
 
-tf.config.experimental_run_functions_eagerly(True) # used for debuging and development
+tf.config.experimental_run_functions_eagerly(True) # used for debugging and development
 # tf.compat.v1.disable_eager_execution()  # usually using this for fastest performance
     # if this is SET, tensorboard does not work
 
@@ -55,27 +55,73 @@ if len(gpus) > 0:
 
 from DebugConfiguration import DBG_OPTIONS
 
+
+
+class BN_Elu_Dense(Layer):
+
+    def __init__(self, units, kernel_regularizer='l2'):
+        
+        super(BN_Elu_Dense, self).__init__()
+        
+        bn_regularizer = tf.keras.regularizers.l2(l=0.00005)
+        self.batch_norm = BatchNormalization(momentum=0.9, epsilon=1.0e-5, center=True, scale=True, 
+                               beta_regularizer=bn_regularizer, # center
+                               gamma_regularizer=bn_regularizer)
+        
+        self.activation = tf.nn.elu
+        
+        kernel_regularizer = tf.keras.regularizers.l2(l=0.00005) if kernel_regularizer == 'l2' else None
+        self.dense = Dense(units, kernel_initializer='glorot_uniform',
+                           kernel_regularizer=kernel_regularizer)
+                    
+
+    def call(self, input_tensor, training=False):
+        
+        y = self.batch_norm(input_tensor, training=training)
+        y = self.activation(y)
+        y = self.dense(y)
+     
+        return y
+    
+
+
+
 class ActorModel:
     '''
     actor model
     '''
-
+    
     def __init__(self, network_layers, input_shape, action_space, lr, optimizer):
+
         X_input = Input(input_shape)
         self.action_space = action_space
 
         X = X_input
 
-        for size in network_layers:
-            X = Dense(size, activation="relu", kernel_initializer=tf.random_normal_initializer(stddev=0.01))(X)
-
-        output = Dense(self.action_space, activation="tanh")(X)
-
+        
+        for i, size in enumerate(network_layers):
+            
+            if i == 0:
+                kernel_regularizer = tf.keras.regularizers.l2(l=0.00005)
+                X = Dense(size, activation=None, kernel_initializer='glorot_uniform', kernel_regularizer=kernel_regularizer)(X)
+            
+            if i == 1: # to match the input dimenstion
+                X = BN_Elu_Dense(size)(X)            
+            
+            if i >= 1: 
+                skip = X                
+                for k in range(3): 
+                    X = BN_Elu_Dense(size)(X)
+                    
+                X = Add()([X, skip])
+            
+        output = BN_Elu_Dense(self.action_space, kernel_regularizer=None)(X)
+        output = tf.nn.tanh(output)
+        
         self.model = Model(inputs=X_input, outputs=output)
         self.model.compile(loss=self.ppo_loss_continuous, optimizer=optimizer(lr=lr))
         # print(self.model.summary())
-
-
+        
 
     def ppo_loss_continuous(self, y_true, y_pred):
         advantages, actions, logp_old_ph, = y_true[:, :1], y_true[:, 1:1 + self.action_space], y_true[:,
@@ -113,21 +159,34 @@ class CriticModel:
     '''
     critic model
     '''
+       
     def __init__(self, network_layers, input_shape, action_space, lr, optimizer):
         X_input = Input(input_shape)
         old_values = Input(shape=(1,))
 
         V = X_input
 
-        for size in network_layers:
-            V = Dense(size, activation="relu", kernel_initializer=tf.random_normal_initializer(stddev=0.01))(V)
+        for i, size in enumerate(network_layers):
+            
+            if i == 0:
+                kernel_regularizer = tf.keras.regularizers.l2(l=0.00005)
+                V = Dense(size, activation=None, kernel_initializer='glorot_uniform', kernel_regularizer=kernel_regularizer)(V)
 
-        value = Dense(1, activation=None)(V)
+            if i == 1:
+                V = BN_Elu_Dense(size)(V)                        
 
+            if i >= 1: 
+                skip = V
+                for k in range(3):
+                    V = BN_Elu_Dense(size)(V)
+                    
+                V =  Add()([V, skip])
+
+        value = BN_Elu_Dense(1, kernel_regularizer=None)(V)
+        
         self.model = Model(inputs=[X_input, old_values], outputs=value)
         self.model.compile(loss=[self.critic_PPO2_loss(old_values)], optimizer=optimizer(lr=lr))
-
-
+    
 
     def critic_PPO2_loss(self, values):
         def loss(y_true, y_pred):
