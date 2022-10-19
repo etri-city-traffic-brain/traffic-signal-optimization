@@ -57,36 +57,127 @@ from DebugConfiguration import DBG_OPTIONS
 
 
 
+class ActorModelV1:
+    '''
+    actor model
+    '''
+
+    def __init__(self, network_layers, input_shape, action_space, lr, optimizer):
+        X_input = Input(input_shape)
+        self.action_space = action_space
+
+        X = X_input
+
+        for size in network_layers:
+            X = Dense(size, activation="relu", kernel_initializer=tf.random_normal_initializer(stddev=0.01))(X)
+
+        output = Dense(self.action_space, activation="tanh")(X)
+
+        self.model = Model(inputs=X_input, outputs=output)
+        self.model.compile(loss=self.ppo_loss_continuous, optimizer=optimizer(lr=lr))
+        # print(self.model.summary())
+
+
+
+    def ppo_loss_continuous(self, y_true, y_pred):
+        advantages, actions, logp_old_ph, = y_true[:, :1], y_true[:, 1:1 + self.action_space], y_true[:,
+                                                                                               1 + self.action_space]
+        LOSS_CLIPPING = 0.2
+        logp = self.gaussian_likelihood(actions, y_pred)
+
+        ratio = K.exp(logp - logp_old_ph)
+
+        p1 = ratio * advantages
+        p2 = tf.where(advantages > 0, (1.0 + LOSS_CLIPPING) * advantages,
+                      (1.0 - LOSS_CLIPPING) * advantages)  # minimum advantage
+
+        actor_loss = -K.mean(K.minimum(p1, p2))
+
+        return actor_loss
+
+
+
+    def gaussian_likelihood(self, actions, pred):  # for keras custom loss
+        log_std = -0.5 * np.ones(self.action_space, dtype=np.float32)
+        pre_sum = -0.5 * (((actions - pred) / (K.exp(log_std) + 1e-8)) ** 2 + 2 * log_std + K.log(2 * np.pi))
+        return K.sum(pre_sum, axis=1)
+
+
+
+    def predict(self, state):
+        return self.model.predict(state)
+
+
+
+
+
+class CriticModelV1:
+    '''
+    critic model
+    '''
+    def __init__(self, network_layers, input_shape, action_space, lr, optimizer):
+        X_input = Input(input_shape)
+        old_values = Input(shape=(1,))
+
+        V = X_input
+
+        for size in network_layers:
+            V = Dense(size, activation="relu", kernel_initializer=tf.random_normal_initializer(stddev=0.01))(V)
+
+        value = Dense(1, activation=None)(V)
+
+        self.model = Model(inputs=[X_input, old_values], outputs=value)
+        self.model.compile(loss=[self.critic_PPO2_loss(old_values)], optimizer=optimizer(lr=lr))
+
+
+
+    def critic_PPO2_loss(self, values):
+        def loss(y_true, y_pred):
+            LOSS_CLIPPING = 0.2
+            clipped_value_loss = values + K.clip(y_pred - values, -LOSS_CLIPPING, LOSS_CLIPPING)
+            v_loss1 = (y_true - clipped_value_loss) ** 2
+            v_loss2 = (y_true - y_pred) ** 2
+
+            value_loss = 0.5 * K.mean(K.maximum(v_loss1, v_loss2))
+            # value_loss = K.mean((y_true - y_pred) ** 2) # standard PPO loss
+
+            return value_loss
+
+        return loss
+
+
+
+    def predict(self, state):
+        return self.model.predict([state, np.zeros((state.shape[0], 1))])
+
+
+
 class BN_Elu_Dense(Layer):
 
     def __init__(self, units, kernel_regularizer='l2'):
-        
         super(BN_Elu_Dense, self).__init__()
-        
+
         bn_regularizer = tf.keras.regularizers.l2(l=0.00005)
-        self.batch_norm = BatchNormalization(momentum=0.9, epsilon=1.0e-5, center=True, scale=True, 
-                               beta_regularizer=bn_regularizer, # center
-                               gamma_regularizer=bn_regularizer)
-        
+        self.batch_norm = BatchNormalization(momentum=0.9, epsilon=1.0e-5, center=True, scale=True,
+                                             beta_regularizer=bn_regularizer,  # center
+                                             gamma_regularizer=bn_regularizer)
+
         self.activation = tf.nn.elu
-        
+
         kernel_regularizer = tf.keras.regularizers.l2(l=0.00005) if kernel_regularizer == 'l2' else None
         self.dense = Dense(units, kernel_initializer='glorot_uniform',
                            kernel_regularizer=kernel_regularizer)
-                    
 
     def call(self, input_tensor, training=False):
-        
         y = self.batch_norm(input_tensor, training=training)
         y = self.activation(y)
         y = self.dense(y)
-     
+
         return y
-    
 
 
 
-class ActorModel:
+class ActorModelV2:
     '''
     actor model
     '''
@@ -155,7 +246,7 @@ class ActorModel:
 
 
 
-class CriticModel:
+class CriticModelV2:
     '''
     critic model
     '''
@@ -466,10 +557,16 @@ class PPOAgentTF2:
 
 
         # Create Actor-Critic network models
-        self.actor = ActorModel(self.network_layers, input_shape=self.state_size, action_space=self.action_size,
-                                lr=self.alr, optimizer=self.optimizer)
-        self.critic = CriticModel(self.network_layers, input_shape=self.state_size, action_space=self.action_size,
-                                  lr=self.clr, optimizer=self.optimizer)
+        if DBG_OPTIONS.ActorCriticModelVersion==1:
+            self.actor = ActorModelV1(self.network_layers, input_shape=self.state_size, action_space=self.action_size,
+                                    lr=self.alr, optimizer=self.optimizer)
+            self.critic = CriticModelV1(self.network_layers, input_shape=self.state_size, action_space=self.action_size,
+                                      lr=self.clr, optimizer=self.optimizer)
+        elif DBG_OPTIONS.ActorCriticModelVersion==2:
+            self.actor = ActorModelV2(self.network_layers, input_shape=self.state_size, action_space=self.action_size,
+                                    lr=self.alr, optimizer=self.optimizer)
+            self.critic = CriticModelV2(self.network_layers, input_shape=self.state_size, action_space=self.action_size,
+                                      lr=self.clr, optimizer=self.optimizer)
 
 
         self.actor_name = f"{self.id}_PPO_Actor.h5"

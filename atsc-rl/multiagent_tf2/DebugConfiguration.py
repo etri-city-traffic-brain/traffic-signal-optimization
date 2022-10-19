@@ -26,6 +26,8 @@ class DBG_OPTIONS :
 
         NewModelUpdate = True # model update using only some of the experiences stored in replay memory
 
+        ActorCriticModelVersion = 2 # 1 : simple model. 2 : optimized model with resnet, regularizer
+
     ## bebug message : Options which are related to debug message
     if WITH_DBG_MSG :
         PrintCtrlDaemon = True          # print messages which are related to operations of CtrlDaemon
