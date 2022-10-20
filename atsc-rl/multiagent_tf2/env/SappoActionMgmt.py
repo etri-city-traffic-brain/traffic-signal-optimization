@@ -251,12 +251,6 @@ class SaltActionMgmt:
 
 
 
-    ########
-    ########   sa_cycle is changed....
-    # def applyCurrentTrafficSignalPhaseToEnv(self, current_sim_step):
-    #     return self.applyCurrentTrafficSignalPhaseToEnvOrg(current_sim_step)
-    #     #return self.applyCurrentTrafficSignalPhaseToEnvNew(current_sim_step)
-
     def applyCurrentTrafficSignalPhaseToEnv(self, current_sim_step):
         '''
         apply actions for all TLs : offset, gr, gro
@@ -275,54 +269,11 @@ class SaltActionMgmt:
             phase_arr = self.apply_phase_array_list[sa_i]
 
             for tlid in tlid_list:
-                t_phase = int(phase_arr[tlid_i][current_sim_step % sa_cycle])
+                #t_phase = int(phase_arr[tlid_i][current_sim_step % sa_cycle])
+                t_phase = int(phase_arr[tlid_i][(current_sim_step-1) % sa_cycle])
                 scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
                 libsalt.trafficsignal.changeTLSPhase(current_sim_step, tlid, scheduleID, t_phase)
                 tlid_i += 1
-
-        return 0
-
-    def applyCurrentTrafficSignalPhaseToEnvNew(self, current_sim_step):
-        '''
-        apply actions for all TLs : offset, gr, gro
-
-        :param current_sim_step:
-        :return:
-        '''
-
-        newFassion = False
-
-        num_sa = len(self.sa_name_list)
-
-        try :
-            for sa_i in range(num_sa):
-                sa = self.sa_name_list[sa_i]
-                tlid_list = self.sa_obj[sa]['tlid_list']
-
-                tlid_i = 0
-                if not newFassion:
-                    sa_cycle = self.sa_obj[sa]['cycle_list'][0]
-                    ##
-                    ## 20220929 :  sa_obj[sa]['cycle_list'] 값이 올바르게 계산되었는지 확인하자.....
-                    ##
-                phase_arr = self.apply_phase_array_list[sa_i]
-
-                for tlid in tlid_list:
-                    if newFassion:
-                        sa_cycle = self.sa_obj[sa]['cycle_list'][tlid_i]
-                    #t_phase = int(phase_arr[tlid_i][current_sim_step % sa_cycle])
-                    t_phase = int(phase_arr[tlid_i][current_sim_step % sa_cycle])
-                    scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-                    libsalt.trafficsignal.changeTLSPhase(current_sim_step, tlid, scheduleID, t_phase)
-                    tlid_i += 1
-        except Exception as e:
-            print(f"sa={sa} tlid={tlid} tlid_i={tlid_i} sa_cycle={sa_cycle}  current_sim_step % sa_cycle={current_sim_step % sa_cycle}")
-            print(f"phase_arr[tlid_i].shape = {phase_arr[tlid_i].shape}")
-            print(f"phase_arr[{tlid_i}]={phase_arr[tlid_i]} ")
-
-            print(f"self.sa_obj[{sa}]['cycle_list']={self.sa_obj[sa]['cycle_list']}")
-            print(f"tlid_list={tlid_list}")
-            raise e
 
         return 0
 
