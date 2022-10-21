@@ -856,7 +856,7 @@ if __name__ == "__main__":
 
     ## dump launched time
     launched = datetime.datetime.now()
-    print(f'launched at {launched}')
+    print(f'TSO(pid={os.getpid()}) launched at {launched}')
 
     args = parseArgument()
 
