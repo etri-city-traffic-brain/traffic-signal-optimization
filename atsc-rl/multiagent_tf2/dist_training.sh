@@ -208,6 +208,9 @@ if [ 1 ]; then
   ###-- network-size
   NETWORK_SIZE="1024,512,512,512,512" # string of comma separated integer values are expected
 
+  ###-- model : learning rate
+  RL_MODEL_ACTOR_LR=0.0001
+  RL_MODEL_CRITIC_LR=0.0001
 
   ###--- replay memory length
   RL_MODEL_MEM_LEN=500  # default 1000
@@ -305,6 +308,7 @@ then
   INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
   INNER_CMD="$INNER_CMD --model-save-period $RL_MODEL_SAVE_PERIOD --epoch $RL_EPOCH "
   INNER_CMD="$INNER_CMD --network-size $NETWORK_SIZE "
+  INNER_CMD="$INNER_CMD --a-lr $RL_MODEL_ACTOR_LR --c-lr $RL_MODEL_CRITIC_LR "
   INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
@@ -618,6 +622,7 @@ then
   INNER_CMD="$INNER_CMD --state $RL_STATE --action $RL_ACTION --reward-func $RL_REWARD "
   INNER_CMD="$INNER_CMD --epoch 1 "
   INNER_CMD="$INNER_CMD --network-size $NETWORK_SIZE "
+  INNER_CMD="$INNER_CMD --a-lr $RL_MODEL_ACTOR_LR --c-lr $RL_MODEL_CRITIC_LR "
   INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
 
   INNER_CMD="$INNER_CMD --model-num  $TEST_MODEL_NUM "
