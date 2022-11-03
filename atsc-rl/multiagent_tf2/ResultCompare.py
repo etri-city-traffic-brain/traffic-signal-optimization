@@ -191,6 +191,9 @@ def __compareResult(args, target_tl_obj, ft_output, rl_output, model_num, passed
         else:
             target_sa_tl_dic[sa_name] = [tl]
 
+        if DBG_OPTIONS.PrintResultCompare:
+            print(f"sa_name={sa_name}  tl_name={target_tl_obj[tl]['crossName']}  tl_node_id={tl}")
+
     #
     # for each SA
     3
