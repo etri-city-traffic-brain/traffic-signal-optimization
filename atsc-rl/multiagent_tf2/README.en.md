@@ -1,38 +1,38 @@
-# 적응형 교통 신호 제어 ([English](./README.en.md))
+# adaptive traffic signal control ([한국어](./README.md))
 
-강화학습에 기반한 교통 신호 최적화
+Traffic signal optimization with the help of machine learning, esp., reinforcement learning.
 
-* 다중 에이전트 기반 교통 신호 제어 지원
-* 분산학습 지원 
-* 강화학습의 정책으로 PPO 지원 
-* 강화학습 수행시 행동(action)으로 kc, offset, gr, gro 지원
-  * kc : 유지 혹은 변경
-  * offset : 옵셋 조정
-  * gr :  녹색 신호 지속 시간 조정
-  * gro : 녹색 시간 + 옵셋 조정
-* DBG_OPTIONS (DebugConfiguration.py) 설정을 통해 원하는 수준의 디버그 메시지 출력 설정
+* do multi-agent based adaptive traffic signal control
+* support distributed learning
+* support PPO policy
+* support kc, offset, gr, gro as actions
+  * kc : keep-change
+  * offset : offset adjustment
+  * gr :  green time adjustment
+  * gro : green-time + offset adjustment
+* set a level of debug message by using the DBG_OPTIONS in DebugConfiguration.py
 
   
 <hr>
 
-### 적응형 교통 신호 제어를 통한 교통 신호 최적화를 위한 필요 사항
-* SALT 교통 시뮬레이터 설치
-* 교통 신호 최적화를 수행할 지역에 대한 교통 시뮬레이션 시나리오 준비
+### Requirements
+* The SALT traffic simulator should be installed
+* Traffic simulation scenarios for the area to do traffic optimization should be prepared.
 <br> <br>
-* 파이쎤 실행 환경 생성
-  * 설치되어야 하는 패키지들 
-    * python 3.x (버전 3.8 이상 추천)
-    * tensorflow 2.x (버전 2.3.0 이상 추천)
-    * keras 2.x (버전 2.4.3 이상 추천)
+* A python execution environment should be created
+  * Packages to install 
+    * python 3.x (version 3.8+ recommended)
+    * tensorflow 2.x (version 2.3.0+ recommended)
+    * keras 2.x (version 2.4.3+ recommended)
     * pandas
     * gym
     * matplotlib
     * Deprecated
-  * YAML 파일 참고 : [uniq.opt.env.yaml](./uniq.opt.env.yaml) 
+  * You can refer YAML file : [uniq.opt.env.yaml](./uniq.opt.env.yaml) 
 <br> <br>
-* 환경변수 SALT_HOME 와 PYTHONPATH 선언
-  * SALT_HOME : SALT 시뮬레이터가 설치된 디렉토리
-  * PYTHONPATH에 SALT 라이브러리 경로 추가
+* Environment variables such as SALT_HOME and PYTHONPATH should be declared.
+  * SALT_HOME : a path SALT simulator is installed
+  * add library paths of SALT to PYTHONPATH
     ```shell
     example, 
       export SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator
@@ -42,8 +42,8 @@
 
 <hr>
 
-### 실행 방법 ###
-* run.py라는 파이썬 프로그램 실행
+### How to use ###
+* run a python program run.py with several arguments
   ```shell
   usage: run.py [-h] [--mode {train,test,simulate}] [--scenario-file-path SCENARIO_FILE_PATH]
               [--map {dj_all,doan,sa_1_6_17,cdd1,cdd2,cdd3}] [--target-TL TARGET_TL]
@@ -66,10 +66,10 @@
               [--num-of-optimal-model-candidate NUM_OF_OPTIMAL_MODEL_CANDIDATE]
 
   ```
-  * 분산 학습 관련해서는 [README_DIST.md](./README_DIST.md) 참고
+  * see README_DIST.md if you want to do distributed learning for adaptive traffic signal control
 
 
-  ####  주요 명령행 인자 
+  ####  some important arguments
     ``` 
     --mode {train,test,simulate}
       train - RL model training
@@ -122,48 +122,51 @@
 
 
 
-#### 모델 훈련을 위한 실행 
-* 프로그램을 실행할때 인자 'mode' 를 'train' 으로 설정하여 실행
+#### to do train model
+* pass 'train' as the value of the argument 'mode' when executing the program
     ```shell script
-    example, 
-      python run.py --mode train
+    python run.py --mode train
     
-      # train SA 104 and SA 107 : control other intersecctions using fixed signal
-      python run.py --mode train --method sappo --map doan  --target-TL "SA 104, SA 107"  --epoch 1 --action gro --start-time 25200 --end-time 32400 
+    # train SA 104 and SA 107 : control other intersecctions using fixed signal
+    python run.py --mode train --method sappo --map doan  --target-TL "SA 104, SA 107"  --epoch 1 --action gro --start-time 25200 --end-time 32400 
 
-      # train SA 1, SA 6 and SA 17 : control other intersecctions using fixed signal
-      python run.py --mode train --map sa_1_6_17 --target-TL "SA 1, SA 6, SA 17" --method sappo --state vdd --action offset --reward-func cwq --epoch 1 --model-save-period 5
+    # train SA 1, SA 6 and SA 17 : control other intersecctions using fixed signal
+    python run.py --mode train --map sa_1_6_17 --target-TL "SA 1, SA 6, SA 17" --method sappo --state vdd --action offset --reward-func cwq --epoch 1 --model-save-period 5
 
-      # train SA 101 and SA 111  : control SA 104 and SA 107 with the inference of the trained model and control the rest of the intersections using fixed signal 
-      python run.py --mode train --method sappo --target-TL "SA 101,SA 111"  --map doan  --epoch 1 --action gro --start-time 25200 --end-time 32400 --infer-TL "SA 104, SA 107"  --infer-model-num 5
+    # train SA 101 and SA 111  : control SA 104 and SA 107 with the inference of the trained model and control the rest of the intersections using fixed signal 
+    python run.py --mode train --method sappo --target-TL "SA 101,SA 111"  --map doan  --epoch 1 --action gro --start-time 25200 --end-time 32400 --infer-TL "SA 104, SA 107"  --infer-model-num 5
     ``` 
-<br> <br>
 
-#### 훈련된 모델 평가를 위한 실행
-* 프로그램을 실행할때 인자 'mode' 를 'test'로 설정하여 실행
-* 'result-comp' 인자를 이용하여 고정신호 수행과 결과 비교 수행 여부 전달 
-  * 고정 신호 수행과 비교없이 실행 
-    * 훈련된 모델을 위한 시나리오만 실행
+
+#### to do test with learned model
+* pass 'test' as the value of the argument 'mode' when executing the program
+* deliver whether to perform the comparison to the fixed signal execution using the 'result-comp' argument
+  * without result compare
+    * only run test scenario
       * --result-comp False
-      ```shell script
+
+      * ```shell script
       python run.py --mode test  --model-num xx --result-comp False
       python run.py --mode test  --model-num xx --result-comp False --map doan --target-TL "SA 101,SA 111"  --start-time 25200 --end-time 32400
       ``` 
-  * 고정 신호 수행과 비교 실행 
-    * 이전에 실행해 놓은 고정 신호 수행의 결과 파일과 비교
+  * with result compare
+    * for test in **local**
+      1. run fixed time scenario (ref. 'simulate' mode)
+      2. run test scenario
+      3. compare results
       ```shell script
       python run.py --mode test --model-num xx --result-comp True
       python run.py --mode test  --model-num xx --result-comp True --map doan --target-TL "SA 101,SA 111"  --start-time 25200 --end-time 32400
       ``` 
   
-#### 고정 신호 실행
-* 프로그램을 실행할 때 인자 'mode' 를 'simulate'으로 설정하여 실행
+#### to do simulate with fixed-time traffic signal
+* pass 'simulate' as the value of the argument 'mode' when executing the program
+
     ``` shell script
     python run.py --mode simulate  --map doan --target-TL "SA 101,SA 111"  --start-time 25200 --end-time 32400
     ```
 
-#### Tensorboard 실행
-
+#### Tensorboard
     ```shell script
     # for local access with default port (6006)
     tensorboard --logdir logs
@@ -177,45 +180,45 @@
 
 <hr>
 
-### 결과 파일 
-####  훈련(학습)
-  * 각 epoch에 대한 전체 보상 
+### Output files ###
+#### Train ####
+  * Total rewards for each epoch
     ```shell script
       output/train/train_epoch_total_reward.txt
     ```
-  * 각 epoch에 대한 교차로별 보상
+  * Rewards for each epoch at each intersection
     ```shell script
       output/train/train_epoch_tl_reward.txt
     ```
-  * 훈련 동안 SALT 시뮬레이션의 출력
+  * SALT simulation output during training
     ```shell script
       output/train/_PeriodicOutput.csv
     ```
 <br> <br>
 
-#### 평가
-##### 훈련된 모델에 대한 평가
-  * 각 교차로에 대한 각 스텝별 행동, 보상, 통계 정보(평균 속도, 평균 여행 시간, 통과 차량 수 등)
+#### Test ####
+##### RL Scenario #####
+  * phase, action, reward, statistics info(such as average speed, travel time, passed vehicle number,...) for each step at each intersection
     ```shell script
     output/test/rl_phase_reward_output.txt
     ```
-  * 훈련 모델 평가 중 SALT 시뮬레이션의 출력
+  * SALT simulation output for test scenario
     ```shell script
     output/test/_PeriodicOutput.csv
     ```
 <br> <br>
 
-##### 고정 신호 시나리오에 대한 평가
-  * 각 교차로에 대한 각 스텝별 페이즈 정보, 보상, 통계 정보(평균 속도, 평균 여행 시간, 통과 차량 수 등)
+##### Fixed Time Scenario #####
+  * phase, reward, statistics info(such as average speed, travel time, passed vehicle number,...) for each step at each intersection
     ```shell script
     output/simulate/ft_phase_output.txt
     ```
-  * 고정신호 수행 중 SALT 시뮬레이션의 출력
+  * SALT simulation output for fixed time scenario
     ```shell script
     output/simulate/_PeriodicOutput.csv
     ```
 
-  *  **result-comp 값이 True**인 경우, 훈련된 모델에 의한 수행과 고정 신호에 의한 수행의 비교 결과 
+  * When **result-comp is True**, comparison of improvement for model number xx
     ```shell script
     output/test/total_compare_output_model_num_xx.csv
     ```

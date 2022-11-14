@@ -7,8 +7,6 @@
     export PYTHONPATH="$SALT_HOME/tools:$PYTHONPATH"
     export PYTHONPATH="$SALT_HOME/tools/libsalt:$PYTHONPATH"
     ```
-* change configurations in config.py 
-* set DBG_OPTIONS in DebugConfiguration.py
 * run python program as follows
   * launch controller daemon on the node responsible for controlling whole learning
     * usage
@@ -51,7 +49,7 @@
       ```shell
       python DistExecDaemon.py --ip_addr 129.254.182.176  --port 2727
       ```
-* you can run with dist_learning.sh after setup Passwordless SSH Login
+* you can run with dist_training.sh(dist_training.single.sh) after setup Passwordless SSH Login
   * you should change some values before run shell script
     * env related parameters, (distributed) reinforcement related parameters, ...
   * How to Set Up Passwordless SSH Login
