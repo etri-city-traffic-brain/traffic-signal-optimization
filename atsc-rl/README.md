@@ -24,7 +24,7 @@ You can see the description for subfolders below.
   * make an independent class for action mgmt
   * make an independent class for reward mgmt
   
-#### multi-agent : work on TF 1.x
+#### (too_old_version) multi-agent : work on TF 1.x
 * do multi-agent based adaptive traffic signal control
 * support policy
   * ddqn, ppo
@@ -44,4 +44,4 @@ You can see the description for subfolders below.
     * SALT_SAPPO_green_offset_single : ppo + gro (single SA)
   * only some env considered multiple SA support
   
-#### single agent
+#### (too_old_version) single agent
