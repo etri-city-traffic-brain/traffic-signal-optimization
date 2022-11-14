@@ -1,5 +1,20 @@
 # ATSC-RL(Multi-Agent)
 
+<br>
+<br>
+<br>
+
+### This version of the code is too old.
+### There are no plans to maintain(currently not supported).
+
+<br>
+<br>
+<br>
+
+<hr>
+
+
+
 ### How to use ###
 - change libsalt directory in config.py
 
