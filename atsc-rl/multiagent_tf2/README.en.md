@@ -16,7 +16,7 @@ Traffic signal optimization with the help of machine learning, esp., reinforceme
 <hr>
 
 ### Requirements
-* [The SALT traffic simulator should be installed] (https://github.com/etri-city-traffic-brain/traffic-simulator)
+* [The SALT traffic simulator should be installed](https://github.com/etri-city-traffic-brain/traffic-simulator)
 * Traffic simulation scenarios for the area to do traffic optimization should be prepared.
 <br> <br>
 * A python execution environment should be created
