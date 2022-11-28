@@ -1,4 +1,4 @@
-### distributed learning for adaptive traffic signal control
+### Distributed Learning for Adaptive Traffic Signal Control
 
 ### How to use ###
 * should declare SALT_HOME and PYTHONPATH as an environment variable
