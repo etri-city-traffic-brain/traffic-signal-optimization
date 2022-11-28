@@ -45,7 +45,7 @@ Traffic signal optimization with the help of machine learning, esp., reinforceme
     #### exmaple,   prefix: /home/[USER_NAME]/Anaconda3/envs/[VIRTUAL_ENV_NAME]
     conda env create --file uniq.opt.env.yaml
    ```
-  *
+ 
 <br> <br>
 * Environment variables such as SALT_HOME and PYTHONPATH should be declared.
   * SALT_HOME : a path SALT simulator is installed
