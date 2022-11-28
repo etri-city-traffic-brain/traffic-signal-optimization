@@ -16,7 +16,7 @@
 <hr>
 
 ### 적응형 교통 신호 제어를 통한 교통 신호 최적화를 위한 필요 사항
-* SALT 교통 시뮬레이터 설치
+* [SALT 교통 시뮬레이터 설치] (https://github.com/etri-city-traffic-brain/traffic-simulator)
 * 교통 신호 최적화를 수행할 지역에 대한 교통 시뮬레이션 시나리오 준비
 <br> <br>
 * 파이쎤 실행 환경 생성
@@ -29,6 +29,25 @@
     * matplotlib
     * Deprecated
   * YAML 파일 참고 : [uniq.opt.env.yaml](./uniq.opt.env.yaml) 
+  
+  
+  * 실행 환경 생성 예
+  ```shell
+  ### 직접 패키지 인스톨하여 생성
+  conda create --name p3.8 python=3.8
+  pip install tensorflow==2.3.0
+  pip install keras==2.4.3
+  pip install pandas
+  pip install gym
+  pip install matplotlib
+  pip install Deprecated   
+
+  ### yaml 파일을 통한 생성
+  #### 원하는 경우, 가상 환경의 이름을 바꾸고, prefix 를 경로에 맞게 바꾸어준다
+  #### 예를 들어,   prefix: /home/[사용자이름]/Anaconda3/envs/[가상환경이름]
+  conda env create --file uniq.opt.env.yaml
+  ```
+  
 <br> <br>
 * 환경변수 SALT_HOME 와 PYTHONPATH 선언
   * SALT_HOME : SALT 시뮬레이터가 설치된 디렉토리
