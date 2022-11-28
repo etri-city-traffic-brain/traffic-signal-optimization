@@ -1,4 +1,4 @@
-# adaptive traffic signal control ([한국어](./README.md))
+# Adaptive Traffic Signal Control ([한국어](./README.md))
 
 Traffic signal optimization with the help of machine learning, esp., reinforcement learning.
 
