@@ -234,7 +234,8 @@
     output/simulate/_PeriodicOutput.csv
     ```
 
-  *  **result-comp 값이 True**인 경우, 훈련된 모델에 의한 수행과 고정 신호에 의한 수행의 비교 결과 
+  * result-comp 인자 값이 True인 경우, 훈련된 모델에 의한 수행과 고정 신호에 의한 수행의 비교 결과
     ```shell script
-    output/test/total_compare_output_model_num_xx.csv
+    output/test/compare-output-file-name-prefix_model-num-xx.csv
     ```
+
