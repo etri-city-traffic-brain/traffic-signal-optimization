@@ -237,5 +237,5 @@ Traffic signal optimization with the help of machine learning, esp., reinforceme
 
   * When **result-comp is True**, comparison of improvement for model number xx
     ```shell script
-    output/test/total_compare_output_model_num_xx.csv
+    output/test/compare-output-file-name-prefix_model-num-xx.csv
     ```
