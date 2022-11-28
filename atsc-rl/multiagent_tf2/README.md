@@ -19,7 +19,7 @@
 * [SALT 교통 시뮬레이터 설치](https://github.com/etri-city-traffic-brain/traffic-simulator)
 * 교통 신호 최적화를 수행할 지역에 대한 교통 시뮬레이션 시나리오 준비
 <br> <br>
-* 파이쎤 실행 환경 생성
+* 파이 실행 환경 생성
   * 설치되어야 하는 패키지들 
     * python 3.x (버전 3.8 이상 추천)
     * tensorflow 2.x (버전 2.3.0 이상 추천)
@@ -49,7 +49,7 @@
   ```
   
 <br> <br>
-* 환경변수 SALT_HOME 와 PYTHONPATH 선언
+* 환경변수 SALT_HOME 와 PYTHONPATH 설정
   * SALT_HOME : SALT 시뮬레이터가 설치된 디렉토리
   * PYTHONPATH에 SALT 라이브러리 경로 추가
     ```shell
