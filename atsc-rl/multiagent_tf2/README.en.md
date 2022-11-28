@@ -16,7 +16,7 @@ Traffic signal optimization with the help of machine learning, esp., reinforceme
 <hr>
 
 ### Requirements
-* The SALT traffic simulator should be installed
+* [The SALT traffic simulator should be installed] (https://github.com/etri-city-traffic-brain/traffic-simulator)
 * Traffic simulation scenarios for the area to do traffic optimization should be prepared.
 <br> <br>
 * A python execution environment should be created
@@ -29,6 +29,23 @@ Traffic signal optimization with the help of machine learning, esp., reinforceme
     * matplotlib
     * Deprecated
   * You can refer YAML file : [uniq.opt.env.yaml](./uniq.opt.env.yaml) 
+  * example
+    ```shell
+    ### ex1. with package installing
+    conda create --name p3.8 python=3.8
+    pip install tensorflow==2.3.0
+    pip install keras==2.4.3
+    pip install pandas
+    pip install gym
+    pip install matplotlib
+    pip install Deprecated   
+
+    ### ex2. with YAML file 
+    #### if needed, you can change the prefix in the YAML file : should match the path (name of virtual env., user name, ...)
+    #### exmaple,   prefix: /home/[USER_NAME]/Anaconda3/envs/[VIRTUAL_ENV_NAME]
+    conda env create --file uniq.opt.env.yaml
+   ```
+  *
 <br> <br>
 * Environment variables such as SALT_HOME and PYTHONPATH should be declared.
   * SALT_HOME : a path SALT simulator is installed
