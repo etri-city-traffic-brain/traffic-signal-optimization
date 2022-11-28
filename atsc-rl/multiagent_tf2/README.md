@@ -16,7 +16,7 @@
 <hr>
 
 ### 적응형 교통 신호 제어를 통한 교통 신호 최적화를 위한 필요 사항
-* [SALT 교통 시뮬레이터 설치] (https://github.com/etri-city-traffic-brain/traffic-simulator)
+* [SALT 교통 시뮬레이터 설치](https://github.com/etri-city-traffic-brain/traffic-simulator)
 * 교통 신호 최적화를 수행할 지역에 대한 교통 시뮬레이션 시나리오 준비
 <br> <br>
 * 파이쎤 실행 환경 생성
