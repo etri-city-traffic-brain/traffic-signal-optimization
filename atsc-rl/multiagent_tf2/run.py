@@ -57,6 +57,7 @@ from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 from TSOUtil import convertSaNameToId
 from TSOUtil import findOptimalModelNum
+from TSOUtil import getOutputDirectoryRoot
 from TSOUtil import makeConfigAndProblemVar
 from TSOUtil import writeLine
 
@@ -180,7 +181,7 @@ def makeLoadModelFnPrefixV1(args, problem_var, is_train_target=False):
     :return:
     '''
     if args.infer_model_path == ".":  # default
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var,
                                                         args.model_num)
     else:  # when we test distributed learning
         # /tmp/tso/SAPPO-trial_0_SA_101_actor.h5
@@ -202,7 +203,7 @@ def makeLoadModelFnPrefixV2(args, problem_var, is_train_target=False):
     :return:
     '''
     if args.infer_model_path == ".":  # default
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var,
                                                         args.model_num)
     else:  # when we test distributed learning
         # /tmp/tso/SAPPO-trial_0_SA_101_actor.h5
@@ -243,9 +244,9 @@ def makeLoadModelFnPrefixV3(args, problem_var, is_train_target=False):
     ## construct file path
     if is_train_target and args.mode=="train":
         assert args.cumulative_training == True, "internal error : it can not happen ... should have already exited from this func "
-        fn_path = "{}/model/{}".format(args.io_home, args.method)
+        fn_path = "{}/model/{}".format(getOutputDirectoryRoot(args), args.method)
     elif args.infer_model_path == ".":
-        fn_path = "{}/model/{}".format(args.io_home, args.method)
+        fn_path = "{}/model/{}".format(getOutputDirectoryRoot(args), args.method)
     else:
         fn_path = args.infer_model_path
 
@@ -266,6 +267,7 @@ def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
     :return:
     '''
     return makeLoadModelFnPrefixV3(args, problem_var, is_train_target)
+
 
 
 
@@ -300,14 +302,14 @@ def trainSappo(args):
 
         ## construct file name to store train results(reward statistics info)
         #     : fn_train_epoch_total_reward, fn_train_epoch_tl_reward
-        output_train_dir = '{}/output/train'.format(args.io_home)
+        output_train_dir = '{}/output/train'.format(getOutputDirectoryRoot(args))
         fn_train_epoch_total_reward = "{}/train_epoch_total_reward.txt".format(output_train_dir)
         fn_train_epoch_tl_reward = "{}/train_epoch_tl_reward.txt".format(output_train_dir)
 
 
     ### for tensorboard
     time_data = time.strftime('%m-%d_%H-%M-%S', time.localtime(time.time()))
-    train_log_dir = '{}/logs/SAPPO/{}/{}'.format(args.io_home, problem_var, time_data)
+    train_log_dir = '{}/logs/SAPPO/{}/{}'.format(getOutputDirectoryRoot(args), problem_var, time_data)
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
 
 
@@ -364,7 +366,7 @@ def trainSappo(args):
             # for CumulateReplayMemory
             # load stored replay memory if is_train_target and args.cumulative_training and (args.infer_model_num >=0)
             if is_train_target and args.cumulative_training and (int(args.infer_model_num) >= 0) :
-                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(getOutputDirectoryRoot(args), args.method,
                                                                      _FN_PREFIX_.REPLAY_MEMORY, agent.id)
                 # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path, _FN_PREFIX_.REPLAY_MEMORY, agent.id)
 
@@ -506,8 +508,8 @@ def trainSappo(args):
 
         ### model save
         if trial % args.model_save_period == 0:
-            # fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(args.io_home, problem_var, trial)
-            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, trial)
+            # fn_prefix = "{}/model/sappo/SAPPO-{}-trial_{}".format(getOutputDirectoryRoot(args), problem_var, trial)
+            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var, trial)
 
             for i in range(train_agent_num):
                 ppo_agent[i].saveModel(fn_prefix)
@@ -537,7 +539,7 @@ def trainSappo(args):
 
         # -- make the prefix of file name which stores trained model
         fn_optimal_model_prefix = "{}/model/{}/{}-{}-trial". \
-            format(args.io_home, args.method, args.method.upper(), problem_var)
+            format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var)
 
         # -- make the file name which stores trained model that gave the best performance
         fn_optimal_model = "{}-{}".format(fn_optimal_model_prefix, optimal_model_num)
@@ -564,7 +566,7 @@ def trainSappo(args):
                 if not ppo_agent[i].is_train : # if it is not the target of training
                     continue
 
-                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(args.io_home, args.method,
+                fn_replay_memory_object = "{}/model/{}/{}_{}.dmp".format(getOutputDirectoryRoot(args), args.method,
                                                                         _FN_PREFIX_.REPLAY_MEMORY, ppo_agent[i].id)
 
                 # fn_replay_memory_object = "{}/{}_{}.dmp".format(args.infer_model_path,
@@ -713,8 +715,8 @@ def testSappo(args):
 
     # compare traffic simulation results
     if args.result_comp:
-        ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
-        rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
+        ft_output = pd.read_csv("{}/output/simulate/{}".format(getOutputDirectoryRoot(args), _RESULT_COMP_.SIMULATION_OUTPUT))
+        rl_output = pd.read_csv("{}/output/test/{}".format(getOutputDirectoryRoot(args), _RESULT_COMP_.SIMULATION_OUTPUT))
 
         comp_skip = _RESULT_COMPARE_SKIP_
         result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
@@ -741,7 +743,7 @@ def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_sk
     :param comp_skip: time interval to exclude from result comparison
     :return:
     '''
-    result_fn = "{}/output/test/{}_s{}_{}.csv".format(args.io_home, problem_var, comp_skip, args.model_num)
+    result_fn = "{}/output/test/{}_s{}_{}.csv".format(getOutputDirectoryRoot(args), problem_var, comp_skip, args.model_num)
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
     total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
@@ -795,7 +797,7 @@ def fixedTimeSimulate(args):
 
 
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
-    output_ft_dir = f'{args.io_home}/output/{args.mode}'
+    output_ft_dir = f'{getOutputDirectoryRoot(args)}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
 
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
@@ -859,17 +861,35 @@ if __name__ == "__main__":
     print(f'TSO(pid={os.getpid()}) launched at {launched}')
 
     args = parseArgument()
+    # todo  .......................ing
+    #       분산 처리 : 동일한 코드 이용하여 교차로 그룹별로 실행될수 있는 환경을 만드는 것을 반영해야 한다.
+    #                  시뮬레이터 결과 파일 생성 위치 관련 파악/고민
+    #                    : 여러 프로세스 생성과 동시 여러 환경 활용 학습 관점
+    if 0:
+        dir_name_list = [
+                         f"{args.io_home}/model",
+                         f"{args.io_home}/model/{args.method}",
+                         f"{args.io_home}/logs",
+                         f"{args.io_home}/output",
+                         f"{args.io_home}/output/simulate",
+                         f"{args.io_home}/output/test",
+                         f"{args.io_home}/output/train",
+                         f"{args.io_home}/data/envs/salt/data",
+        ]
+    else:
+        dir_name_list = [
+                         f"{args.io_home}/{args.output_home}/model",
+                         f"{args.io_home}/{args.output_home}/model/{args.method}",
+                         f"{args.io_home}/{args.output_home}/logs",
+                         f"{args.io_home}/{args.output_home}/output",
+                         f"{args.io_home}/{args.output_home}/output/simulate",
+                         f"{args.io_home}/{args.output_home}/output/test",
+                         f"{args.io_home}/{args.output_home}/output/train",
+                         # f"{args.io_home}/{args.output_home}/scenario_backup",
+                        f"{args.io_home}/data/envs/salt/data",
+        ]
 
-    dir_name_list = [
-                     f"{args.io_home}/model",
-                     f"{args.io_home}/model/{args.method}",
-                     f"{args.io_home}/logs",
-                     f"{args.io_home}/output",
-                     f"{args.io_home}/output/simulate",
-                     f"{args.io_home}/output/test",
-                     f"{args.io_home}/output/train",
-                     f"{args.io_home}/data/envs/salt/data",
-    ]
+
     makeDirectories(dir_name_list)
 
     if args.mode == 'train':

@@ -3,7 +3,7 @@
 class DBG_OPTIONS :
 
     WITH_SOME_FUNC = True
-    WITH_DBG_MSG = False
+    WITH_DBG_MSG = True
 
     ## functions : Options which are related to function
     if WITH_SOME_FUNC:
@@ -43,7 +43,8 @@ class DBG_OPTIONS :
         PrintServingThread = True       # print messages which are related to serving thread
         PrintStep = False               # print progress msgs every step : inferred actions
         PrintTrain = True               # print messages which are related to train such as episode elapsed time, gc time, avg reward, ...
-
+        PrintState = True              # print observateion
+        PrintAction = True             # print action related things
     else:
         PrintCtrlDaemon = False        # print messages which are related to operations of CtrlDaemon
         PrintExecDaemon = False        # print messages which are related to operations of CtrlDaemon
