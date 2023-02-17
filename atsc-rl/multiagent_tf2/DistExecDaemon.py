@@ -27,7 +27,7 @@ class LearningDaemonThread(threading.Thread):
     def __init__(self, args, target_tlg):
         # self.targetTLG=""  # target traffic light group(or target intersection group)
         # self.inferTLGs=""
-        self.target_TLG = target_tlg
+        self.target_TLG = target_tlg.strip()
         self.args = args
         self.do_terminate = False
         self.is_learning_done = False
@@ -218,6 +218,7 @@ class ExecDaemon:
                 #-- copy an object to be used as an input argument when creating LDT
                 #----
                 new_args = copy.deepcopy(args)
+                tlg = tlg.strip()  ## todo DELETE .... remove white space
                 new_args.target_TL = tlg
 
                 remains = ""
