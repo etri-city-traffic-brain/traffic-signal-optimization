@@ -294,41 +294,45 @@ class ExecDaemon:
             if self.do_parallel:
                 ## create multiple LDT to train in parallel : one for each group of intersections
                 target_tl_list = args.target_TL.split(",")
-
                 len_target_tl_list = len(target_tl_list)
                 separtor = ','
+
                 for tlg in target_tl_list:
+                    print(f"\nnow targetTL=[{tlg}]")
                     # todo --> done 하나의 TLG 만 담당하게 하므로 나머지는 추론을 이용할 수 있도록 args를 조작해야 한다.
-                    #-- copy an object to be used as an input argument when creating LDT
-                    #----
+                    # -- copy an object to be used as an input argument when creating LDT
+                    # ----
                     new_args = copy.deepcopy(args)
                     tlg = tlg.strip()  ## todo DELETE .... remove white space
                     new_args.target_TL = tlg
 
                     remains = ""
-                    magic = 0
                     for idx, val in enumerate(target_tl_list):
-                        if val==tlg:
-                            magic = 1
+                        val = val.strip()
+                        if val == tlg:
                             continue
-                        remains += val + ('' if idx == (len_target_tl_list - 2 + magic) else separtor)
 
-                    if len(args.infer_TL.strip()) > 0 and len(remains) > 0 :
-                        new_args.infer_TL=f"{args.infer_TL}, {remains}"
-                    elif len(args.infer_TL.strip()) > 0 and len(remains) == 0 :
-                        new_args.infer_TL=f"{args.infer_TL}"
-                    elif len(args.infer_TL.strip()) == 0 and len(remains) == 0 :
+                        remains += ", " + val
+                        # print(f"\tremains=[{remains}]")
+
+                    if len(args.infer_TL.strip()) > 0 and len(remains) > 0:
+                        new_args.infer_TL = f"{args.infer_TL}{remains}"
+                    elif len(args.infer_TL.strip()) > 0 and len(remains) == 0:
+                        new_args.infer_TL = f"{args.infer_TL}"
+                    elif len(args.infer_TL.strip()) == 0 and len(remains) == 0:
                         new_args.infer_TL = ""
                     else:
-                        print("internal error ExecDaemon::doLocalLearning()")
+                        print("\tinternal error ExecDaemon::doLocalLearning()")
+
+                    if DBG_OPTIONS.PrintExecDaemon:
+                        print(
+                            f"\tLDT for [{tlg}] new_args.targetTL=[{new_args.target_TL}] new_args.inferTL=[{new_args.infer_TL}]  launched")
 
                     #-- create LDT
                     ldt = LearningDaemonThread(new_args, tlg)  # allocate work
                     self.learning_daemon_thread_dic[tlg] = ldt
                     ldt.start()
 
-                    if DBG_OPTIONS.PrintExecDaemon:
-                        waitForDebug(f"LDT for {tlg}  inferTL={new_args.infer_TL} infer_model_number={new_args.infer_model_number} launched")
             else:
                 ## create a LDT for sequential training : one thread is responsible for the entire training
                 tlg = args.target_TL
