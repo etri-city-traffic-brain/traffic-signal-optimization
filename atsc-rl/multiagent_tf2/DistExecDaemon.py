@@ -9,7 +9,7 @@ import os
 import argparse
 import glob
 
-from TSOUtil import doPickling, doUnpickling, Msg
+from TSOUtil import doPickling, doUnpickling, Msg, str2bool
 from TSOConstants import _MSG_TYPE_
 
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
@@ -151,9 +151,10 @@ class ExecDaemon:
     '''
     Daemon for local learning
     '''
-    def __init__(self, ip_addr, port):
+    def __init__(self, ip_addr, port, do_parallel):
         self.connect_ip_addr = ip_addr  # ip address of Control-Daemon to connect
         self.connect_port = port    # port of Control-Daemon to connect
+        self.do_parallel = do_parallel # whether do parallel or not
         # to save learning-daemon-thread objects
         self.learning_daemon_thread_dic = dict() # targetTLG --> instance(LearningDaemonThread)
 
@@ -193,6 +194,10 @@ class ExecDaemon:
         return recv_msg_obj
 
     def doLocalLearning(self, recv_msg_obj):
+        # return self.doLocalLearning_org(recv_msg_obj)
+        return self.doLocalLearning_new(recv_msg_obj)
+
+    def doLocalLearning_org(self, recv_msg_obj):
         '''
         do local learning
         :param recv_msg_obj:
@@ -267,6 +272,97 @@ class ExecDaemon:
         return True
 
 
+    ## todo 나중에 순차 실행과 비교하기 위해 할당된 모든 교차로에 대해 하나의 쓰레드(프로세스)가 학습을 하게 하는 코드 추가
+    ##     DistExecDaemon 의 인자로 추가
+    def doLocalLearning_new(self, recv_msg_obj):
+        '''
+        do local learning
+        :param recv_msg_obj:
+        :return:
+        '''
+        args = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS]
+        args.mode = _MODE_.TRAIN
+        args.target_TL = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
+        args.infer_TL = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_TL]
+        args.infer_model_number = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_MODEL_NUMBER]
+
+        # 1. prepare LDT(learning-daemon-thread)s for learning
+        # (1-a) create LDT(learning-daemon-thread)s for learning if it is first trial
+        # (1-b) set is_learning_done flag False if it is not first trial
+        if len(self.learning_daemon_thread_dic) == 0:
+            # (1-a) create LDT(learning-daemon-thread)s for learning if it is first trial
+            if self.do_parallel:
+                ## create multiple LDT to train in parallel : one for each group of intersections
+                target_tl_list = args.target_TL.split(",")
+
+                len_target_tl_list = len(target_tl_list)
+                separtor = ','
+                for tlg in target_tl_list:
+                    # todo --> done 하나의 TLG 만 담당하게 하므로 나머지는 추론을 이용할 수 있도록 args를 조작해야 한다.
+                    #-- copy an object to be used as an input argument when creating LDT
+                    #----
+                    new_args = copy.deepcopy(args)
+                    tlg = tlg.strip()  ## todo DELETE .... remove white space
+                    new_args.target_TL = tlg
+
+                    remains = ""
+                    magic = 0
+                    for idx, val in enumerate(target_tl_list):
+                        if val==tlg:
+                            magic = 1
+                            continue
+                        remains += val + ('' if idx == (len_target_tl_list - 2 + magic) else separtor)
+
+                    if len(args.infer_TL.strip()) > 0 and len(remains) > 0 :
+                        new_args.infer_TL=f"{args.infer_TL}, {remains}"
+                    elif len(args.infer_TL.strip()) > 0 and len(remains) == 0 :
+                        new_args.infer_TL=f"{args.infer_TL}"
+                    elif len(args.infer_TL.strip()) == 0 and len(remains) == 0 :
+                        new_args.infer_TL = ""
+                    else:
+                        print("internal error ExecDaemon::doLocalLearning()")
+
+                    #-- create LDT
+                    ldt = LearningDaemonThread(new_args, tlg)  # allocate work
+                    self.learning_daemon_thread_dic[tlg] = ldt
+                    ldt.start()
+
+                    if DBG_OPTIONS.PrintExecDaemon:
+                        waitForDebug(f"LDT for {tlg}  inferTL={new_args.infer_TL} infer_model_number={new_args.infer_model_number} launched")
+            else:
+                ## create a LDT for sequential training : one thread is responsible for the entire training
+                tlg = args.target_TL
+                # -- create LDT
+                ldt = LearningDaemonThread(args, tlg)  # allocate work
+                self.learning_daemon_thread_dic[tlg] = ldt
+                ldt.start()
+
+                if DBG_OPTIONS.PrintExecDaemon:
+                    waitForDebug(
+                        f"LDT for {tlg}  inferTL={args.infer_TL} infer_model_number={args.infer_model_number} launched")
+        else :
+            # (1-b) set is_learning_done flag False if it is not first trial
+            for ldt in self.learning_daemon_thread_dic.values():
+                ldt.args.infer_model_number = args.infer_model_number
+                ldt.is_learning_done = False  # should set False after args.infer_model_number was assigned
+                if DBG_OPTIONS.PrintExecDaemon:
+                    waitForDebug(
+                        f"LDT for {ldt.target_TLG}  inferTL={ldt.args.infer_TL} infer_model_number={ldt.args.infer_model_number} activated")
+
+        # 2. check whether local learning is done for all TLG
+        done = 0
+        num_ldt = len(self.learning_daemon_thread_dic)
+        while num_ldt != done:
+            time.sleep(_INTERVAL_.LEARNING_DONE_CHECK)
+            done = 0
+            for ldt in self.learning_daemon_thread_dic.values():
+                if ldt.is_learning_done :
+                    done += 1
+
+        return True
+
+
+
     def serve(self):
 
         # Connect to the server:
@@ -331,9 +427,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=2727)
     parser.add_argument("--ip-addr", type=str, default="129.254.182.176")
+    parser.add_argument("--do-parallel", type=str2bool, default="true")
+
     args = parser.parse_args()
 
+    print(f"args.do_parallel={args.do_parallel}")
 
-    exec_daemon = ExecDaemon(args.ip_addr, args.port)
+    exec_daemon = ExecDaemon(args.ip_addr, args.port, args.do_parallel)
     exec_daemon.serve()
 
