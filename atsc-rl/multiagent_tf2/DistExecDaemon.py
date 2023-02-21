@@ -436,10 +436,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    args.target_TL = removeWhitespaceBtnComma(args.target_TL)
-    args.infer_TL = removeWhitespaceBtnComma(args.infer_TL)
-
-    print(f"args.do_parallel={args.do_parallel}")
+    print(f"args.do_parallel={args.do_parallel}")   ## todo DELETE
 
     exec_daemon = ExecDaemon(args.ip_addr, args.port, args.do_parallel)
     exec_daemon.serve()
