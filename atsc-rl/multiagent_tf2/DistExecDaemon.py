@@ -16,8 +16,9 @@ from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _FN_PREFIX_, _MODE_
-from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, readLines
 from TSOUtil import convertSaNameToId
+from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, readLines
+from TSOUtil import removeWhitespaceBtnComma
 
 # Here's our thread:
 class LearningDaemonThread(threading.Thread):
@@ -431,9 +432,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=2727)
     parser.add_argument("--ip-addr", type=str, default="129.254.182.176")
-    parser.add_argument("--do-parallel", type=str2bool, default="true")
+    parser.add_argument("--do-parallel", type=str2bool, default=True)
 
     args = parser.parse_args()
+
+    args.target_TL = removeWhitespaceBtnComma(args.target_TL)
+    args.infer_TL = removeWhitespaceBtnComma(args.infer_TL)
 
     print(f"args.do_parallel={args.do_parallel}")
 

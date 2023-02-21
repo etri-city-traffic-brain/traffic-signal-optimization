@@ -25,6 +25,7 @@ from TSOUtil import appendLine
 from TSOUtil import execTrafficSignalOptimization
 from TSOUtil import generateCommand
 from TSOUtil import readLine
+from TSOUtil import removeWhitespaceBtnComma
 from TSOUtil import str2bool
 from TSOUtil import writeLine
 
@@ -398,6 +399,9 @@ if __name__ == '__main__':
     ##
     ## argument parsing
     args = getArgs()
+
+    args.target_TL = removeWhitespaceBtnComma(args.target_TL)
+    args.infer_TL = removeWhitespaceBtnComma(args.infer_TL)
 
     ## create model_store_root directory if not exist
     os.makedirs(args.model_store_root_path, exist_ok=True)

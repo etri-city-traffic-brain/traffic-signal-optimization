@@ -59,6 +59,7 @@ from TSOUtil import convertSaNameToId
 from TSOUtil import findOptimalModelNum
 from TSOUtil import getOutputDirectoryRoot
 from TSOUtil import makeConfigAndProblemVar
+from TSOUtil import removeWhitespaceBtnComma
 from TSOUtil import writeLine
 
 
@@ -861,6 +862,9 @@ if __name__ == "__main__":
     print(f'TSO(pid={os.getpid()}) launched at {launched}')
 
     args = parseArgument()
+    args.target_TL = removeWhitespaceBtnComma(args.target_TL)
+    args.infer_TL = removeWhitespaceBtnComma(args.infer_TL)
+
     # todo  .......................ing
     #       분산 처리 : 동일한 코드 이용하여 교차로 그룹별로 실행될수 있는 환경을 만드는 것을 반영해야 한다.
     #                  시뮬레이터 결과 파일 생성 위치 관련 파악/고민
