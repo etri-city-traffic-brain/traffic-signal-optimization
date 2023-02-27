@@ -422,7 +422,7 @@ def constructLaneRelatedInfo(args, salt_scenario, target_tl_obj):
     '''
     startStep = 0
 
-    libsalt.start(salt_scenario)
+    libsalt.start(salt_scenario, args.output_home)
     libsalt.setCurrentStep(startStep)
 
     _lane_len = []

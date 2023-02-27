@@ -503,7 +503,7 @@ class SaltSappoEnvV3(gym.Env):
         initialize simulation
         :return:
         '''
-        libsalt.start(self.salt_scenario)
+        libsalt.start(self.salt_scenario, self.args.output_home)
         libsalt.setCurrentStep(self.start_step)
         self.simulation_steps = libsalt.getCurrentStep()
 

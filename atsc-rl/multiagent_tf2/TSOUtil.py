@@ -290,7 +290,7 @@ def addArgumentsToParser(parser):
     ##        output-home : root directory to save files which is created when we do RL; relative path
     ##        num-concurrent-env : number of env when we use to train an agent
     parser.add_argument('--output-home', type=str, default=".",
-                        help="root directory to save files which is created when we do RL; relative path")
+                        help="root directory to save files which is created when we do RL; relative path from IO_HOME")
 
     parser.add_argument('--num-concurrent-env', type=int, default=1,
                         help="number of env when we use to train an agent")
