@@ -10,6 +10,8 @@ import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import parse
 from deprecated import deprecated
 
+from gym import spaces
+
 import libsalt
 
 from DebugConfiguration import DBG_OPTIONS
@@ -466,6 +468,7 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
     :param salt_scenario: scenario file path
     :return:
     '''
+
     _, _, edge_file_path, tss_file_path = getScenarioRelatedFilePath(args.scenario_file_path)
 
     target_tl_obj = constructTSSRelatedInfo(args, tss_file_path, sa_name_list)
@@ -491,7 +494,9 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['crossName_list'] = [] # 교차로 그룹에 속한 교차로 이름 목록
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tlid_list'] = []      # 교차로 id 리스트
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space'] = 0     # state space - 교차로 그룹에 속한 교차로의 in_lane 수
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] = 0    # action space - 교차로 그룹에 속한 교차로 수 : gro의 경우는 2배
+            if not DBG_OPTIONS.SaInfoModification20230302 :
+                sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] = 0    # action space - 교차로 그룹에 속한 교차로 수 : gro의 경우는 2배
+
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'] = []     # action_min에 대한 리스트
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'] = []     # action_max에 대한 리스트
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['offset_list'] = []    # 각 교차로의 offset 리스트
@@ -526,7 +531,8 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['tlid_list'].append(tl_obj)
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['state_space'] += target_tl_obj[tl_obj]['state_space']
         if args.action=='gro':
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 2
+            if not DBG_OPTIONS.SaInfoModification20230302:
+                sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 2
 
             # todo should check correctness of value : 0..1,   .. (# of green phase  -1)
             # for offset
@@ -538,7 +544,8 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)
 
         else:
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 1
+            if not DBG_OPTIONS.SaInfoModification20230302:
+                sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 1
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'].append(0)
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)
 
@@ -569,6 +576,12 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_list'].append(target_tl_obj[tl_obj]['in_lane_list'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_0_list'].append(target_tl_obj[tl_obj]['in_lane_list_0'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['in_lane_list_1_list'].append(target_tl_obj[tl_obj]['in_lane_list_1'])
+
+        if DBG_OPTIONS.SaInfoModification20230302:
+            sa_action_min = sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min']
+            sa_action_max = sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max']
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] = spaces.Box(low=np.array(sa_action_min),
+                       high=np.array(sa_action_max), dtype=np.int32)
 
     if DBG_OPTIONS.PrintSaRelatedInfo:
         print("sa_obj")

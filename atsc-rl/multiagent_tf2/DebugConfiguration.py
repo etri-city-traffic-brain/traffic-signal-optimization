@@ -28,6 +28,9 @@ class DBG_OPTIONS :
 
         ActorCriticModelVersion = 1 # 1 : simple model. 2 : optimized model with resnet, regularizer
 
+        SaInfoModification20230302 = True   # as_obj[sa_name][action_space] 관련 수정
+                # SappoEnv.Init()에서 설정하는 것이 아니라 getSaRelatedInfo()에서 설정하도록 수
+
     ## bebug message : Options which are related to debug message
     if WITH_DBG_MSG :
         PrintCtrlDaemon = True          # print messages which are related to operations of CtrlDaemon

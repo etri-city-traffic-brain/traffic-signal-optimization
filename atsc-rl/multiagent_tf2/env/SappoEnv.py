@@ -169,11 +169,18 @@ class SaltSappoEnvV3(gym.Env):
             self.observations = []
             for sa_name in self.sa_name_list:
                 self.observations.append([0] * self.sa_obj[sa_name]['state_space'])
-                #todo 아래를 달리하는 방법을 고민해 보자...  여기서 하는 것이 올바른가?
-                #               get_obj()에 action_size, state_size 추가하면 어떻까?
-                self.sa_obj[sa_name]['action_space'] = spaces.Box(low=np.array(self.sa_obj[sa_name]['action_min']),
+                if 1:
+                    # print(f"Init before sa={sa_name}  action_space={self.sa_obj[sa_name]['action_space']} ")
+                    print(f"Init before action_min={self.sa_obj[sa_name]['action_min']}  action_max={self.sa_obj[sa_name]['action_max']}")
+
+                if not DBG_OPTIONS.SaInfoModification20230302:
+                    #todo 아래를 달리하는 방법을 고민해 보자...  여기서 하는 것이 올바른가?
+                    #               get_obj()에 action_size, state_size 추가하면 어떻까?
+                    self.sa_obj[sa_name]['action_space'] = spaces.Box(low=np.array(self.sa_obj[sa_name]['action_min']),
                                                                         high=np.array(self.sa_obj[sa_name]['action_max']),
                                                                         dtype=np.int32)
+                if 1:
+                    print(f"Init after sa={sa_name}  action_space={self.sa_obj[sa_name]['action_space']} ")
 
             self.simulation_steps = 0
 
@@ -536,6 +543,11 @@ class SaltSappoEnvV3(gym.Env):
             action_space = self.sa_obj[target_sa]['action_space']
             action_size = action_space.shape[0]
             actions.append(list(0 for _ in range(action_size)))
+
+            if 1:
+                print(f"Reset action={actions}")
+                print(f"Reset sa={target_sa}  action_space={action_space}  action_space.shape[0]={action_space.shape[0]}")
+
 
         ##--- increase simulation steps
         for _ in range(self.warming_up_time):
