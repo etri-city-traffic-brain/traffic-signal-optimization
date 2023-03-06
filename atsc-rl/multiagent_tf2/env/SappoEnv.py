@@ -379,7 +379,6 @@ class SaltSappoEnvV3(gym.Env):
                 print(f"DBG in SappoEnv.step() discrete_actions_{i}={discrete_action}")
 
             if DBG_OPTIONS.RichActionOutput:
-                # offset_list, duration_list = self.action_mgmt.changePhaseArray(self.simulation_steps, i, actions[i])
                 offset_list, duration_list = self.action_mgmt.changePhaseArray(self.simulation_steps, i, self.discrete_actions[i])
 
                 if self.args.mode=='test':
@@ -407,7 +406,6 @@ class SaltSappoEnvV3(gym.Env):
                             replaceTsoOutputInfoDuration(self.tso_output_info_dic, ith, duration_list[j])
 
             else:
-                # self.action_mgmt.changePhaseArray(self.simulation_steps, i, actions[i])
                 self.action_mgmt.changePhaseArray(self.simulation_steps, i, self.discrete_actions[i])
 
 
