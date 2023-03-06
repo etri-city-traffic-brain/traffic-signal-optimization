@@ -169,18 +169,6 @@ class SaltSappoEnvV3(gym.Env):
             self.observations = []
             for sa_name in self.sa_name_list:
                 self.observations.append([0] * self.sa_obj[sa_name]['state_space'])
-                if 1:
-                    # print(f"Init before sa={sa_name}  action_space={self.sa_obj[sa_name]['action_space']} ")
-                    print(f"Init before action_min={self.sa_obj[sa_name]['action_min']}  action_max={self.sa_obj[sa_name]['action_max']}")
-
-                if not DBG_OPTIONS.SaInfoModification20230302:
-                    #todo 아래를 달리하는 방법을 고민해 보자...  여기서 하는 것이 올바른가?
-                    #               get_obj()에 action_size, state_size 추가하면 어떻까?
-                    self.sa_obj[sa_name]['action_space'] = spaces.Box(low=np.array(self.sa_obj[sa_name]['action_min']),
-                                                                        high=np.array(self.sa_obj[sa_name]['action_max']),
-                                                                        dtype=np.int32)
-                if 1:
-                    print(f"Init after sa={sa_name}  action_space={self.sa_obj[sa_name]['action_space']} ")
 
             self.simulation_steps = 0
 
@@ -503,14 +491,11 @@ class SaltSappoEnvV3(gym.Env):
 
             if DBG_OPTIONS.PrintStep:
                 print("self.discrete_actions={}".format(self.discrete_actions))
-                print("step={} sa_i={}  said={} tl_name={} discrete_actions={} rewards={}".format(self.simulation_steps, sa_i,
-                                                                                         said,
-                                                                                         self.sa_obj[said][
-                                                                                             'crossName_list'],
-                                                                                         np.round(self.discrete_actions[sa_i], 3),
-                                                                                         np.round(
-                                                                                             self.reward_mgmt.sa_rewards[
-                                                                                                 sa_i], 2)))
+                print("step={} sa_i={}  said={} tl_name={} discrete_actions={} rewards={}".
+                                format(self.simulation_steps, sa_i, said,
+                                self.sa_obj[said]['crossName_list'],
+                                np.round(self.discrete_actions[sa_i], 3),
+                                np.round(self.reward_mgmt.sa_rewards[sa_i], 2)))
 
         self.idx_of_act_sa = idx_of_next_act_sa
 
