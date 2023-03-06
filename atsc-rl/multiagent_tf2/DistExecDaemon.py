@@ -224,7 +224,7 @@ class ExecDaemon:
                 #-- copy an object to be used as an input argument when creating LDT
                 #----
                 new_args = copy.deepcopy(args)
-                tlg = tlg.strip()  ## todo DELETE .... remove white space
+                tlg = tlg.strip()
                 new_args.target_TL = tlg
 
                 remains = ""
@@ -304,7 +304,7 @@ class ExecDaemon:
                     # -- copy an object to be used as an input argument when creating LDT
                     # ----
                     new_args = copy.deepcopy(args)
-                    tlg = tlg.strip()  ## todo DELETE .... remove white space
+                    tlg = tlg.strip()
                     new_args.target_TL = tlg
 
                     remains = ""
@@ -435,8 +435,6 @@ if __name__ == '__main__':
     parser.add_argument("--do-parallel", type=str2bool, default=True)
 
     args = parser.parse_args()
-
-    print(f"args.do_parallel={args.do_parallel}")   ## todo DELETE
 
     exec_daemon = ExecDaemon(args.ip_addr, args.port, args.do_parallel)
     exec_daemon.serve()

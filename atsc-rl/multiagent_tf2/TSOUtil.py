@@ -285,7 +285,6 @@ def addArgumentsToParser(parser):
     parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
                         help="number of candidate to compare reward to find optimal model")
 
-    ## todo DELETE this comments.... to enhance distribute processing
     ## add 2 arguments for distributed learning
     ##        output-home : root directory to save files which is created when we do RL; relative path
     ##        num-concurrent-env : number of env when we use to train an agent
@@ -629,10 +628,9 @@ def generateCommand(args):
             ## todo  만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
 
-        ## todo DELETE this comments.... to enhance distribute processing
         output_home = args.target_TL.replace(' ', '_')
         cmd = cmd + ' --output-home {}'.format(output_home)
-        print(f'DELETE    args.target_TL={args.target_TL}    output_home = {output_home}')
+        # print(f'args.target_TL={args.target_TL}    output_home = {output_home}')
 
         cmd = cmd + ' --num-concurrent-env {}'.format(args.num_concurrent_env)
 
@@ -647,7 +645,6 @@ def generateCommand(args):
         # to compare results
         cmd = cmd + ' --result-comp True '
 
-        ## todo DELETE this comments.... to enhance distribute processing
         cmd = cmd + ' --output-home . '
 
 
@@ -678,7 +675,6 @@ def makeConfigAndProblemVar(args):
     return config, problem_var
 
 
-## DELETE this comments : for distributed learning
 def getOutputDirectoryRoot(args):
     return f"{args.io_home}/{args.output_home}"
 
