@@ -120,6 +120,10 @@ if [ 1 ]; then
   ###--- execution daemon for distributed training
   EXEC_DAEMON="DistExecDaemon.py"
 
+  ###--- whether do execute LDT in ExecDaemon(in a node) parallelly or not
+  ###    use this flag for comparison
+  DO_PARALLEL="true"
+
   ###-- reinforcement learning main
   RL_PROG="run.py"
 
@@ -333,7 +337,7 @@ then
   for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ## (2.1) construct command
-    INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT "
+    INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
 
     CMD="ssh $ACCOUNT@$ip  "
     CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
