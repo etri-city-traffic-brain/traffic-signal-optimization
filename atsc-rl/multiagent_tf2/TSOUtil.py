@@ -103,11 +103,10 @@ def str2bool(v):
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
-
 def strToIntTuple(v):
     '''
-    convert comma separated integer string to list of integer
-    :param v: comma separated integer
+    convert a comma-separated integer string to a list of integers
+    :param v: a comma-separated integer string
     :return: list of integer
     '''
     tokens = v.split(',')
@@ -122,6 +121,42 @@ def strToIntTuple(v):
 
 
 
+def strToList(v):
+    '''
+    convert a comma-separated String to a list of Strings
+    :param v: a comma-separated String
+    :return: a list of String
+    '''
+    tokens = v.split(',')
+    ret_val = []
+    for i in range(len(tokens)):
+        try:
+            ret_val.append(tokens[i].strip())
+        except ValueError:
+            raise argparse.ArgumentTypeError('string of comma separated integer values are expected.')
+
+    return tuple(ret_val)
+
+
+
+def removeWhitespaceBtnComma(comma_separated_string):
+    '''
+    Removes white spaces between commas from comma-separated strings.
+    :param comma_separated_string:
+    :return:
+    '''
+    tokens = comma_separated_string.split(',')
+    num_tokens = len(tokens)
+
+    if num_tokens >= 1:
+        cvted = tokens[0].strip()
+
+    for i in range(1, num_tokens):
+        cvted = cvted + "," + tokens[i].strip()
+
+    return cvted
+
+
 def addArgumentsToParser(parser):
 
     parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
@@ -134,6 +169,9 @@ def addArgumentsToParser(parser):
                 # sa_1_6_17 : SA 1,SA 6,SA 17
     parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
                         help="target signal groups; multiple groups can be separated by comma(ex. --target-TL 'SA 101,SA 104')")
+
+
+
     parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
@@ -150,13 +188,13 @@ def addArgumentsToParser(parser):
                         help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length')
                         # 'wt_SBV', 'wt_SBV_max', 'wt_ABV'  : SBV - sum-based, ABV - average-based .... TOO SLOW
 
-    parser.add_argument("--cumulative-training", type=str2bool, default="FALSE", help='whether do cumulative training based on a previously trained model parameter or not')
+    parser.add_argument("--cumulative-training", type=str2bool, default=False, help='whether do cumulative training based on a previously trained model parameter or not')
 
     parser.add_argument('--model-num', type=str, default='0', help='trained model number')
 
     parser.add_argument('--infer-model-num', type=str, default='-1', help='trained model number for inference; this value is valid only when infer-TL is exist')
 
-    parser.add_argument("--result-comp", type=str2bool, default="TRUE", help='whether compare simulation result or not')
+    parser.add_argument("--result-comp", type=str2bool, default=True, help='whether compare simulation result or not')
 
 
     # dockerize
@@ -166,7 +204,7 @@ def addArgumentsToParser(parser):
     parser.add_argument('--epoch', type=int, default=3000, help='training epoch')
     parser.add_argument('--warmup-time', type=int, default=600, help='warming-up time of simulation')
     parser.add_argument('--model-save-period', type=int, default=20, help='how often to save the trained model')
-    parser.add_argument("--print-out", type=str2bool, default="TRUE", help='print result each step')
+    parser.add_argument("--print-out", type=str2bool, default=True, help='print result each step')
 
     ### action
     parser.add_argument('--action-t', type=int, default=12, help='the unit time of green phase allowance')  # 녹색 신호 부여 단위 : 신호 변경 평가 주기
@@ -246,6 +284,17 @@ def addArgumentsToParser(parser):
 
     parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
                         help="number of candidate to compare reward to find optimal model")
+
+    ## add 2 arguments for distributed learning
+    ##        output-home : root directory to save files which is created when we do RL; relative path
+    ##        num-concurrent-env : number of env when we use to train an agent
+    parser.add_argument('--output-home', type=str, default=".",
+                        help="root directory to save files which is created when we do RL; relative path from IO_HOME")
+
+    parser.add_argument('--num-concurrent-env', type=int, default=1,
+                        help="number of env when we use to train an agent")
+
+    # --------- end of addition
 
     return parser
 
@@ -579,6 +628,12 @@ def generateCommand(args):
             ## todo  만약 trial 별로 모델 저장 경로를 달리한다면 여기서 조정해야 한다.
             cmd = cmd + ' --infer-model-path {} '.format(args.model_store_root_path)
 
+        output_home = args.target_TL.replace(' ', '_')
+        cmd = cmd + ' --output-home {}'.format(output_home)
+        # print(f'args.target_TL={args.target_TL}    output_home = {output_home}')
+
+        cmd = cmd + ' --num-concurrent-env {}'.format(args.num_concurrent_env)
+
     elif args.mode == _MODE_.TEST:
         assert args.infer_model_number >= 0, f"internal error : args.infer_model_number ({args.infer_model_number}) should greater than 0 "
         # we have trained model... do inference
@@ -589,6 +644,9 @@ def generateCommand(args):
 
         # to compare results
         cmd = cmd + ' --result-comp True '
+
+        cmd = cmd + ' --output-home . '
+
 
     if DBG_OPTIONS.PrintGeneratedCommand:
         print("{} constructed command={}".format("\n\n", cmd))
@@ -617,7 +675,8 @@ def makeConfigAndProblemVar(args):
     return config, problem_var
 
 
-
+def getOutputDirectoryRoot(args):
+    return f"{args.io_home}/{args.output_home}"
 
 ##
 #

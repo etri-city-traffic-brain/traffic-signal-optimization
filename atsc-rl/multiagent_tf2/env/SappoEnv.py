@@ -27,6 +27,7 @@ from env.SaltEnvUtil import makePosssibleSaNameList
 from env.SappoActionMgmt import SaltActionMgmt
 from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmtV3
 from TSOUtil import writeLine
+from TSOUtil import getOutputDirectoryRoot
 
 
 
@@ -168,23 +169,22 @@ class SaltSappoEnvV3(gym.Env):
             self.observations = []
             for sa_name in self.sa_name_list:
                 self.observations.append([0] * self.sa_obj[sa_name]['state_space'])
-                #todo 아래를 달리하는 방법을 고민해 보자...  여기서 하는 것이 올바른가?
-                #               get_obj()에 action_size, state_size 추가하면 어떻까?
-                self.sa_obj[sa_name]['action_space'] = spaces.Box(low=np.array(self.sa_obj[sa_name]['action_min']),
-                                                                        high=np.array(self.sa_obj[sa_name]['action_max']),
-                                                                        dtype=np.int32)
 
             self.simulation_steps = 0
+
+            # initialize discrete actions
+            self.discrete_actions = list()
 
             # dictionary to hold TSO output information
             #   : will be dumped into TSO output file(rl_phase_reward_output.txt)
             self.tso_output_info_dic = initTsoOutputInfo()
 
             if self.args.mode == 'test':
-                self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
+                self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(getOutputDirectoryRoot(args))
 
                 writeLine(self.fn_rl_phase_reward_output,
                           'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
+
 
 
     def __getNextTimeToAct(self, current_step, sa_cycle, control_cycle):
@@ -370,6 +370,160 @@ class SaltSappoEnvV3(gym.Env):
         #-- action에 따라 신호 페이즈 집합(self.action_mgmt.apply_phase_array_list)을 변경한다.
         #   지난 번 step에서 새로운 action을 적용할 시간이 도래한 것들에 대해 action 적용하여 변경
         for i in self.idx_of_act_sa:
+            ###-- convert action : i.e., make discrete action
+            sa_name = self.sa_name_list[i]
+            discrete_action = self.action_mgmt.convertToDiscreteAction(sa_name, actions[i])
+            self.discrete_actions[i] = discrete_action
+
+            if DBG_OPTIONS.PrintAction:
+                print(f"DBG in SappoEnv.step() discrete_actions_{i}={discrete_action}")
+
+            if DBG_OPTIONS.RichActionOutput:
+                offset_list, duration_list = self.action_mgmt.changePhaseArray(self.simulation_steps, i, self.discrete_actions[i])
+
+                if self.args.mode=='test':
+                    sa_name = self.sa_name_list[i]
+                    an_sa_obj = self.sa_obj[sa_name]
+                    an_sa_tlid_list = an_sa_obj['tlid_list']
+
+                    if len(offset_list):
+                        # if DBG_OPTIONS.PrintAction:
+                        #     print(f'DBG offset_list_{i}={offset_list} changed')
+
+                        for j in range(len(offset_list)):
+                            tlid = an_sa_tlid_list[j]
+                            ith = self.target_tl_id_list.index(tlid)
+                            assert ith < len(self.tso_output_info_dic["offset"]), print(f'ith={ith} len(self.tso_output_info_dic["offset"])={len(self.tso_output_info_dic["offset"])}')
+                            replaceTsoOutputInfoOffset(self.tso_output_info_dic, ith, offset_list[j])
+
+                    if len(duration_list):
+                        # if DBG_OPTIONS.PrintAction:
+                        #     print(f'DBG duration_list_{i}={duration_list} changed')
+
+                        for j in range(len(duration_list)):
+                            tlid = an_sa_tlid_list[j]
+                            ith = self.target_tl_id_list.index(tlid)
+                            replaceTsoOutputInfoDuration(self.tso_output_info_dic, ith, duration_list[j])
+
+            else:
+                self.action_mgmt.changePhaseArray(self.simulation_steps, i, self.discrete_actions[i])
+
+
+        # apply changed phase array and increase simulation steps
+        if self.args.action in set(["offset", "gr", "gro"]):
+            #--clculate how many steps to increase
+            next_act, idx_of_next_act_sa = self.__getTimeToActInfo()
+            next_act = next_act if next_act < self.end_step else self.end_step
+            inc_step = next_act - self.simulation_steps
+
+            #-- apply signal pahse, increase simulation step, and gather reward related info
+            for i in range(inc_step):
+                # 1. apply signal phase
+                self.action_mgmt.applyCurrentTrafficSignalPhaseToEnv(self.simulation_steps)
+
+                # 2. increase simulation step
+                libsalt.simulationStep()
+                self.simulation_steps += 1
+
+                #3. gather reward related info
+                if self.simulation_steps % self.reward_info_collection_cycle == 0:
+                    # self.reward_mgmt.gatherRewardRelatedInfo(self.action_t, self.simulation_steps, self.reward_info_collection_cycle)
+                    self.reward_mgmt.gatherRewardRelatedInfo(self.simulation_steps)
+
+                # 4. gather visualization related info
+                if self.args.mode == 'test':
+                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
+
+        elif self.args.action == "kc":  # keep or change
+            idx_of_next_act_sa = list(range(self.agent_num))
+
+            ## apply keep-change actions : first step
+            current_phase_list = self.action_mgmt.applyKeepChangeActionFirstStep(self.simulation_steps, self.discrete_actions, self.tl_obj)
+
+                # todo 반환값의 용도가 없다... 나중에 페이즈 정보 출력에 사용할 수 있을 지 모르겠다...
+                # action 적용 전 현재 신호 페이즈 정보 저장
+
+            ## increase simulation steps
+            for i in range(3):  # todo should avoid using CONST 3
+                libsalt.simulationStep()
+                self.simulation_steps += 1
+
+                # gather visualization related info
+                if self.args.mode == 'test':
+                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
+
+            ## apply keep-change actions : second step
+            next_phase_list = self.action_mgmt.applyKeepChangeActionSecondStep(self.simulation_steps, self.discrete_actions, self.tl_obj)
+
+                # todo 반환값의 용도가 없다... 나중에 페이즈 정보 출력에 사용할 수 있을 지 모르겠다...
+                # action 적용된 신호 페이즈 정보 저장
+
+            ## increase simulation steps
+            for i in range(self.action_t):
+                libsalt.simulationStep()
+                self.simulation_steps += 1
+
+                # gather visualization related info
+                if self.args.mode == 'test':
+                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
+
+        # for SAs to apply action next time (다음 번에 action을 적용할 SA들에 대해)
+        #   1) calculate reward, 2) gather state info, 3) increase time to act
+        for sa_i in idx_of_next_act_sa:
+            said = self.sa_name_list[sa_i] # ...signal group name을  sa_i로 얻어온다.
+            ##-- 1. calculate reward : only for target SA; do not gather reward for infer SA
+            if said in self.target_sa_name_list:
+                self.reward_mgmt.calculateReward(sa_i) # 보상 계산
+
+            ##-- 2. gather state info
+            self.observations[sa_i] = self.__getState(self.sa_obj[said], self.tl_obj)
+
+            ##-- 3. increase time to act
+            self.time_to_act_list[sa_i] = self.__getNextTimeToAct(self.simulation_steps, self.sa_cycle_list[sa_i], self.control_cycle)
+
+            if DBG_OPTIONS.PrintStep:
+                print("self.discrete_actions={}".format(self.discrete_actions))
+                print("step={} sa_i={}  said={} tl_name={} discrete_actions={} rewards={}".
+                                format(self.simulation_steps, sa_i, said,
+                                self.sa_obj[said]['crossName_list'],
+                                np.round(self.discrete_actions[sa_i], 3),
+                                np.round(self.reward_mgmt.sa_rewards[sa_i], 2)))
+
+        self.idx_of_act_sa = idx_of_next_act_sa
+
+        if self.simulation_steps >= self.end_step:
+            self.done = True
+            print("self.done step {}".format(self.simulation_steps))
+            libsalt.close()
+
+        info = {}
+
+        return self.observations, self.reward_mgmt.sa_rewards, self.done, info
+
+
+
+
+
+    def stepOrg(self, actions):
+        '''
+        apply actions
+        and gather rewards & observations
+
+        :param actions:
+        :return:
+        '''
+        self.done = False
+
+        # change phase array by applying action
+        #-- action에 따라 신호 페이즈 집합(self.action_mgmt.apply_phase_array_list)을 변경한다.
+        #   지난 번 step에서 새로운 action을 적용할 시간이 도래한 것들에 대해 action 적용하여 변경
+        for i in self.idx_of_act_sa:
             if DBG_OPTIONS.RichActionOutput:
                 offset_list, duration_list = self.action_mgmt.changePhaseArray(self.simulation_steps, i, actions[i])
 
@@ -502,7 +656,7 @@ class SaltSappoEnvV3(gym.Env):
         initialize simulation
         :return:
         '''
-        libsalt.start(self.salt_scenario)
+        libsalt.start(self.salt_scenario, self.args.output_home)
         libsalt.setCurrentStep(self.start_step)
         self.simulation_steps = libsalt.getCurrentStep()
 
@@ -529,12 +683,19 @@ class SaltSappoEnvV3(gym.Env):
 
         #-- warming up
         ##--- make dummy actions to write output file
-        actions = []
+        self.discrete_actions.clear()
+
         for i in range(len(self.sa_name_list)):
             target_sa = self.sa_name_list[i]
             action_space = self.sa_obj[target_sa]['action_space']
             action_size = action_space.shape[0]
-            actions.append(list(0 for _ in range(action_size)))
+            self.discrete_actions.append(list(0 for _ in range(action_size)))
+                    # zero because the offset of the fixed signal is used as it is
+
+            if 1:
+                print(f"Reset discrete_actions={self.discrete_actions}")
+                print(f"Reset sa={target_sa}  action_space={action_space}  action_space.shape[0]={action_space.shape[0]}")
+
 
         ##--- increase simulation steps
         for _ in range(self.warming_up_time):
@@ -544,7 +705,7 @@ class SaltSappoEnvV3(gym.Env):
             # gather visualization related info
             if self.args.mode == 'test':
                 appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
-                                   actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                   self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
                                    self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
         self.simulation_steps = libsalt.getCurrentStep()
@@ -578,7 +739,7 @@ class SaltSappoEnvV3(gym.Env):
                 # gather visualization related info
                 if self.args.mode == 'test':
                     appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
-                                       actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
                                        self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
                 if self.simulation_steps % self.reward_info_collection_cycle == 0:
@@ -597,8 +758,113 @@ class SaltSappoEnvV3(gym.Env):
 
         return self.observations
 
+    def resetOrg(self):
+        '''
+        initialize simulation
+        :return:
+        '''
+        libsalt.start(self.salt_scenario, self.args.output_home)
+        libsalt.setCurrentStep(self.start_step)
+        self.simulation_steps = libsalt.getCurrentStep()
 
+        if self.args.mode == 'test':
+            for k in self.tso_output_info_dic:
+                self.tso_output_info_dic[k].clear()
 
+            for tlid in self.target_tl_id_list:
+                avg_speed, avg_tt, sum_passed, sum_travel_time = gatherTsoOutputInfo(tlid, self.tl_obj, num_hop=0)
+
+                if DBG_OPTIONS.RichActionOutput:
+                    # todo should consider the possibility that TOD can be changed
+                    offset = self.tl_obj[tlid]['offset']
+                    duration = self.tl_obj[tlid]['duration']
+
+                    if DBG_OPTIONS.PrintAction:
+                        cross_name = self.tl_obj[tlid]['crossName']
+                        green_idx = self.tl_obj[tlid]['green_idx']
+                        print(
+                            f'cross_name={cross_name} offset={offset} duration={duration} green_idx={green_idx}  green_idx[0]={green_idx[0]}')
+
+                    appendTsoOutputInfoSignal(self.tso_output_info_dic, offset, duration)
+                self.tso_output_info_dic = appendTsoOutputInfo(self.tso_output_info_dic, avg_speed, avg_tt, sum_passed,
+                                                               sum_travel_time)
+
+        # -- warming up
+        ##--- make dummy actions to write output file
+        actions = []
+
+        for i in range(len(self.sa_name_list)):
+            target_sa = self.sa_name_list[i]
+            action_space = self.sa_obj[target_sa]['action_space']
+            action_size = action_space.shape[0]
+            actions.append(list(0 for _ in range(action_size)))
+
+            if 1:
+                print(f"Reset action={actions}")
+                print(
+                    f"Reset sa={target_sa}  action_space={action_space}  action_space.shape[0]={action_space.shape[0]}")
+
+        ##--- increase simulation steps
+        for _ in range(self.warming_up_time):
+            libsalt.simulationStep()
+            self.simulation_steps += 1
+
+            # gather visualization related info
+            if self.args.mode == 'test':
+                appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                   actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                   self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
+
+        self.simulation_steps = libsalt.getCurrentStep()
+
+        # -- initialize : reward, time_to_act_list, observation
+        self.reward_mgmt.reset()
+
+        for i in range(len(self.sa_name_list)):
+            self.time_to_act_list[i] = self.__getNextTimeToAct(self.simulation_steps, self.sa_cycle_list[i],
+                                                               self.control_cycle)
+
+        self.observations = list([] for i in range(self.agent_num))  # [ [], ...,[]]
+
+        #
+        # action 을 적용해야 하는 곳까지 시뮬레이션을 수행한다.
+        # 이때, 보상 관연 정보를 수집한다. 또한, agent.act() 의 입력이 되는 상태 정보를 수집한다.
+        # performs simulation until the action needs to be applied
+        idx_of_next_act_sa = []
+        if self.args.action in set(["offset", "gr", "gro"]):
+            # --- 1. find the time when the action should be applied through inference
+            #       and get index of SA to determine action through model inference
+            next_act, idx_of_next_act_sa = self.__getTimeToActInfo()
+            inc_step = next_act - self.simulation_steps
+            self.idx_of_act_sa = idx_of_next_act_sa
+
+            # --- 2. increase simulation step, gather reward related info
+            for i in range(inc_step):
+                libsalt.simulationStep()
+                self.simulation_steps += 1
+
+                # gather visualization related info
+                if self.args.mode == 'test':
+                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
+
+                if self.simulation_steps % self.reward_info_collection_cycle == 0:
+                    # self.reward_mgmt.gatherRewardRelatedInfo(self.action_t, self.simulation_steps, self.reward_info_collection_cycle)
+                    self.reward_mgmt.gatherRewardRelatedInfo(self.simulation_steps)
+
+        elif self.args.action == "kc":
+            idx_of_next_act_sa = list(range(self.agent_num))
+
+        assert len(idx_of_next_act_sa) != 0, f"internal error : action ({self.args.action}) is not cared"
+
+        # --- 3. gather state info and get next action-time
+        for i in idx_of_next_act_sa:
+            self.observations[i] = self.__getState(self.sa_obj[self.sa_name_list[i]], self.tl_obj)
+            self.time_to_act_list[i] = self.__getNextTimeToAct(self.simulation_steps, self.sa_cycle_list[i],
+                                                               self.control_cycle)
+
+        return self.observations
 
     def render(self, mode='human'):
         pass
