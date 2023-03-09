@@ -7,6 +7,9 @@
 #    OPT_HOME=/home/developer/uniq/traffic-signal-optimization
 #
 #    sholud check the location of binaries to dockerize
+#    should set DO_PUSH if you want to push into docker repository
+
+DO_PUSH=false # whether do push into docker repository or not : do push if true, otherwise skip push
 
 DEFAULT_VERSION="v2.10.0-gpu" # "v0.0a"   # "v2.1a.0622"
 VERSION=${1:-$DEFAULT_VERSION}
@@ -24,7 +27,6 @@ DEFAULT_COPY_BINARY="yes"
 COPY_BINARY=${4:-$DEFAULT_COPY_BINARY}
 
 
-DO_PUSH=false # whether do push or not : do push into docker repository if true, otherwise skip push
 
 # O. copy binaries
 if [ "$COPY_BINARY" = "yes" ]; then

@@ -1,4 +1,10 @@
 FROM tensorflow/tensorflow:2.10.0-gpu
+##### tensorflow/tensorflow:2.10.0-gpu
+#-- https://hub.docker.com/layers/tensorflow/tensorflow/2.10.0-gpu/images/sha256-3aeb6a5489ad8221d79ab50ec09e0b09afc483dfdb4b868ea38cfb9335269049?context=explore
+#-- CUDA_VERSION=11.2.1   CUDNN=8.1.0.77-1
+#-- Python 3.8.10
+#-- tensorflow 2.10.0
+#
 RUN apt-get update && yes | apt-get update
 RUN apt-get install -y build-essential
 

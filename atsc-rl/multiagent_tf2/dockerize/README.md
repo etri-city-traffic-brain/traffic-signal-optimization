@@ -26,15 +26,16 @@ launch distribution script(dist.opt.sh, dist.salt.sh) after read followings
   * Dockerfile.opt
     * script to build docker image for optimizer
       * contains SALT simulator
+    * Dockerfile.opt.compile : compile SALT simulator when we create docker image
+    * Dockerfile.opt.gpu : consider GPU env
   
   
 * distribution file  
 scripts for automation : docker image build, push docker image into repository (https://hub.docker.com/)
-  * dist.opt.sh :
-    * for optimizer (also contains SALT simulator)
   * dist.salt.sh
     * only for SALT simulator
-
+  * dist.opt.sh :
+    * for optimizer (also contains SALT simulator)
 <hr>
 
 ### troubleshooting
