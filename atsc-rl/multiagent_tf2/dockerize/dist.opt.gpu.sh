@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# [%] dist.salt.sh version# dockerfile_name image_name copy_binary
+# [%] dist.opt.gpu.sh version# dockerfile_name image_name copy_binary
 #
 #    assumption : binaries are located in $SALT_HOME and $OPT_HOME
 #    SALT_HOME=/home/developer/uniq/traffic-simulator
@@ -28,20 +28,13 @@ COPY_BINARY=${4:-$DEFAULT_COPY_BINARY}
 
 
 
-# O. copy binaries
+# O. copy source code
 if [ "$COPY_BINARY" = "yes" ]; then
     # 0.0 set source directory
-    #SALT_HOME=/home/developer/PycharmProjects/z.uniq/traffic-simulator
-    #SALT_HOME=/home/developer/PycharmProjects/z.uniq/traffic-simulator-test_BUS
-    #SALT_HOME=/home/pi/traffic-simulator
     SALT_HOME=/home/tsoexp/z.docker_test/traffic-simulator
-    #OPT_HOME=/home/developer/PycharmProjects/z.uniq/traffic-signal-optimization/salt-rl
-    #OPT_HOME=/home/developer/PycharmProjects/uniq.dockerize/dockerize.opt/to_install_uniq/optimizer_home/
-    #OPT_HOME=/home/developer/PycharmProjects/z.uniq/traffic-signal-optimization/salt-rl
-    #OPT_HOME=/home/pi/etri-city-traffic-brain/traffic-signal-optimization/atsc-rl/multi-agent
-    # OPT_HOME=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2
     OPT_HOME=/home/tsoexp/z.docker_test/io/multiagent_tf2.yjlee
-    # 0.1 remove old binary & create empty directory
+
+    # 0.1 remove old codes & create empty directory
     # 0.1.1 remove old binary
     rm -rf ./to_install_uniq/salt
     rm -rf ./to_install_uniq/optimizer
@@ -50,19 +43,14 @@ if [ "$COPY_BINARY" = "yes" ]; then
     mkdir ./to_install_uniq/salt
     mkdir ./to_install_uniq/optimizer
 
-    # 0.2 copy SALT source
+    # 0.2 copy SALT source code
     cp -r $SALT_HOME/* ./to_install_uniq/salt
-    # cp -r $SALT_HOME/bin ./to_install_uniq/salt
-    # cp -r $SALT_HOME/tools ./to_install_uniq/salt
-    # cp -r ./to_install_uniq/additional/salt_data/salt*.* ./to_install_uniq/salt/bin
-    # cp -r ./to_install_uniq/additional/salt_data/sample ./to_install_uniq/salt
 
-    # 0.3 copy OPTIMIZER binary 
+    # 0.3 copy OPTIMIZER source code
     cp -r $OPT_HOME/*.py ./to_install_uniq/optimizer
     cp -r $OPT_HOME/README.md ./to_install_uniq/optimizer
     cp -r $OPT_HOME/env ./to_install_uniq/optimizer
     cp -r $OPT_HOME/policy ./to_install_uniq/optimizer
-    #cp -r ./to_install_uniq/additional/opt_data/magic ./to_install_uniq/optimizer
 
     cp -r $OPT_HOME/README_DIST.md ./to_install_uniq/optimizer
     cp -r $OPT_HOME/dist_training.sh ./to_install_uniq/optimizer
@@ -102,7 +90,7 @@ sudo docker images
 #
 # 4. login docker repository
 #
-if $DO_PUSH
+if $DO_PUSH  # check whether do push into docker repository or not
 then
     echo [%] sudo docker login $REPO_ID
     sudo docker login -u $REPO_ID
@@ -110,7 +98,7 @@ fi
 #
 # 5. push docker image into repository
 #
-if $DO_PUSH
+if $DO_PUSH # check whether do push into docker repository or not
 then
     # sudo docker push images4uniq/salt:v2.1a.0622
     echo [%] sudo docker push $REPO_ID/$IMAGE_NAME:$VERSION
