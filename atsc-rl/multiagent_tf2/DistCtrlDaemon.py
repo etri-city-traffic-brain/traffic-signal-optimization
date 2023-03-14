@@ -228,10 +228,7 @@ def getArgs():
     parser.add_argument("--port", type=int, default=2727)
     parser.add_argument("--validation-criteria", type=float, default=5.0)
     parser.add_argument("--num-of-learning-daemon", type=int, default=3)
-    # parser.add_argument("--infer_model_root_path", type=str, default="/tmp/tso")
     parser.add_argument("--model-store-root-path", type=str, default="/tmp/tso")
-    # parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
-    #                     help="number of candidate to compare reward to find optimal model")
     parser.add_argument("--copy-simulation-output",  type=str2bool, default=False,
                         help="whether do copy simulation output(PeriodicOutput.csv) to keep test history or not")
 
@@ -292,66 +289,35 @@ def validate(args, validation_trials, fn_dist_learning_history):
         __copySimulationOutput(args, _RESULT_COMP_.PHASE_REWARD_OUTPUT)
 
 
-    if 0:
-        # 개선율만을 저장한 파일에서 읽어온다.
-        # open a file which contains improvement rate as a result of comparison
-        # and get the value which indicates improvement rate
-        fn_improvement_rate = "{}.{}".format(FN_IMPROVEMENT_RATE_PREFIX, args.model_num)
-        improvement_rate = float(readLine(fn_improvement_rate))
+    # read a file which contains the result of comparison
+    # and get the improvement rate
 
-        success = _CHECK_.SUCCESS if improvement_rate >= args.validation_criteria else _CHECK_.FAIL
-        if DBG_OPTIONS.PrintImprovementRate:
-            print("improvement_rate={} got from improvement_rate file ".format(improvement_rate))
+    # case 0:  when the duration of skip for result comparition is given
+    comp_skip = _RESULT_COMPARE_SKIP_
+    fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip,
+                                          args.model_num)
+    df = pd.read_csv(fn_result, index_col=0)
+    imp_rate_0 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
 
-    # 결과 비교 전체를 저장한 파일에서 읽어와서 개선율을 꺼낸다.
-    if 0: # success
-        # read a file which contains the result of comparison
-        # and get the improvement rate
-        fn_result = "{}/{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, args.model_num)
+    if DBG_OPTIONS.ResultCompareSkipWarmUp:
+        # case 1:  when the duration of skip for result comparison is warming-up time
+        # zz.result_comp_s600.0.csv
+        comp_skip = args.warmup_time
+        fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip,
+                                              args.model_num)
         df = pd.read_csv(fn_result, index_col=0)
+        imp_rate_1 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
 
-        if DBG_OPTIONS.PrintImprovementRate:
-            print("### index={}".format(df.index.values))
-            print("### column={}".format(df.columns.values))
+    if DBG_OPTIONS.ResultCompareSkipWarmUp:
+        appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}, {imp_rate_1}")
+    else:
+        appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}")
 
-        # improvement_rate = df.at['total', 'imp_SumTravelTime_sum_0hop']
-        improvement_rate = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
-        success = _CHECK_.SUCCESS if improvement_rate >= args.validation_criteria else _CHECK_.FAIL
+    success = _CHECK_.SUCCESS if imp_rate_0 >= args.validation_criteria else _CHECK_.FAIL
 
-        appendLine(fn_dist_learning_history, f"{args.model_num},{improvement_rate}")
-
-        if DBG_OPTIONS.PrintImprovementRate:
-            print("improvement_rate={} got from result comp file".format(improvement_rate))
-
-    else:  # success
-        # read a file which contains the result of comparison
-        # and get the improvement rate
-
-        # case 0:  when the duration of skip for result comparition is given
-        comp_skip = _RESULT_COMPARE_SKIP_
-        fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
-        df = pd.read_csv(fn_result, index_col=0)
-        imp_rate_0 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
-
-        if DBG_OPTIONS.ResultCompareSkipWarmUp:
-            # case 1:  when the duration of skip for result comparison is warming-up time
-            # zz.result_comp_s600.0.csv
-            comp_skip = args.warmup_time
-            fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
-            df = pd.read_csv(fn_result, index_col=0)
-            imp_rate_1 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
-
-        if DBG_OPTIONS.ResultCompareSkipWarmUp:
-            appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}, {imp_rate_1}")
-        else:
-            appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}")
-
-
-        success = _CHECK_.SUCCESS if imp_rate_0 >= args.validation_criteria else _CHECK_.FAIL
-
-        improvement_rate = imp_rate_0
-        if DBG_OPTIONS.PrintImprovementRate:
-            print("improvement_rate={} got from result comp file".format(improvement_rate))
+    improvement_rate = imp_rate_0
+    if DBG_OPTIONS.PrintImprovementRate:
+        print("improvement_rate={} got from result comp file".format(improvement_rate))
 
     if DBG_OPTIONS.PrintCtrlDaemon:
         waitForDebug("after check....... improvement_rate={}  validation_criteria={} success={} ".
@@ -389,8 +355,8 @@ def makePartition(target, num_part):
 
 
 ####
-# python DistCtrlDaemon.py --port 2727 --num_of_learning_daemon 3 --validation_criteria 6 --ground-zero True
-# python DistCtrlDaemon.py --port 2727  --target "SA 101, SA 104"  --num_of_learning_daemon 2 --validation_criteria 6
+# python DistCtrlDaemon.py --port 2727 --num_of_learning_daemon 3 --validation_criteria 6
+# python DistCtrlDaemon.py --port 2727  --target-TL "SA 101, SA 104"  --num_of_learning_daemon 2 --validation_criteria 6
 if __name__ == '__main__':
 
     if os.environ.get("UNIQ_OPT_HOME") is None:
@@ -399,6 +365,10 @@ if __name__ == '__main__':
     ##
     ## argument parsing
     args = getArgs()
+
+    if args.method != 'sappo':
+        print("Error : {} is not supported. Currently we only support SAPPO.".format(args.method))
+        exit(1)
 
     args.target_TL = removeWhitespaceBtnComma(args.target_TL)
     args.infer_TL = removeWhitespaceBtnComma(args.infer_TL)
@@ -413,17 +383,6 @@ if __name__ == '__main__':
     else:
         writeLine(fn_dist_learning_history, f'trial, improvement_rate_skip{_RESULT_COMPARE_SKIP_}')
 
-    # local_learning_epoch = args.epoch
-    # args.epoch = local_learning_epoch
-
-    ## if result comparison is set,
-    #    xxx_test() funcs in test.py obtain the performance of simulation
-    #       using fixed-time-based signal control for result comparison
-    ##  so.. we do not do it here
-    # if args.ground_zero :
-    #     ## first obtain the current performance
-    #     #     so that we can use it to calculate the degree of improvement.
-    #     current_performance = getTheCurrentPerformance(args)
 
     ##
     ## Set up the server:
@@ -438,16 +397,8 @@ if __name__ == '__main__':
     ## invoke serving threads & establish connection
     serving_client_dic = dict()
 
-    if 0:
-        group_list = args.target_TL.split(",")
-
-        assert len(group_list)==args.num_of_learning_daemon,\
-            "command error : # of group({}) should be equal to num_of_learning_daemon({}}".format(len(group_list), args.num_of_learning_daemon)
-
-        all_targets = group_list[:args.num_of_learning_daemon]
-    else:
-        target_list = args.target_TL.split(",")
-        group_list = makePartition(target_list, args.num_of_learning_daemon)
+    target_list = args.target_TL.split(",")
+    group_list = makePartition(target_list, args.num_of_learning_daemon)
 
     for i in range(args.num_of_learning_daemon):
         channel, details = server.accept()
@@ -494,11 +445,6 @@ if __name__ == '__main__':
                 if sc.check_termination_condition == _CHECK_.ON_GOING:
                     done += 1
 
-        # ### gather learned results
-        # learned_result_dic = {}
-        # for sc in serving_client_dic.values():
-        #     learned_result_dic[sc.target] = sc.learned_result
-
         ### check if re-learning is needed
         checked_result = validate(args, validation_trials, fn_dist_learning_history)
 
@@ -515,7 +461,7 @@ if __name__ == '__main__':
             sc.setInferModelNumber(validation_trials)
             sc.setTerminationCondition(checked_result) # set checked result
 
-        validation_trials += 1
+        validation_trials += 1a
 
         time.sleep(_INTERVAL_.NEXT_TRIAL)
 

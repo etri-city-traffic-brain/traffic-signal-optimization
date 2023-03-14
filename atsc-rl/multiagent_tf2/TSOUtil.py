@@ -163,11 +163,11 @@ def addArgumentsToParser(parser):
                         help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
 
     parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/', help='home directory of scenario; relative path')
-    parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17', 'cdd1', 'cdd2', 'cdd3'], default='sa_1_6_17',
+    parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17', 'cdd1', 'cdd2', 'cdd3'], default='doan',
                         help='name of map')
                 # doan : SA 101, SA 104, SA 107, SA 111
                 # sa_1_6_17 : SA 1,SA 6,SA 17
-    parser.add_argument('--target-TL', type=str, default="SA 1,SA 6,SA 17",
+    parser.add_argument('--target-TL', type=str, default="SA 101, SA 104, SA 107, SA 111",
                         help="target signal groups; multiple groups can be separated by comma(ex. --target-TL 'SA 101,SA 104')")
 
 
@@ -176,17 +176,14 @@ def addArgumentsToParser(parser):
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
 
-    # todo should check ddqn, ppornd, ppoea
-    # parser.add_argument('--method', choices=['sappo', 'ddqn', 'ppornd', 'ppoea'], default='sappo', help='')
     parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
-    parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='offset',
+    parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='gro',
                         help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
     parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                         help='v - volume, d - density, vd - volume + density, vdd - volume / density')
     parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'tt', 'cwq'],
                         default='cwq',
                         help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length')
-                        # 'wt_SBV', 'wt_SBV_max', 'wt_ABV'  : SBV - sum-based, ABV - average-based .... TOO SLOW
 
     parser.add_argument("--cumulative-training", type=str2bool, default=False, help='whether do cumulative training based on a previously trained model parameter or not')
 
@@ -273,10 +270,7 @@ def addArgumentsToParser(parser):
     # parser.add_argument("--res", type=str2bool, default="TRUE")
 
     # --------- begin of addition
-    ## add 3 arguments for distributed learning
-    ##     infer-TL : TLs to infer using trained model
-    ##     infer-model-path : to specify the path that model which will be used to inference was stored
-    ##     num-of-optimal-model-candidate : number of optimal model candidate
+    ## add 5 arguments for distributed learning
     parser.add_argument('--infer-TL', type=str, default="",
                         help="signal groups to do inference with pre-trained model; multiple groups can be separated by comma(ex. --infer_TL 'SA 101,SA 104')")
     parser.add_argument('--infer-model-path', type=str, default=".",
@@ -285,9 +279,6 @@ def addArgumentsToParser(parser):
     parser.add_argument('--num-of-optimal-model-candidate', type=int, default=3,
                         help="number of candidate to compare reward to find optimal model")
 
-    ## add 2 arguments for distributed learning
-    ##        output-home : root directory to save files which is created when we do RL; relative path
-    ##        num-concurrent-env : number of env when we use to train an agent
     parser.add_argument('--output-home', type=str, default=".",
                         help="root directory to save files which is created when we do RL; relative path from IO_HOME")
 
@@ -392,44 +383,6 @@ def execTrafficSignalOptimization(cmd):
     '''
     my_env = os.environ.copy()
     subprocess.SW_HIDE = 1
-
-    r = subprocess.Popen(cmd, shell=True, env=my_env).wait() # success
-    # r = subprocess.Popen(cmd, shell=False, env=my_env).wait() # error
-    #    FileNotFoundError: [Errno 2] No such file or directory:
-    #    'cd multiagent; python run.py --mode train --method sappo --target-TL "SA 101" --map doan --epoch 5'
-    # r = subprocess.run(cmd, shell=True, env=my_env).wait() # error
-
-    return r
-
-
-
-def execTrafficSignalOptimization_Old(cmd):
-    '''
-    set the environment to do TSO(traffic signal optimization)
-    and
-    execute TSO program
-    (as an external subprocess)
-
-    :param cmd: command to launch TSO program
-    :return:
-    '''
-    env = os.environ
-    subprocess.SW_HIDE = 1
-
-    my_env = {}
-    if 1: # work well
-        my_env['PATH'] = env['PATH']
-        my_env['SALT_HOME'] = env['SALT_HOME']
-        # my_env['PYTHONPATH'] = env['PYTHONPATH']
-    else: # work well
-        my_env['PATH'] = env['PATH']
-        salt_home = env['SALT_HOME']
-        my_env['SALT_HOME'] = salt_home
-        python_home = env.get('PYTHONHOME')
-        if python_home == None:
-            python_home = "."
-        python_home = f'{python_home}:{salt_home}/tools:{salt_home}:/tools/libsalt'
-        my_env['PYTHONPATH'] = python_home
 
     r = subprocess.Popen(cmd, shell=True, env=my_env).wait() # success
     # r = subprocess.Popen(cmd, shell=False, env=my_env).wait() # error
@@ -615,12 +568,7 @@ def generateCommand(args):
         if args.infer_model_number >= 0:  # we have trained model... do inference
             cmd = cmd + ' --infer-TL "{}"'.format(args.infer_TL)
 
-            # cmd = cmd + ' --cumulative-training {} '.format(args.cumulative_training)
-
-            if 0:  # todo 0번부터 카운트하는 것을 1번부터 하게 하면 어떻까?
-                load_model_num = int((args.epoch / args.model_save_period) * args.model_save_period)
-            else:
-                load_model_num = int((args.epoch - 1) / args.model_save_period) * args.model_save_period
+            load_model_num = int((args.epoch - 1) / args.model_save_period) * args.model_save_period
 
             cmd = cmd + ' --model-num {} '.format(load_model_num)
             cmd = cmd + ' --infer-model-num {} '.format(args.infer_model_number)
