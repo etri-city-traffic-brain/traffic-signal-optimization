@@ -5,6 +5,14 @@ FROM tensorflow/tensorflow:2.10.0-gpu
 #-- Python 3.8.10
 #-- tensorflow 2.10.0
 #
+# should install "nvidia-docker"
+#   ref. nvidia-docker 설치 및 컨테이너 띄우기 with GPU (Ubuntu 기준)
+#        https://data-science-hi.tistory.com/203
+#        https://github.com/NVIDIA/nvidia-docker
+#        https://hub.docker.com/r/tensorflow/tensorflow
+#
+#   sudo docker run -it --gpus "device=1" -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io optimizer:v2.10.0-gpu /bin/bash
+#
 RUN apt-get update && yes | apt-get update
 RUN apt-get install -y build-essential
 
