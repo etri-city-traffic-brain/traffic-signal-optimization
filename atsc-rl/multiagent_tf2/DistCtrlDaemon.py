@@ -461,7 +461,7 @@ if __name__ == '__main__':
             sc.setInferModelNumber(validation_trials)
             sc.setTerminationCondition(checked_result) # set checked result
 
-        validation_trials += 1a
+        validation_trials += 1
 
         time.sleep(_INTERVAL_.NEXT_TRIAL)
 
