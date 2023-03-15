@@ -5,7 +5,7 @@ FROM tensorflow/tensorflow:2.10.0-gpu
 #-- Python 3.8.10
 #-- tensorflow 2.10.0
 #
-# should install "nvidia-docker"
+# If you want to run created docker image with GPU env,  you should install "nvidia-docker".
 #   ref. nvidia-docker 설치 및 컨테이너 띄우기 with GPU (Ubuntu 기준)
 #        https://data-science-hi.tistory.com/203
 #        https://github.com/NVIDIA/nvidia-docker
