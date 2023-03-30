@@ -1,0 +1,133 @@
+FROM tensorflow/tensorflow:2.10.0-gpu
+##### tensorflow/tensorflow:2.10.0-gpu
+#-- https://hub.docker.com/layers/tensorflow/tensorflow/2.10.0-gpu/images/sha256-3aeb6a5489ad8221d79ab50ec09e0b09afc483dfdb4b868ea38cfb9335269049?context=explore
+#-- CUDA_VERSION=11.2.1   CUDNN=8.1.0.77-1
+#-- Python 3.8.10
+#-- tensorflow 2.10.0
+#
+# If you want to run created docker image with GPU env,  you should install "nvidia-docker".
+#   ref. nvidia-docker 설치 및 컨테이너 띄우기 with GPU (Ubuntu 기준)
+#        https://data-science-hi.tistory.com/203
+#        https://github.com/NVIDIA/nvidia-docker
+#        https://hub.docker.com/r/tensorflow/tensorflow
+#
+#   sudo docker run -it --gpus "device=1" -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io optimizer:v2.10.0-gpu /bin/bash
+#
+RUN apt-get update && yes | apt-get update
+RUN apt-get install -y build-essential
+
+RUN apt-get update
+RUN DEBIAN_FRONTEND="noninteractive" apt-get -y install tzdata
+RUN apt-get install -y software-properties-common
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get update
+
+# 1. install library for dependency
+# 1.1 libraries for SALT simulator
+# 1.1.1  swig for SALT simulator
+RUN apt-get remove swig
+RUN apt-get install -y swig
+RUN swig -version
+
+# 1.1.2  camke for SALT simulator
+RUN apt-get install -y cmake
+RUN cmake -version
+
+# 1.1.3  libboost_1_71 for SALT simulator
+WORKDIR /to_install
+COPY ./to_install_uniq/boost_1_71_0.tar.bz2 /to_install
+RUN tar xvfj boost_1_71_0.tar.bz2
+WORKDIR /to_install/boost_1_71_0
+RUN ./bootstrap.sh --prefix=/usr
+RUN ./b2 cxxflags=-fPIC cflags=-fPIC link=static -a
+RUN ./b2 install
+WORKDIR /
+RUN rm -rf /to_install
+
+
+# 1.2  python, pandas, tensorflow, keras, h5py for optimizer & simulator
+# 1.2.1 python for simulator, optimizer
+RUN apt-get update
+# python3.8 is already in base docker image(tensorflow/tensorflow:x.y.z-gpu)
+#-- RUN apt-get install -y python3.8 python3-pip
+#-- RUN ln -s /usr/bin/python3.8 /usr/bin/python
+RUN python -m pip install --upgrade pip
+
+# 1.2.2 packages for optimizer
+# tensorflow is already in base docker image(tensorflow/tensorflow:x.y.z-gpu)
+RUN python -m pip install pandas
+RUN python -m pip install gym
+RUN python -m pip install matplotlib
+RUN python -m pip install deprecated
+
+# 1.3 for convenience, install vim editor
+RUN apt-get update
+RUN apt-get install -y vim
+
+# 2. install simulator
+# 2.1 install SALT simulator
+# 2.1.1 copy salt source code
+COPY ./to_install_uniq/salt /uniq/simulator/salt
+
+# 2.1.2 compile
+WORKDIR /uniq/simulator/salt
+RUN /uniq/simulator/salt/c.sh
+
+# 2.1.3 clean : remove source code
+RUN rm -rf ./LICENSE ./README.md ./analysis ./build ./c.sh ./conf ./data
+RUN rm -rf ./flow.txt ./helper ./include ./lib ./src ./test
+WORKDIR /
+
+
+# 2.2 install SUMO simulator
+#       all dependent lib.s for SUMO are installed
+RUN apt-get update
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Seoul
+RUN apt-get install -y sumo sumo-tools sumo-doc
+#       make a symbolic link
+RUN ln -s /usr/share/sumo /uniq/simulator/sumo
+
+# 3. install optimizer
+COPY ./to_install_uniq/optimizer /uniq/optimizer
+
+# 4. set environment variable
+# 4.1 set env variable for SALT
+ENV SALT_HOME=/uniq/simulator/salt
+ENV PYTHONPATH=$SALT_HOME/tools:$PYTHONPATH
+ENV PATH=$SALT_HOME/bin:$PATH
+
+# 4.2 set env variable for SUMO
+ENV SUMO_HOME=/uniq/simulator/sumo
+ENV PYTHONPATH=$SUMO_HOME/tools:$PYTHONPATH
+ENV PATH=$SUMO_HOME/bin:$PATH
+
+# 5. set working dir
+WORKDIR /uniq/optimizer
+
+# 6. execute
+#ENTRYPOINT ["/bin/bash", "-l", "-c"]
+
+#
+#  sudo docker build -f Dockerfile.opt.compile -t foo:0.1 .
+#
+#  sudo docker images
+#  sudo docker rmi -f cf79e0f33133
+#
+#  sudo docker run -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io foo:0.1 python run.py --mode train --map doan --action offset --target-TL 'SA 101' --epoch 1 --io-home io --scenario-file-path io/scenario
+#  sudo docker run -it -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io foo:0.1 /bin/bash
+#  sudo docker run -it  mygpu:v0.1 /bin/bash
+#
+#  sudo docker run -it -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io optimizer:v2.10.0-gpu /bin/bash
+#  python run.py --mode simulate --map doan  --scenario-file-path io/scenario --target-TL "SA 101, SA 104"
+#  python run.py --mode train  --map doan  --scenario-file-path io/scenario --target-TL "SA 101, SA 104"  --method sappo  --state vdd  --action gro  --reward-func cwq  --io-home ./io  --epoch 2  --warmup-time 600  --model-save-period 1
+#  python run.py --mode test  --map doan  --scenario-file-path io/scenario --target-TL "SA 101, SA 104"  --method sappo  --state vdd  --action gro  --reward-func cwq  --io-home ./io  --epoch 2  --warmup-time 600  --model-num 0 --result-comp true
+#
+#
+# sudo docker run -it -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io optimizer:v2.10.0-gpu  python run.py --mode simulate --map doan  --scenario-file-path io/scenario --target-TL "SA 101, SA 104"
+# sudo docker run -it -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io optimizer:v2.10.0-gpu  python run.py --mode train  --map doan  --scenario-file-path io/scenario --target-TL "SA 101, SA 104"  --method sappo  --state vdd  --action gro  --reward-func cwq  --io-home ./io  --epoch 2  --warmup-time 600  --model-save-period 1
+# sudo docker run -it -v /home/tsoexp/z.docker_test/io:/uniq/optimizer/io optimizer:v2.10.0-gpu   python run.py --mode test  --map doan  --scenario-file-path io/scenario --target-TL "SA 101, SA 104"  --method sappo  --state vdd  --action gro  --reward-func cwq  --io-home ./io  --epoch 2  --warmup-time 600  --model-num 0 --result-comp true
+
+#
+#  python run.py --mode train  --map doan   --target-TL "SA 101, SA 104"  --method sappo  --state vdd  --action gro  --reward-func cwq --epoch 1 --warmup-time 600  --model-save-period 1
+#  python run.py --mode test --map doan   --target-TL "SA 101, SA 104"  --method sappo  --state vdd  --action gro  --reward-func cwq  --warmup-time 600 --model-num 0 --result-comp true

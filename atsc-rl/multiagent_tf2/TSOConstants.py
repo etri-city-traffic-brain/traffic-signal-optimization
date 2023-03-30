@@ -9,6 +9,9 @@ ONE_HOUR = 3600 # 1 hour is 3600 seconds(=60 * 60)
 TEN_MINUTE = 600 # ten minute is 600 seconds(=10 * 60)
 _RESULT_COMPARE_SKIP_ = TEN_MINUTE # ONE_HOUR
 
+_LENGTH_OF_MAX_MSG_ = 2048  # maximum length of message
+
+
 class _INTERVAL_:
     '''
     time interval to control distributed learning

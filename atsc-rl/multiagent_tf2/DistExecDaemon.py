@@ -16,6 +16,7 @@ from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _FN_PREFIX_, _MODE_
+from TSOConstants import _LENGTH_OF_MAX_MSG_
 from TSOUtil import convertSaNameToId
 from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, readLines
 from TSOUtil import removeWhitespaceBtnComma
@@ -45,9 +46,9 @@ class LearningDaemonThread(threading.Thread):
         copy trained model into shared storage
 
         use complicate name : contains learning env info
-          ex. SAPPO-_state_vdd_action_gr_reward_pn_..._control_cycle_1-trial_1_SA_104_actor.h5
+          ex. SAPPO-_state_vdd_action_gro_reward_..._offset_range_2-trial-178_SA_104_actor.h5
 
-        Consistency must be maintained with makeLoadModelFnPrefixV2() at run.py
+        Consistency must be maintained with makeLoadModelFnPrefix() at run.py
 
         :return:
         '''
@@ -62,13 +63,14 @@ class LearningDaemonThread(threading.Thread):
 
 
         model_store_path = self.args.model_store_root_path
-        #todo 현재 대상이 하나인 경우만 고려하고 있다. 여러 개인 경우에 대해 고려해야 한다.
+
         fn_opt_model_info = '{}.{}'.format(_FN_PREFIX_.OPT_MODEL_INFO, convertSaNameToId(target_list[0]))
+            # ex.,  zz.optimal_model_info.SA_104
         opt_model_info = readLines(fn_opt_model_info)[-1]
-            # ./model/sappo/SAPPO-_state_vdd_action_gr_reward_cwq_..._control_cycle_1-trial-0
+            # ex.,  ./model/sappo/SAPPO-_state_vdd_action_gro_reward_cwq.._offset_range_2-trial-178
 
         tokens = opt_model_info.split('-')
-        opt_model_num = int(tokens[-1])
+        opt_model_num = int(tokens[-1])  # ex., 178
         trial = self.args.infer_model_number + 1
         method = self.args.method
 
@@ -77,6 +79,7 @@ class LearningDaemonThread(threading.Thread):
         problem_var = ('-').join(problem_var.split('-')[:-1])  # SAPPO-_state_vdd_action_gr_reward_cwq_...._cycle_1
 
         path = path + '*'  # ./model/sappo/SAPPO-_state_vdd_action_gr_reward_cwq_...._cycle_1-trial*
+        #  ex., file name of trained model : SAPPO-_state_vdd_action_gro_reward_cwq_..._offset_range_2-trial_178_SA_107_actor.h5
 
         if DBG_OPTIONS.PrintExecDaemon:
             print("opt_model_num={}\npath={}\nproblem_var={}".format(opt_model_num, path, problem_var))
@@ -187,95 +190,15 @@ class ExecDaemon:
         :return:
         '''
         #todo check the length of msg...
-        #     there is a possiblity that it is not work if len(msg) is greater than 2048
-        recv_msg = soc.recv(2048)
+        #     there is a possibility that it is not work if len(msg) is greater than TSOConstants._LENGTH_OF_MAX_MSG_
+        recv_msg = soc.recv(_LENGTH_OF_MAX_MSG_)
         recv_msg_obj = doUnpickling(recv_msg)
         if DBG_OPTIONS.PrintExecDaemon:
             print("## recv_msg from {}:{} -- {}".format(self.connect_ip_addr, self.connect_port, recv_msg_obj.toString()))
         return recv_msg_obj
 
+
     def doLocalLearning(self, recv_msg_obj):
-        # return self.doLocalLearning_org(recv_msg_obj)
-        return self.doLocalLearning_new(recv_msg_obj)
-
-    def doLocalLearning_org(self, recv_msg_obj):
-        '''
-        do local learning
-        :param recv_msg_obj:
-        :return:
-        '''
-        args = recv_msg_obj.msg_contents[_MSG_CONTENT_.CTRL_DAEMON_ARGS]
-        args.mode = _MODE_.TRAIN
-        args.target_TL = recv_msg_obj.msg_contents[_MSG_CONTENT_.TARGET_TL]
-        args.infer_TL = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_TL]
-        args.infer_model_number = recv_msg_obj.msg_contents[_MSG_CONTENT_.INFER_MODEL_NUMBER]
-
-        # 1. prepare LDT(learning-daemon-thread)s for learning
-        # (1-a) create LDT(learning-daemon-thread)s for learning if it is first trial
-        # (1-b) set is_learning_done flag False if it is not first trial
-        if len(self.learning_daemon_thread_dic) == 0:
-            # (1-a) create LDT(learning-daemon-thread)s for learning if it is first trial
-            target_tl_list = args.target_TL.split(",")
-
-            len_target_tl_list = len(target_tl_list)
-            separtor = ','
-            for tlg in target_tl_list:
-                # todo --> done 하나의 TLG 만 담당하게 하므로 나머지는 추론을 이용할 수 있도록 args를 조작해야 한다.
-                #-- copy an object to be used as an input argument when creating LDT
-                #----
-                new_args = copy.deepcopy(args)
-                tlg = tlg.strip()
-                new_args.target_TL = tlg
-
-                remains = ""
-                magic = 0
-                for idx, val in enumerate(target_tl_list):
-                    if val==tlg:
-                        magic = 1
-                        continue
-                    remains += val + ('' if idx == (len_target_tl_list - 2 + magic) else separtor)
-
-                if len(args.infer_TL.strip()) > 0 and len(remains) > 0 :
-                    new_args.infer_TL=f"{args.infer_TL}, {remains}"
-                elif len(args.infer_TL.strip()) > 0 and len(remains) == 0 :
-                    new_args.infer_TL=f"{args.infer_TL}"
-                elif len(args.infer_TL.strip()) == 0 and len(remains) == 0 :
-                    new_args.infer_TL = ""
-                else:
-                    print("internal error ExecDaemon::doLocalLearning()")
-
-                #-- create LDT
-                ldt = LearningDaemonThread(new_args, tlg)  # allocate work
-                self.learning_daemon_thread_dic[tlg] = ldt
-                ldt.start()
-
-                if DBG_OPTIONS.PrintExecDaemon:
-                    waitForDebug(f"LDT for {tlg}  inferTL={new_args.infer_TL} infer_model_number={new_args.infer_model_number} launched")
-        else :
-            # (1-b) set is_learning_done flag False if it is not first trial
-            for ldt in self.learning_daemon_thread_dic.values():
-                ldt.args.infer_model_number = args.infer_model_number
-                ldt.is_learning_done = False  # should set False after args.infer_model_number was assigned
-                if DBG_OPTIONS.PrintExecDaemon:
-                    waitForDebug(
-                        f"LDT for {ldt.target_TLG}  inferTL={ldt.args.infer_TL} infer_model_number={ldt.args.infer_model_number} activated")
-
-        # 2. check whether local learning is done for all TLG
-        done = 0
-        num_ldt = len(self.learning_daemon_thread_dic)
-        while num_ldt != done:
-            time.sleep(_INTERVAL_.LEARNING_DONE_CHECK)
-            done = 0
-            for ldt in self.learning_daemon_thread_dic.values():
-                if ldt.is_learning_done :
-                    done += 1
-
-        return True
-
-
-    ## todo 나중에 순차 실행과 비교하기 위해 할당된 모든 교차로에 대해 하나의 쓰레드(프로세스)가 학습을 하게 하는 코드 추가
-    ##     DistExecDaemon 의 인자로 추가
-    def doLocalLearning_new(self, recv_msg_obj):
         '''
         do local learning
         :param recv_msg_obj:
@@ -295,12 +218,9 @@ class ExecDaemon:
             if self.do_parallel:
                 ## create multiple LDT to train in parallel : one for each group of intersections
                 target_tl_list = args.target_TL.split(",")
-                len_target_tl_list = len(target_tl_list)
-                separtor = ','
 
                 for tlg in target_tl_list:
-                    print(f"\nnow targetTL=[{tlg}]")
-                    # todo --> done 하나의 TLG 만 담당하게 하므로 나머지는 추론을 이용할 수 있도록 args를 조작해야 한다.
+                    # print(f"\nnow targetTL=[{tlg}]")
                     # -- copy an object to be used as an input argument when creating LDT
                     # ----
                     new_args = copy.deepcopy(args)
@@ -384,33 +304,18 @@ class ExecDaemon:
             if ( (recv_msg_obj.msg_type == _MSG_TYPE_.LOCAL_LEARNING_REQUEST) or
                  (recv_msg_obj.msg_type == _MSG_TYPE_.LOCAL_RELEARNING_REQUEST)) :
 
-                # todo LDT 생성하여 학습을 진행한다.
-                #      ## doLocalLearning
-                #         1. LDT 생성 & 최적화할 교차로 그룹 할당 ... if first trial
-                #             if len(self.learning_daemon_thread_dic) == 0
-                #                   create & allocate work
-                #             ### LDT들은 학습을 하고, 결과인 학습된 모델을 복사한다.
-                #         2. 모든 LDT들이 학습을 종료했는지 확인한다.
-                #         3. 모두 종료되었으면 성공(True)을 반환한다.
                 result = self.doLocalLearning(recv_msg_obj)
-
-                if 0:
-                    # do local learning
-                    result = self.doLocalLearning(recv_msg_obj)
-
-                    result = self.__copyTrainedModel(recv_msg_obj)
 
                 # after local learning was done, send MSG_LOCAL_LEARNING_DONE
                 send_msg = self.sendMsg(soc, _MSG_TYPE_.LOCAL_LEARNING_DONE, result)
 
             elif recv_msg_obj.msg_type == _MSG_TYPE_.TERMINATE_REQUEST:
                 # set termination mode
-                # todo -> done LDT들에게 종료를 설정한다.   ----> done
-                #              LDT들은 졸료가 설정되었으면 종료한다.  ---> done
                 for ldt in self.learning_daemon_thread_dic.values():
                     ldt.setTerminate()
 
                 is_terminate = True
+
                 # send MSG_TERMINATE_DONE
                 send_msg = self.sendMsg(soc, _MSG_TYPE_.TERMINATE_DONE, "terminate done")
 
@@ -424,7 +329,7 @@ class ExecDaemon:
 
 ####
 #
-# python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727
+# python DistExecDaemon.py --ip-addr 129.254.182.176 --port 2727 --do-parallel true
 if __name__ == '__main__':
     if os.environ.get("UNIQ_OPT_HOME") is None:
         os.environ["UNIQ_OPT_HOME"] = os.getcwd()

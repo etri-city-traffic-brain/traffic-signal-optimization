@@ -126,7 +126,7 @@ def copyScenarioFiles(scenario_file_path):
 ### 녹색 시간 조정 actioon 생성
 def getActionList(phase_num, max_phase):
     '''
-    create list of possible actions which can ge used to adjust green time
+    create list of possible actions which can be used to adjust green time
     :param phase_num:
     :param max_phase:
     :return:
@@ -181,59 +181,6 @@ def getActionList(phase_num, max_phase):
 
     return action_list
 
-
-@deprecated(reason="use another function : getActionList")
-def getActionListV2(phase_num, max_phase):
-    '''
-    create list of possible actions which can ge used to adjust green time
-
-    :param phase_num:
-    :param max_phase:
-    :return:
-    '''
-    _pos = [4, 3, 2, 1, 0, -1, -2, -3, -4]
-
-    phase_num = phase_num
-    max_phase = max_phase
-    mask = np.ones(phase_num, dtype=bool)
-    mask[max_phase] = 0
-    if phase_num <= 5:
-        if phase_num == 2:
-            meshgrid = np.array(np.meshgrid(_pos, _pos)).T.reshape(-1, phase_num)
-        if phase_num == 3:
-            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos)).T.reshape(-1, phase_num)
-        if phase_num == 4:
-            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
-        if phase_num == 5:
-            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
-
-        action_list = [x.tolist() for x in meshgrid
-                                        if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
-                                            and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
-                                            and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])
-                                            and x[max_phase]>0]
-    else:
-        meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
-        action_list = [x.tolist() for x in meshgrid
-                                        if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
-                                            and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
-                                            and x[max_phase] != np.min(x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1
-                                            and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])
-                                            and x[max_phase]>0]
-
-    tmp = list([-1] * phase_num)
-    tmp[max_phase] = phase_num - 1
-    action_list.append(tmp)
-
-    tmp = list([0] * phase_num)
-    action_list.append(tmp)
-
-    action_list.reverse()
-
-    for i in range(1, len(action_list)):
-        action_list.append(list(np.array(action_list[i])*2))
-
-    return action_list
 
 ### 녹색 시간 조정 action list에서 제약 조건 벗어나는 action 제거
 def getPossibleActionList(args, duration, min_dur, max_dur, green_idx, actionList):
@@ -863,7 +810,6 @@ def appendPhaseRewards(fn, sim_step, actions, reward_mgmt, sa_obj, sa_name_list,
              newline=None, closefd=True, opener=None)
 
     num_target = len(sa_name_list)
-    sa_reward_related_info_list = []
     if reward_mgmt.reward_unit == _REWARD_GATHER_UNIT_.SA:
         sa_reward_list = []
         for sa_idx in range(num_target):
