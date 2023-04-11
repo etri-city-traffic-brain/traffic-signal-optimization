@@ -157,7 +157,7 @@ class SaltSappoEnvV3(gym.Env):
         ##   ALl SA need State(Observation)
         self.observations = []
         for sa_name in self.sa_name_list:
-            self.observations.append([0] * self.sa_obj[sa_name]['state_space'])
+            self.observations.append(np.array([0] * self.sa_obj[sa_name]['state_space']))
 
         self.simulation_steps = 0
 
@@ -563,7 +563,9 @@ class SaltSappoEnvV3(gym.Env):
             self.time_to_act_list[i] = self.__getNextTimeToAct(self.simulation_steps, self.sa_cycle_list[i],
                                                                self.control_cycle)
 
-        self.observations = list([] for i in range(self.agent_num))  # [ [], ...,[]]
+        self.observations.clear()
+        for sa_name in self.sa_name_list:
+            self.observations.append(np.array([0] * self.sa_obj[sa_name]['state_space']))
 
         #
         # action 을 적용해야 하는 곳까지 시뮬레이션을 수행한다.
