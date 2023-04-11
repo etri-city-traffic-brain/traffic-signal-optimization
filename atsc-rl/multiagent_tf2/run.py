@@ -7,6 +7,7 @@
 #  python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action offset   --reward-func pn --reward-gather-unit sa   --model-save-period 10  --epoch 1000
 #
 import argparse
+import copy
 import datetime
 import gc
 import numpy as np
@@ -302,6 +303,9 @@ def trainSappo(args):
 
         ##-- collect current state information
         cur_states = env.reset()
+        ###--- We store it in replay memory.
+        ###--- We should deepcopy to avoid overwriting.
+        cur_states = copy.deepcopy(cur_states)
 
         for t in range(trial_len):
             ##-- 새로운 action을 적용할 시기가 된것들만 모델을 이용하여 action을 만든다.
@@ -317,6 +321,7 @@ def trainSappo(args):
 
             ##-- apply all actions to env
             new_states, rewards, done, _ = env.step(actions)
+            new_states = copy.deepcopy(new_states)
 
             ##-- Memorize (state, next_state, action, reward, done, logp_ts) for model training
             ##--  새로이 action 추론하여 적용할 리스트가 갱신되었다.
@@ -531,6 +536,7 @@ def testSappo(args):
 
     ## collect current state information
     cur_states = env.reset()
+    cur_states = copy.deepcopy(cur_states)
 
     ## do traffic simulation which are controlled by trained model(agent)
     ##--   1. infer & convert into action
@@ -559,8 +565,10 @@ def testSappo(args):
 
         ##-- 2. apply actions to environment
         new_states, rewards, done, _ = env.step(actions)
+        new_states = copy.deepcopy(new_states)
 
         ##-- 3. gather statistics info
+        idx_of_act_sa = env.idx_of_act_sa
         for i in idx_of_act_sa:
             # update observation
             cur_states[i] = new_states[i]
