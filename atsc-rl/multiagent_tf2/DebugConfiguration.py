@@ -15,7 +15,7 @@ class DBG_OPTIONS :
         AddControlCycleIntoProblemVar = False # add control_cycle into problemVar or not;
                          # problemVar is used to construct the file name where the trained model is stored
 
-        RichActionOutput = True # actions#oofse#duration_per_phase
+        # RichActionOutput = True # actions#oofse#duration_per_phase
 
         ##-- ing
         IngCompResult = False
@@ -38,14 +38,14 @@ class DBG_OPTIONS :
         PrintImprovementRate = True     # print messages which are related to improvement rate
         PrintMsg = False                # print messages btn Controller Daemon and Execution Daemon
         PrintReplayMemory = True        # print messages which are related to replay-memory
-        PrintResultCompare = True       # print messages which are related to result comparison
+        PrintResultCompare = False       # print messages which are related to result comparison
         PrintRewardMgmt = False         # print messages which are related to reward mgmt
         PrintSaRelatedInfo = False      # print SA related info
         PrintServingThread = True       # print messages which are related to serving thread
         PrintStep = False               # print progress msgs every step : inferred actions
         PrintTrain = True               # print messages which are related to train such as episode elapsed time, gc time, avg reward, ...
-        PrintState = True              # print observateion
-        PrintAction = True             # print action related things
+        PrintState = False              # print observateion
+        PrintAction = False             # print action related things
     else:
         PrintCtrlDaemon = False        # print messages which are related to operations of CtrlDaemon
         PrintExecDaemon = False        # print messages which are related to operations of CtrlDaemon

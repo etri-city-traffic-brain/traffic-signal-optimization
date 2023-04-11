@@ -5,6 +5,7 @@
 #
 #  python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action offset --epoch 2 --model-num 0 --reward-func pn --reward-gather-unit sa
 #  python run.py --mode train --map doan --target-TL "SA 101,SA 104" --action offset   --reward-func pn --reward-gather-unit sa   --model-save-period 10  --epoch 1000
+#  python run.py --traffic-env salt --mode train --map doan --target-TL "SA 101,SA 104" --action offset --epoch 2 --model-num 0 --reward-func pn --reward-gather-unit sa
 #
 import argparse
 import copy
@@ -16,50 +17,31 @@ import pandas as pd
 import shutil
 import tensorflow as tf
 import time
-import sys
 
-from deprecated import deprecated
+from env.SaltConnector import SaltConnector
 
-# check environment
-if 'SALT_HOME' in os.environ:
-    tools = os.path.join(os.environ['SALT_HOME'], 'tools')
-    sys.path.append(tools)
-
-    tools_libsalt = os.path.join(os.environ['SALT_HOME'], 'tools/libsalt')
-    sys.path.append(tools_libsalt)
-else:
-    sys.exit("Please declare the environment variable 'SALT_HOME'")
-
-
-
-import libsalt
 
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 
-from env.SaltEnvUtil import appendPhaseRewards, gatherTsoOutputInfo, initTsoOutputInfo, appendTsoOutputInfo
+from env.sappo.SappoEnv import SappoEnv
 
-if DBG_OPTIONS.RichActionOutput:
-    from env.SaltEnvUtil import appendTsoOutputInfoSignal
-
-from env.SaltEnvUtil import copyScenarioFiles
-from env.SaltEnvUtil import getSaRelatedInfo
-from env.SaltEnvUtil import getSimulationStartStepAndEndStep
-from env.SaltEnvUtil import makePosssibleSaNameList
-
-from env.SappoEnv import SaltSappoEnvV3
-
-from env.SappoRewardMgmt import SaltRewardMgmtV3
+from env.sappo.SappoRewardMgmt import SappoRewardMgmt
 
 from policy.ppoTF2 import PPOAgentTF2
-from ResultCompare import compareResult
 
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
+from TSOUtil import appendTsoOutputInfo
+
+from TSOUtil import checkTrafficEnvironment
 from TSOUtil import convertSaNameToId
+from TSOUtil import copyScenarioFiles
 from TSOUtil import findOptimalModelNum
 from TSOUtil import getOutputDirectoryRoot
+from TSOUtil import initTsoOutputInfo
 from TSOUtil import makeConfigAndProblemVar
+from TSOUtil import makePosssibleSaNameList
 from TSOUtil import removeWhitespaceBtnComma
 from TSOUtil import writeLine
 
@@ -104,15 +86,31 @@ def makeDirectories(dir_name_list):
 
 
 
-def createEnvironment(args):
+def createConnector(args):
     '''
-    create environment
+    create connector to traffic environment
     :param args:
+    :return: created connector
+    '''
+    te = -1
+    if args.traffic_env == "salt":
+        te = SaltConnector()
+    else:
+        print("internal error : {} is not supported".format(args.traffic_env))
+    return te
+
+
+
+def createEnvironment(args, te_conn):
+    '''
+    create environment for reinforcement learning
+    :param args:
+    :param te_conn: connector to traffic environment
     :return:
     '''
     env = -1
     if args.method == 'sappo':
-        env = SaltSappoEnvV3(args)
+        env = SappoEnv(args, te_conn)
     else:
         print("internal error : {} is not supported".format(args.method))
 
@@ -165,17 +163,18 @@ def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
 
 
 
-def trainSappo(args):
+def trainSappo(args, te_conn):
     '''
     model train
       - this is work well with multiple SA
       - infer-TL is considered
     :param args:
+    :param te_conn: connector to traffic environment
     :return:
     '''
 
     ## calculate trial length using argument and scenario file
-    start_time, end_time = getSimulationStartStepAndEndStep(args)
+    start_time, end_time = te_conn.getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
 
     # set start_/end_time which will be used to train
@@ -183,7 +182,7 @@ def trainSappo(args):
     args.end_time = end_time
 
     ## load envs
-    env = createEnvironment(args)
+    env = createEnvironment(args, te_conn)
 
     ## make configuration dictionary & make some string variables
     #  : problem_var, fn_train_epoch_total_reward, fn_train_epoch_tl_reward
@@ -303,8 +302,6 @@ def trainSappo(args):
 
         ##-- collect current state information
         cur_states = env.reset()
-        ###--- We store it in replay memory.
-        ###--- We should deepcopy to avoid overwriting.
         cur_states = copy.deepcopy(cur_states)
 
         for t in range(trial_len):
@@ -463,16 +460,17 @@ def trainSappo(args):
 
 
 
-def testSappo(args):
+def testSappo(args, te_conn):
     '''
     test trained model
 
     :param args:
+    :param te_conn: connector to traffic environment
     :return:
     '''
 
     ## calculate trial length using argument and scenario file
-    start_time, end_time = getSimulationStartStepAndEndStep(args)
+    start_time, end_time = te_conn.getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
 
     # set start_/end_time which will be used to test
@@ -480,7 +478,7 @@ def testSappo(args):
     args.end_time = end_time
 
     ## load environment
-    env = createEnvironment(args)
+    env = createEnvironment(args, te_conn)
 
     ## make configuration dictionary & construct problem_var string to be used to create file names
     ppo_config, problem_var = makeConfigAndProblemVar(args)
@@ -492,7 +490,9 @@ def testSappo(args):
 
         for i in range(agent_num):
             target_sa = env.target_sa_name_list[i]
-            ppo_config["is_train"] = env.isTrainTarget(target_sa)
+            # ppo_config["is_train"] = env.isTrainTarget(target_sa)
+            ppo_config["is_train"] = False ### 명시적으로 False로 해도 영향 없을 것 같음.
+
 
             state_space = env.sa_obj[target_sa]['state_space']
             action_space = env.sa_obj[target_sa]['action_space']
@@ -567,10 +567,13 @@ def testSappo(args):
         new_states, rewards, done, _ = env.step(actions)
         new_states = copy.deepcopy(new_states)
 
-        ##-- 3. gather statistics info
+        ##--
         idx_of_act_sa = env.idx_of_act_sa
+
+        ##-- 3. gather statistics info
         for i in idx_of_act_sa:
             # update observation
+            # del cur_states[i]  # deallocate memory
             cur_states[i] = new_states[i]
             episodic_reward += rewards[i]
 
@@ -588,6 +591,7 @@ def testSappo(args):
 
     ## compare traffic simulation results
     if args.result_comp:
+        print("Now, doing a result comparison....   It takes less than a minute.")
         ft_output = pd.read_csv("{}/output/simulate/{}".format(getOutputDirectoryRoot(args), _RESULT_COMP_.SIMULATION_OUTPUT))
         rl_output = pd.read_csv("{}/output/test/{}".format(getOutputDirectoryRoot(args), _RESULT_COMP_.SIMULATION_OUTPUT))
 
@@ -619,7 +623,7 @@ def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_sk
     '''
     result_fn = "{}/output/test/{}_s{}_{}.csv".format(getOutputDirectoryRoot(args), problem_var, comp_skip, args.model_num)
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
-    total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    total_output = env.te_conn.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
     shutil.copy2(result_fn, dst_fn)
@@ -647,84 +651,89 @@ def __printImprovementRateInternal(df, target, msg="Skip one hour"):
 
 
 
-def fixedTimeSimulate(args):
+def fixedTimeSimulate(args, te_conn):
     '''
     do traffic control with fixed signal
     :param args:
+    :param te_conn: an object to connect traffic Environment
     :return:
     '''
 
     ## calculate the length of simulation step of this trial : trial_len
-    start_time, end_time = getSimulationStartStepAndEndStep(args)
+    start_time, end_time = te_conn.getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
 
     ## set start_/end_time which will be used to simulate
     args.start_time = start_time
     args.end_time = end_time
 
-
-    salt_scenario = copyScenarioFiles(args.scenario_file_path)
+    scenario_file_path = copyScenarioFiles(args.scenario_file_path)
     possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
-    target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, possible_sa_name_list, salt_scenario)
+
+
+    target_tl_obj, target_sa_obj, _ = te_conn.getSaRelatedInfo(args, possible_sa_name_list, scenario_file_path)
     target_sa_name_list = list(target_sa_obj.keys())
     target_tl_id_list = list(target_tl_obj.keys())
+
 
 
     ## 가시화 서버용 교차로별 고정 시간 신호 기록용
     output_ft_dir = f'{getOutputDirectoryRoot(args)}/output/{args.mode}'
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
+    fn_ft_phase_reward_output = f"{output_ft_dir}/{_RESULT_COMP_.FT_PHASE_REWARD_OUTPUT}"
+
 
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
 
-    reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, args.action_t,
+
+
+    reward_mgmt = SappoRewardMgmt(te_conn, args.reward_func, args.reward_gather_unit, args.action_t,
                                        args.reward_info_collection_cycle, target_sa_obj, target_tl_obj,
                                        target_sa_name_list, len(target_sa_name_list))
 
 
     ## 교차로별 고정 시간 신호 기록하면서 시뮬레이션
-    libsalt.start(salt_scenario)
-    libsalt.setCurrentStep(start_time)
+    te_conn.start(scenario_file_path)
+    te_conn.setCurrentStep(start_time)
 
     actions = []
 
-    sim_step = libsalt.getCurrentStep()
+    sim_step = te_conn.getCurrentStep()
 
     tso_output_info_dic = initTsoOutputInfo()
 
     for tlid in target_tl_id_list:
-        avg_speed, avg_tt, sum_passed, sum_travel_time = gatherTsoOutputInfo(tlid, target_tl_obj, num_hop=0)
+        # todo conn.gatherTsoOutputInfo()와 appendTsoOutputInfo() 통합 고려... 현 시점에서는 어려움이 있다.
+        avg_speed, avg_tt, sum_passed, sum_travel_time = te_conn.gatherTsoOutputInfo(tlid, target_tl_obj, num_hop=0)
 
-        if DBG_OPTIONS.RichActionOutput:
-            #todo should consider the possibility that TOD can be changed
-            offset = target_tl_obj[tlid]['offset']
-            duration = target_tl_obj[tlid]['duration']
+        # todo should consider the possibility that TOD can be changed
+        offset = target_tl_obj[tlid]['offset']
+        duration = target_tl_obj[tlid]['duration']
 
-            if DBG_OPTIONS.PrintAction:
-                cross_name = target_tl_obj[tlid]['crossName']
-                green_idx = target_tl_obj[tlid]['green_idx']
-                print(f'cross_name={cross_name} offset={offset} duration={duration} green_idx={green_idx}  green_idx[0]={green_idx[0]}')
-                    # cross_name=진터네거리 offset=144 duration=[18, 4, 72, 4, 18, 4, 28, 4, 25, 3] green_idx=(array([0, 2, 4, 6, 8]),)  green_idx[0]=[0 2 4 6 8]
+        if DBG_OPTIONS.PrintAction:
+            cross_name = target_tl_obj[tlid]['crossName']
+            green_idx = target_tl_obj[tlid]['green_idx']
+            print(f'cross_name={cross_name} offset={offset} duration={duration} green_idx={green_idx}  green_idx[0]={green_idx[0]}')
+                # cross_name=진터네거리 offset=144 duration=[18, 4, 72, 4, 18, 4, 28, 4, 25, 3] green_idx=(array([0, 2, 4, 6, 8]),)  green_idx[0]=[0 2 4 6 8]
 
-            appendTsoOutputInfoSignal(tso_output_info_dic, offset, duration)
-        tso_output_info_dic = appendTsoOutputInfo(tso_output_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
+        tso_output_info_dic = appendTsoOutputInfo(tso_output_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time, offset, duration)
 
     for i in range(trial_len):
-        libsalt.simulationStep()
+        te_conn.increaseStep()
         sim_step += 1
 
-        ## 일정 주기로 보상 값을 얻어와서 기록한다.
-        appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions, reward_mgmt,
+        reward_mgmt.appendPhaseRewards(fn_ft_phase_reward_output, sim_step, actions,
                                target_sa_obj, target_sa_name_list, target_tl_obj, target_tl_id_list,
                                tso_output_info_dic)
 
 
-    print("{}... ft_step {}".format(fixedTimeSimulate.__name__, libsalt.getCurrentStep()))
+    print("{}... ft_step {}".format(fixedTimeSimulate.__name__, te_conn.getCurrentStep()))
 
     for k in tso_output_info_dic:
         tso_output_info_dic[k].clear()
     del tso_output_info_dic
 
-    libsalt.close()
+    te_conn.close()
 
 
 
@@ -749,24 +758,27 @@ if __name__ == "__main__":
                          f"{args.io_home}/data/envs/salt/data",
         ]
 
+    # check traffic environment : lib path
+    checkTrafficEnvironment(args.traffic_env)
 
     makeDirectories(dir_name_list)
 
+    te_conn = createConnector(args)
+
     if args.mode == 'train':
         if args.method == 'sappo':
-            trainSappo(args)
+            trainSappo(args, te_conn)
         else:
             print("internal error : {} is not supported".format(args.method))
 
     elif args.mode == 'test':
         if args.method == 'sappo':
-            testSappo(args)
+            testSappo(args, te_conn)
         else:
             print("internal error : {} is not supported".format(args.method))
 
     elif args.mode == 'simulate':
-        fixedTimeSimulate(args)
-
+        fixedTimeSimulate(args, te_conn)
 
     ## dump terminated time
     terminated = datetime.datetime.now()

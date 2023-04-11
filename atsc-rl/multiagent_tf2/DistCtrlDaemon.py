@@ -286,7 +286,7 @@ def validate(args, validation_trials, fn_dist_learning_history):
         __copySimulationOutput(args, _RESULT_COMP_.SIMULATION_OUTPUT)
 
         # copy phase/reward output
-        __copySimulationOutput(args, _RESULT_COMP_.PHASE_REWARD_OUTPUT)
+        __copySimulationOutput(args, _RESULT_COMP_.RL_PHASE_REWARD_OUTPUT)
 
 
     # read a file which contains the result of comparison

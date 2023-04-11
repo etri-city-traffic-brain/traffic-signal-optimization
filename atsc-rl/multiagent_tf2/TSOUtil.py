@@ -4,7 +4,9 @@ import numpy as np
 import os
 import pickle
 import subprocess
-
+import shutil
+import sys
+import uuid
 
 from DebugConfiguration import DBG_OPTIONS
 from TSOConstants import _MODE_
@@ -158,6 +160,8 @@ def removeWhitespaceBtnComma(comma_separated_string):
 
 
 def addArgumentsToParser(parser):
+    parser.add_argument('--traffic-env', choices=['salt', 'sumo'], default='salt',
+                        help='traffic environment to be used to train/test/simulation')
 
     parser.add_argument('--mode', choices=['train', 'test', 'simulate'], default='train',
                         help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
@@ -626,11 +630,299 @@ def makeConfigAndProblemVar(args):
 def getOutputDirectoryRoot(args):
     return f"{args.io_home}/{args.output_home}"
 
+
+
+def copyScenarioFiles(scenario_file_path):
+    '''
+    copy scenario related files and return copied path
+    :param scenario_file_path:
+    :return:
+    '''
+    # dir_path = os.path.dirname(os.path.realpath(__file__))
+    uid = str(uuid.uuid4())
+
+    abs_scenario_file_path = '{}/{}'.format(os.getcwd(), scenario_file_path)
+    src_dir = os.path.dirname(abs_scenario_file_path)
+    dest_dir = os.path.split(src_dir)[0]
+    dest_dir = '{}/data/{}/'.format(dest_dir, uid)
+    os.makedirs(dest_dir, exist_ok=True)
+
+    src_files = os.listdir(src_dir)
+    for file_name in src_files:
+        full_file_name = os.path.join(src_dir, file_name)
+        if os.path.isfile(full_file_name):
+            shutil.copy(full_file_name, dest_dir)
+
+    scenario_file_name = scenario_file_path.split('/')[-1]
+    copied_scenario_file = "{}/{}".format(dest_dir, scenario_file_name)
+
+    return copied_scenario_file
+
+
+
+def makePosssibleSaNameList(sa_names):
+    '''
+    get possible SA names which indicate same SA
+    :param sa_names:
+    :return:
+    '''
+    cvted_sa_name_list = []
+    in_sa = sa_names.split(',')
+    for t in in_sa:
+        t = t.strip()   # remove  any leading and trailing white space
+        cvted_sa_name_list.append(t)   ## ex. SA 101
+        cvted_sa_name_list.append(t.split(" ")[1])  ## ex.101
+        cvted_sa_name_list.append(t.replace(" ", ""))  ## ex. SA101
+
+    return cvted_sa_name_list
+
+
+
+    ### 녹색 시간 조정 action list에서 제약 조건 벗어나는 action 제거
+
+
+def getPossibleActionList(args, duration, min_dur, max_dur, green_idx, actionList):
+    '''
+    remove actions which violate constraints from action list for adjusting the green time
+    :param args:
+    :param duration:
+    :param min_dur:
+    :param max_dur:
+    :param green_idx:
+    :param actionList:
+    :return:
+    '''
+    duration = np.array(duration)
+    minGreen = np.array(min_dur)
+    maxGreen = np.array(max_dur)
+    green_idx = np.array(green_idx)
+
+    new_actionList = []
+
+    for action in actionList:
+        npsum = 0
+        newDur = duration[green_idx] + np.array(action) * args.add_time
+        npsum += np.sum(minGreen[green_idx] > newDur)
+        npsum += np.sum(maxGreen[green_idx] < newDur)
+        if npsum == 0:
+            new_actionList.append(action)
+    if DBG_OPTIONS.PrintSaRelatedInfo:
+        print('len(actionList)', len(actionList), 'len(new_actionList)', len(new_actionList))
+
+    return new_actionList
+
+
+
+def getActionList(phase_num, max_phase):
+    '''
+    create list of possible actions which can be used to adjust green time
+    :param phase_num:
+    :param max_phase:
+    :return:
+    '''
+    _pos = [4, 3, 2, 1, 0, -1, -2, -3, -4]
+
+    phase_num = phase_num
+    max_phase = max_phase
+    mask = np.ones(phase_num, dtype=bool)
+    mask[max_phase] = 0
+    if phase_num <= 5:
+        if phase_num == 2:
+            meshgrid = np.array(np.meshgrid(_pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 3:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 4:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+        if phase_num == 5:
+            meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+
+        if phase_num == 1:
+            action_list = [[0]]
+        else:
+            action_list = [x.tolist() for x in meshgrid
+                           if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
+                           and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
+                           and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])]
+    else:
+        meshgrid = np.array(np.meshgrid(_pos, _pos, _pos, _pos, _pos, _pos)).T.reshape(-1, phase_num)
+        action_list = [x.tolist() for x in meshgrid
+                       if x[max_phase] != 0 and x[max_phase] + np.sum(x[mask]) == 0
+                       and np.min(np.abs(x[mask])) == 0 and np.max(np.abs(x[mask])) == 1
+                       and x[max_phase] != np.min(x[mask]) - 1 and x[max_phase] != np.max(x[mask]) + 1
+                       and x[max_phase] != np.min(x[mask]) and x[max_phase] != np.max(x[mask])]
+
+    if phase_num != 1:
+        tmp = list([1] * phase_num)
+        tmp[max_phase] = -(phase_num - 1)
+        action_list.append(tmp)
+
+        tmp = list([-1] * phase_num)
+        tmp[max_phase] = phase_num - 1
+        action_list.append(tmp)
+
+        tmp = list([0] * phase_num)
+        action_list.append(tmp)
+
+        action_list.reverse()
+
+        for i in range(1, len(action_list)):
+            action_list.append(list(np.array(action_list[i]) * 2))
+
+    return action_list
+
+
+
+
+
+
+def __convertDurationListIntoString(duration, separator):
+    '''
+     convert list into string
+    :param duration: list, ex., [40, 3, 72, 3]
+    :param separator:
+    :retuen:  40_3_72_3 if separator is underscore(_)
+    '''
+    duration_str = str(duration)
+    table = duration_str.maketrans({']':'',  # remove ]
+                                    '[':'',  # remove [
+                                    ' ':'',  # remove space
+                                    ',':separator}) # convert comma into space
+    duration_str = duration_str.translate(table)
+    return duration_str
+
+
+
+
+
+def appendTsoOutputInfo(info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time, offset, duration):
+    '''
+    append statisitcal info & traffic signal info to the dictionary for holding traffic signal optimization output
+    :param info_dic: dic
+    :param avg_speed:
+    :param avg_tt:
+    :param sum_passed:
+    :param sum_travel_time:
+    :param offset: int
+    :param duration: list, ex., [18, 4, 72, 4, 18, 4, 28, 4, 25, 3]
+    :return:
+    '''
+    info_dic["avg_speed"].append(avg_speed)
+    info_dic["avg_travel_time"].append(avg_tt)
+    info_dic["sum_passed"].append(sum_passed)
+    info_dic["sum_travel_time"].append(sum_travel_time)
+
+    info_dic["offset"].append(offset) # offset=144
+    duration_str = __convertDurationListIntoString(duration, '_')
+    info_dic["duration"].append(duration_str)
+
+    return info_dic
+
+
+
+
+def getTsoOutputInfo(info_dic, ith):
+    '''
+    get  info from the dictionary for holding traffic signal optimization output
+    :param info_dic: dic
+    :param ith: index which indicates to get
+
+    :return:
+    '''
+    avg_speed = info_dic["avg_speed"][ith]
+    avg_tt = info_dic["avg_travel_time"][ith]
+    sum_passed = info_dic["sum_passed"][ith]
+    sum_travel_time = info_dic["sum_travel_time"][ith]
+    offset = info_dic["offset"][ith]
+    duration = info_dic["duration"][ith]
+    return avg_speed, avg_tt, sum_passed, sum_travel_time, offset, duration
+
+
+
+def initTsoOutputInfo():
+    '''
+    initialize dictionary to hold traffic signal optimization output
+    '''
+    info_dic = {}
+    info_dic["avg_speed"] = []
+    info_dic["avg_travel_time"] = []
+    info_dic["sum_passed"] = []
+    info_dic["sum_travel_time"] = []
+
+    info_dic["offset"]=[]
+    info_dic["duration"]=[]
+
+    return info_dic
+
+
+
+def replaceTsoOutputInfo(info_dic, ith, avg_speed, avg_tt, sum_passed, sum_travel_time):
+    '''
+    append info to the dictionary for holding traffic signal optimization output
+    :param info_dic: dic
+    :param ith: index which indicates to replace
+    :param avg_speed:
+    :param avg_tt:
+    :param sum_passed:
+    :param sum_travel_time:
+    :return:
+    '''
+    info_dic["avg_speed"][ith] = avg_speed
+    info_dic["avg_travel_time"][ith] = avg_tt
+    info_dic["sum_passed"][ith] = sum_passed
+    info_dic["sum_travel_time"][ith]  = sum_travel_time
+    return info_dic
+
+
+
+
+def replaceTsoOutputInfoDuration(info_dic, ith, duration):
+    duration_str = __convertDurationListIntoString(duration, '_')
+    info_dic["duration"][ith] = duration_str
+    return info_dic
+
+
+def replaceTsoOutputInfoOffset(info_dic, ith, offset):
+    info_dic["offset"][ith] = offset
+
+    return info_dic
+
+
+def replaceTsoOutputInfoSignal(info_dic, ith, offset, duration=[]):
+    info_dic["offset"][ith] = offset
+
+    if len(duration):
+        duration_str = __convertDurationListIntoString(duration, '_')
+        info_dic["duration"][ith] = duration_str
+
+    return info_dic
+
+
+
+
+def checkTrafficEnvironment(traffic_env):
+    if traffic_env.lower() == "salt":
+        if 'SALT_HOME' in os.environ:
+            tools = os.path.join(os.environ['SALT_HOME'], 'tools')
+            sys.path.append(tools)
+
+            tools_libsalt = os.path.join(os.environ['SALT_HOME'], 'tools/libsalt')
+            sys.path.append(tools_libsalt)
+        else:
+            sys.exit("Please declare the environment variable 'SALT_HOME'")
+    else:
+        print("internal error : {} is not supported".format(traffic_env))
+
+
 ##
 #
 # methods for debugging
 #
 ##
+
+
+'''
+methods to test TSO Utilities
+'''
 
 
 # ref. https://code.activestate.com/recipes/577504/
@@ -684,10 +976,6 @@ def total_size(o, handlers={}, verbose=False):
 
     return sizeof(o)
 
-
-'''
-methods to test TSO Utilities
-'''
 
 def testTotalSize():
     d = dict(a=1, b=2, c=3, d=[4, 5, 6, 7], e='a string of chars')
@@ -747,6 +1035,49 @@ def test_findOptimalModelNumV2():
         in_list = ep_reward_list[:i+1]
         opt_model_num = findOptimalModelNum(in_list, model_save_period, num_of_candidate)
         print("## in_list = {} opt_model_num={}\n#\n".format(in_list, opt_model_num))
+
+
+
+def startTimeConvert(f_path, f_name, start_hour):
+    '''
+    convert start time
+
+    :param f_path: route file path
+    :param f_name: route file name
+    :param start_hour:
+    :return:
+    '''
+    import xml.etree.ElementTree as ET
+
+    start_time_second = float(start_hour * 60 * 60)
+
+    print("start_time_second={}".format(start_time_second))
+    tree = ET.parse(f"{f_path}/{f_name}")
+    root = tree.getroot()
+    vehicles = root.findall("vehicle")
+
+    for x in vehicles:
+        x.attrib["depart"] = str(float(x.attrib["depart"]) + start_time_second)
+
+    cvted_file_name = "cvted_"+f_name
+    tree.write(f"{f_path}/{cvted_file_name}")
+
+
+
+def testStartTimeConvert():
+
+    file_path = "/tmp/routes"
+
+    in_file_dic = {7 : "Doan_traffic_07-09_KAIST_2022.rou.xml",
+                   9 : "Doan_traffic_09-11_KAIST_2022.rou.xml",
+                   14: "Doan_traffic_14-16_KAIST_2022.rou.xml",
+                   17:  "Doan_traffic_17-19_KAIST_2022.rou.xml",
+                   20: "Doan_traffic_20-22_KAIST_2022.rou.xml",
+                   23 : "Doan_traffic_23-01_KAIST_2022.rou.xml" }
+
+    for start_hour in in_file_dic.keys():
+        print(start_hour, in_file_dic[start_hour])
+        startTimeConvert(file_path, in_file_dic[start_hour], int(start_hour))
 
 
 if __name__ == '__main__':
