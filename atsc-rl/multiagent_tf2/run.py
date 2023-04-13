@@ -249,7 +249,7 @@ def trainSappo(args, te_conn):
             ##-- TF 2.x
             action_size = action_space.shape[0]
             state_size = (state_space,)
-            agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, target_sa.strip().replace(' ', '_'))
+            agent = PPOAgentTF2(env.env_name, ppo_config, action_size, state_size, convertSaNameToId(target_sa))
 
             ##-- todo should care file name ...
             ##--   for CumulateReplayMemory
@@ -595,14 +595,13 @@ def testSappo(args, te_conn):
         ft_output = pd.read_csv("{}/output/simulate/{}".format(getOutputDirectoryRoot(args), _RESULT_COMP_.SIMULATION_OUTPUT))
         rl_output = pd.read_csv("{}/output/test/{}".format(getOutputDirectoryRoot(args), _RESULT_COMP_.SIMULATION_OUTPUT))
 
-        comp_skip = _RESULT_COMPARE_SKIP_
-        result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
-        __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
-
         if DBG_OPTIONS.ResultCompareSkipWarmUp: # comparison excluding warm-up time
             comp_skip = args.warmup_time
-            result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
-            __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
+        else :
+            comp_skip = _RESULT_COMPARE_SKIP_
+
+        result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
+        __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
 
     return avg_reward
 

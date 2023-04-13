@@ -488,6 +488,7 @@ def generateCommand(args):
     :return: generated command
     '''
     cmd = ' python run.py '
+    cmd = cmd + ' --traffic-env {} '.format(args.traffic_env)
     cmd = cmd + ' --mode {} '.format(args.mode)
     cmd = cmd + ' --scenario-file-path {}'.format(args.scenario_file_path)
     cmd = cmd + ' --map {} '.format(args.map)
@@ -618,11 +619,12 @@ def makeConfigAndProblemVar(args):
     config = []
     problem_var = []
 
-    assert args.method == 'sappo', f"Internal error in makeConfigAndProblemVar() at TSOUtil.py : methon({args.method}) is not supported"
-
     if args.method == 'sappo':
         config = makePPOConfig(args)
         problem_var = makePPOProblemVar(config)
+    else:
+        print(f"Internal error in makeConfigAndProblemVar() at TSOUtil.py : methon({args.method}) is not supported")
+        #assert args.method == 'sappo', f"Internal error in makeConfigAndProblemVar() at TSOUtil.py : methon({args.method}) is not supported"
 
     return config, problem_var
 
