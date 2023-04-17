@@ -1,39 +1,33 @@
 # -*- coding: utf-8 -*-
 
 import gym
-import os
 import sys
 import numpy as np
-
-
-import libsalt
 
 from DebugConfiguration import DBG_OPTIONS
 
 
-from env.SaltEnvUtil import appendPhaseRewards, gatherTsoOutputInfo
-from env.SaltEnvUtil import appendTsoOutputInfo, initTsoOutputInfo
+from env.sappo.SappoRewardMgmt import SappoRewardMgmt
+from env.sappo.SappoActionMgmt import SappoActionMgmt
 
-if DBG_OPTIONS.RichActionOutput:
-    from env.SaltEnvUtil import appendTsoOutputInfoSignal
-    from env.SaltEnvUtil import replaceTsoOutputInfoOffset, replaceTsoOutputInfoDuration
-
-
-from env.SaltEnvUtil import copyScenarioFiles
-from env.SaltEnvUtil import getSaRelatedInfo
-from env.SaltEnvUtil import getSimulationStartStepAndEndStep
-from env.SaltEnvUtil import makePosssibleSaNameList
-from env.SappoActionMgmt import SaltActionMgmt
-from env.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmtV3
-from TSOUtil import writeLine
+from TSOConstants import _RESULT_COMP_
+from TSOUtil import copyScenarioFiles
 from TSOUtil import getOutputDirectoryRoot
+from TSOUtil import initTsoOutputInfo
+from TSOUtil import makePosssibleSaNameList
+
+from TSOUtil import appendTsoOutputInfo
+from TSOUtil import replaceTsoOutputInfoDuration
+from TSOUtil import replaceTsoOutputInfoOffset
+
+from TSOUtil import writeLine
 
 
 
-class SaltSappoEnvV3(gym.Env):
+
+class SappoEnv(gym.Env):
     '''
     a class for Sappo Environment
-    : previously it is called SALT_SAPPO_20220420
        - considered infer_TL
        - separate action/reward mgmt as a class
        - supported action : offset, gr(green ratio), gro(green ratio + offset), kc(keep or change)
@@ -41,22 +35,16 @@ class SaltSappoEnvV3(gym.Env):
 
     metadata = {'render.modes': ['human']}
 
-    def __init__(self, args):  # equal SALT_SAPPO_offset_single.__init__()
+    def __init__(self, args, te_conn):
         '''
         constructor
         :param args:
+        :param te_conn:
         '''
-        self.env_name = "SALT_SAPPO"
+        self.env_name = "SAPPO"
 
-        ## check environment
-        if 'SALT_HOME' in os.environ:
-            tools = os.path.join(os.environ['SALT_HOME'], 'tools')
-            sys.path.append(tools)
-
-            tools_libsalt = os.path.join(os.environ['SALT_HOME'], 'tools/libsalt')
-            sys.path.append(tools_libsalt)
-        else:
-            sys.exit("Please declare the environment variable 'SALT_HOME'")
+        ## an object to connect traffic environment
+        self.te_conn = te_conn
 
         ## initialize member attributes using passed argument
         self.action_t = args.action_t
@@ -73,7 +61,7 @@ class SaltSappoEnvV3(gym.Env):
         self.control_cycle = args.control_cycle  # how open change offset : ex., every 5 cycle
 
         ## calculate start-/end-time of simulation
-        self.start_step, self.end_step = getSimulationStartStepAndEndStep(args)
+        self.start_step, self.end_step = te_conn.getSimulationStartStepAndEndStep(args)
 
         ## copy scenario related files and get copied scenario file path
         self.salt_scenario = copyScenarioFiles(args.scenario_file_path)
@@ -82,7 +70,7 @@ class SaltSappoEnvV3(gym.Env):
         possible_target_sa_name_list = makePosssibleSaNameList(args.target_TL)
 
         target_tl_obj, target_sa_obj, _lane_len = \
-            getSaRelatedInfo(args, possible_target_sa_name_list, self.salt_scenario)
+            self.te_conn.getSaRelatedInfo(args, possible_target_sa_name_list, self.salt_scenario)
 
         self.HAVE_INFER_TL = False
 
@@ -96,7 +84,7 @@ class SaltSappoEnvV3(gym.Env):
             possible_infer_sa_name_list = makePosssibleSaNameList(args.infer_TL)
 
             infer_tl_obj, infer_sa_obj, _lane_len = \
-                getSaRelatedInfo(args, possible_infer_sa_name_list, self.salt_scenario)
+                self.te_conn.getSaRelatedInfo(args, possible_infer_sa_name_list, self.salt_scenario)
 
         ##--- construct SA obj dictionary
         self.sa_obj = {}  # 전체 SA obj 저장
@@ -143,12 +131,12 @@ class SaltSappoEnvV3(gym.Env):
         ## initialize reward related things
         ##   reward mgmt : gather the reward related information and calculate reward
         ##   only needed to train/test target SA
-        self.reward_mgmt = SaltRewardMgmtV3(args.reward_func, args.reward_gather_unit, self.action_t, self.reward_info_collection_cycle, self.sa_obj, self.tl_obj, self.sa_name_list, len(self.target_sa_name_list))
+        self.reward_mgmt = SappoRewardMgmt(self.te_conn, args.reward_func, args.reward_gather_unit, self.action_t, self.reward_info_collection_cycle, self.sa_obj, self.tl_obj, self.sa_name_list, len(self.target_sa_name_list))
 
         ## initialize action related things
         ##--   action mgmt : make phase array, convert model output into discrete action, apply action to env
         ##--   all SA need action (mgmt)
-        self.action_mgmt = SaltActionMgmt(self.args, self.sa_obj, self.sa_name_list)
+        self.action_mgmt = SappoActionMgmt(self.te_conn, self.args, self.sa_obj, self.sa_name_list)
 
         # Index for SA where action must be determined through model inference
         self.idx_of_act_sa = []
@@ -157,6 +145,7 @@ class SaltSappoEnvV3(gym.Env):
         ##   ALl SA need State(Observation)
         self.observations = []
         for sa_name in self.sa_name_list:
+            # self.observations.append([0] * self.sa_obj[sa_name]['state_space'])
             self.observations.append(np.array([0] * self.sa_obj[sa_name]['state_space']))
 
         self.simulation_steps = 0
@@ -169,7 +158,9 @@ class SaltSappoEnvV3(gym.Env):
         self.tso_output_info_dic = initTsoOutputInfo()
 
         if self.args.mode == 'test':
-            self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(getOutputDirectoryRoot(args))
+            #self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(getOutputDirectoryRoot(args))
+            self.fn_rl_phase_reward_output = f"{getOutputDirectoryRoot(args)}/output/test/{_RESULT_COMP_.RL_PHASE_REWARD_OUTPUT}"
+
 
             writeLine(self.fn_rl_phase_reward_output,
                       'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
@@ -226,17 +217,17 @@ class SaltSappoEnvV3(gym.Env):
 
             for lane in lane_list_0:
                 if self.args.state == 'd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(lane))
+                    densityMatrix = np.append(densityMatrix, self.te_conn.getAverageDensityOfLane(lane))
                 if self.args.state == 'v':
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(lane))
+                    passedMatrix = np.append(passedMatrix, self.te_conn.getNumVehPassedOfLane(lane))
                 if self.args.state == 'vd':
-                    densityMatrix = np.append(densityMatrix, libsalt.lane.getAverageDensity(lane))
-                    passedMatrix = np.append(passedMatrix, libsalt.lane.getNumVehPassed(lane))
+                    densityMatrix = np.append(densityMatrix, self.te_conn.getAverageDensityOfLane(lane))
+                    passedMatrix = np.append(passedMatrix, self.te_conn.getNumVehPassedOfLane(lane))
                 if self.args.state == 'vdd':
-                    vddMatrix = np.append(vddMatrix, libsalt.lane.getNumVehPassed(lane) / (
-                                libsalt.lane.getAverageDensity(lane) + sys.float_info.epsilon))
+                    vddMatrix = np.append(vddMatrix, self.te_conn.getNumVehPassedOfLane(lane) / (
+                            self.te_conn.getAverageDensityOfLane(lane) + sys.float_info.epsilon))
 
-            tlMatrix = np.append(tlMatrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid))
+            tlMatrix = np.append(tlMatrix, self.te_conn.getCurrentPhaseIndex(tlid))
 
             if self.args.state == 'd':
                 obs = np.append(densityMatrix, tlMatrix)
@@ -297,17 +288,17 @@ class SaltSappoEnvV3(gym.Env):
 
             for lane in lane_list_0:
                 if self.args.state == 'd':
-                    density_matrix = np.append(density_matrix, libsalt.lane.getAverageDensity(lane))
+                    density_matrix = np.append(density_matrix, self.te_conn.getAverageDensityOfLane(lane))
                 if self.args.state == 'v':
-                    passed_matrix = np.append(passed_matrix, libsalt.lane.getNumVehPassed(lane))
+                    passed_matrix = np.append(passed_matrix, self.te_conn.getNumVehPassedOfLane(lane))
                 if self.args.state == 'vd':
-                    density_matrix = np.append(density_matrix, libsalt.lane.getAverageDensity(lane))
-                    passed_matrix = np.append(passed_matrix, libsalt.lane.getNumVehPassed(lane))
+                    density_matrix = np.append(density_matrix, self.te_conn.getAverageDensityOfLane(lane))
+                    passed_matrix = np.append(passed_matrix, self.te_conn.getNumVehPassedOfLane(lane))
                 if self.args.state == 'vdd':
-                    vdd_matrix = np.append(vdd_matrix, libsalt.lane.getNumVehPassed(lane) / (
-                                libsalt.lane.getAverageDensity(lane) + sys.float_info.epsilon))
+                    vdd_matrix = np.append(vdd_matrix, self.te_conn.getNumVehPassedOfLane(lane) / (
+                            self.te_conn.getAverageDensityOfLane(lane) + sys.float_info.epsilon))
 
-            tl_matrix = np.append(tl_matrix, libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid))
+            tl_matrix = np.append(tl_matrix, self.te_conn.getCurrentPhaseIndex(tlid))
 
         # tl_matrix = self.__normailze(tl_matrix)
         tl_matrix = tl_matrix/(max_num_phase - 1)  # normalize
@@ -367,35 +358,27 @@ class SaltSappoEnvV3(gym.Env):
             if DBG_OPTIONS.PrintAction:
                 print(f"DBG in SappoEnv.step() discrete_actions_{i}={discrete_action}")
 
-            if DBG_OPTIONS.RichActionOutput:
-                offset_list, duration_list = self.action_mgmt.changePhaseArray(self.simulation_steps, i, self.discrete_actions[i])
+            offset_list, duration_list = self.action_mgmt.changePhaseArray(self.simulation_steps, i,
+                                                                           self.discrete_actions[i])
 
-                if self.args.mode=='test':
-                    sa_name = self.sa_name_list[i]
-                    an_sa_obj = self.sa_obj[sa_name]
-                    an_sa_tlid_list = an_sa_obj['tlid_list']
+            if self.args.mode == 'test':
+                sa_name = self.sa_name_list[i]
+                an_sa_obj = self.sa_obj[sa_name]
+                an_sa_tlid_list = an_sa_obj['tlid_list']
 
-                    if len(offset_list):
-                        # if DBG_OPTIONS.PrintAction:
-                        #     print(f'DBG offset_list_{i}={offset_list} changed')
+                if len(offset_list):
+                    for j in range(len(offset_list)):
+                        tlid = an_sa_tlid_list[j]
+                        ith = self.target_tl_id_list.index(tlid)
+                        assert ith < len(self.tso_output_info_dic["offset"]),\
+                            print(f'ith={ith} len(self.tso_output_info_dic["offset"])={len(self.tso_output_info_dic["offset"])}')
+                        replaceTsoOutputInfoOffset(self.tso_output_info_dic, ith, offset_list[j])
 
-                        for j in range(len(offset_list)):
-                            tlid = an_sa_tlid_list[j]
-                            ith = self.target_tl_id_list.index(tlid)
-                            assert ith < len(self.tso_output_info_dic["offset"]), print(f'ith={ith} len(self.tso_output_info_dic["offset"])={len(self.tso_output_info_dic["offset"])}')
-                            replaceTsoOutputInfoOffset(self.tso_output_info_dic, ith, offset_list[j])
-
-                    if len(duration_list):
-                        # if DBG_OPTIONS.PrintAction:
-                        #     print(f'DBG duration_list_{i}={duration_list} changed')
-
-                        for j in range(len(duration_list)):
-                            tlid = an_sa_tlid_list[j]
-                            ith = self.target_tl_id_list.index(tlid)
-                            replaceTsoOutputInfoDuration(self.tso_output_info_dic, ith, duration_list[j])
-
-            else:
-                self.action_mgmt.changePhaseArray(self.simulation_steps, i, self.discrete_actions[i])
+                if len(duration_list):
+                    for j in range(len(duration_list)):
+                        tlid = an_sa_tlid_list[j]
+                        ith = self.target_tl_id_list.index(tlid)
+                        replaceTsoOutputInfoDuration(self.tso_output_info_dic, ith, duration_list[j])
 
 
         # apply changed phase array and increase simulation steps
@@ -411,7 +394,7 @@ class SaltSappoEnvV3(gym.Env):
                 self.action_mgmt.applyCurrentTrafficSignalPhaseToEnv(self.simulation_steps)
 
                 # 2. increase simulation step
-                libsalt.simulationStep()
+                self.te_conn.increaseStep()
                 self.simulation_steps += 1
 
                 #3. gather reward related info
@@ -421,8 +404,8 @@ class SaltSappoEnvV3(gym.Env):
 
                 # 4. gather visualization related info
                 if self.args.mode == 'test':
-                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
-                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                    self.reward_mgmt.appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       self.discrete_actions, self.sa_obj, self.sa_name_list,
                                        self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
         elif self.args.action == "kc":  # keep or change
@@ -435,13 +418,13 @@ class SaltSappoEnvV3(gym.Env):
 
             ## increase simulation steps
             for i in range(3):  # todo should avoid using CONST 3
-                libsalt.simulationStep()
+                self.te_conn.increaseStep()
                 self.simulation_steps += 1
 
                 # gather visualization related info
                 if self.args.mode == 'test':
-                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
-                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                    self.reward_mgmt.appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       self.discrete_actions, self.sa_obj, self.sa_name_list,
                                        self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
             ## apply keep-change actions : second step
@@ -451,13 +434,13 @@ class SaltSappoEnvV3(gym.Env):
 
             ## increase simulation steps
             for i in range(self.action_t):
-                libsalt.simulationStep()
+                self.te_conn.increaseStep()
                 self.simulation_steps += 1
 
                 # gather visualization related info
                 if self.args.mode == 'test':
-                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
-                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                    self.reward_mgmt.appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       self.discrete_actions, self.sa_obj, self.sa_name_list,
                                        self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
         # for SAs to apply action next time (다음 번에 action을 적용할 SA들에 대해)
@@ -487,7 +470,7 @@ class SaltSappoEnvV3(gym.Env):
         if self.simulation_steps >= self.end_step:
             self.done = True
             print("self.done step {}".format(self.simulation_steps))
-            libsalt.close()
+            self.te_conn.close()
 
         info = {}
 
@@ -501,30 +484,28 @@ class SaltSappoEnvV3(gym.Env):
         initialize simulation
         :return:
         '''
-        libsalt.start(self.salt_scenario, self.args.output_home)
-        libsalt.setCurrentStep(self.start_step)
-        self.simulation_steps = libsalt.getCurrentStep()
+        self.te_conn.start(self.salt_scenario, self.args.output_home)
+        self.te_conn.setCurrentStep(self.start_step)
+        self.simulation_steps = self.te_conn.getCurrentStep()
 
         if self.args.mode == 'test':
             for k in self.tso_output_info_dic:
                 self.tso_output_info_dic[k].clear()
 
             for tlid in self.target_tl_id_list:
-                avg_speed, avg_tt, sum_passed, sum_travel_time = gatherTsoOutputInfo(tlid, self.tl_obj, num_hop=0)
+                avg_speed, avg_tt, sum_passed, sum_travel_time = self.te_conn.gatherTsoOutputInfo(tlid, self.tl_obj, num_hop=0)
 
-                if DBG_OPTIONS.RichActionOutput:
-                    #todo should consider the possibility that TOD can be changed
-                    offset = self.tl_obj[tlid]['offset']
-                    duration = self.tl_obj[tlid]['duration']
+                #todo should consider the possibility that TOD can be changed
+                offset = self.tl_obj[tlid]['offset']
+                duration = self.tl_obj[tlid]['duration']
 
-                    if DBG_OPTIONS.PrintAction:
-                        cross_name = self.tl_obj[tlid]['crossName']
-                        green_idx = self.tl_obj[tlid]['green_idx']
-                        print(
-                            f'cross_name={cross_name} offset={offset} duration={duration} green_idx={green_idx}  green_idx[0]={green_idx[0]}')
+                if DBG_OPTIONS.PrintAction:
+                    cross_name = self.tl_obj[tlid]['crossName']
+                    green_idx = self.tl_obj[tlid]['green_idx']
+                    print(f'cross_name={cross_name} offset={offset} duration={duration} green_idx={green_idx} green_idx[0]={green_idx[0]}')
 
-                    appendTsoOutputInfoSignal(self.tso_output_info_dic, offset, duration)
-                self.tso_output_info_dic = appendTsoOutputInfo(self.tso_output_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time)
+                self.tso_output_info_dic = appendTsoOutputInfo(self.tso_output_info_dic, avg_speed, avg_tt, sum_passed, sum_travel_time, offset, duration)
+
 
         #-- warming up
         ##--- clear
@@ -538,23 +519,23 @@ class SaltSappoEnvV3(gym.Env):
             self.discrete_actions.append(list(0 for _ in range(action_size)))
                     # zero because the offset of the fixed signal is used as it is
 
-            if 1:
+            if DBG_OPTIONS.PrintAction:
                 print(f"Reset discrete_actions={self.discrete_actions}")
                 print(f"Reset sa={target_sa}  action_space={action_space}  action_space.shape[0]={action_space.shape[0]}")
 
 
         ##--- increase simulation steps
         for _ in range(self.warming_up_time):
-            libsalt.simulationStep()
+            self.te_conn.increaseStep()
             self.simulation_steps += 1
 
             # gather visualization related info
             if self.args.mode == 'test':
-                appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
-                                   self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                self.reward_mgmt.appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                   self.discrete_actions, self.sa_obj, self.sa_name_list,
                                    self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
-        self.simulation_steps = libsalt.getCurrentStep()
+        self.simulation_steps = self.te_conn.getCurrentStep()
 
         #-- initialize : reward, time_to_act_list, observation
         self.reward_mgmt.reset()
@@ -563,10 +544,12 @@ class SaltSappoEnvV3(gym.Env):
             self.time_to_act_list[i] = self.__getNextTimeToAct(self.simulation_steps, self.sa_cycle_list[i],
                                                                self.control_cycle)
 
-        self.observations.clear()
-        for sa_name in self.sa_name_list:
-            self.observations.append(np.array([0] * self.sa_obj[sa_name]['state_space']))
-
+        if 0: ## DELETE.... type error fix
+            self.observations = list([] for i in range(self.agent_num))  # [ [], ...,[]]
+        else:
+            self.observations.clear()
+            for sa_name in self.sa_name_list:
+                self.observations.append(np.array([0] * self.sa_obj[sa_name]['state_space']))
         #
         # action 을 적용해야 하는 곳까지 시뮬레이션을 수행한다.
         # 이때, 보상 관연 정보를 수집한다. 또한, agent.act() 의 입력이 되는 상태 정보를 수집한다.
@@ -581,13 +564,13 @@ class SaltSappoEnvV3(gym.Env):
 
             #--- 2. increase simulation step, gather reward related info
             for i in range(inc_step):
-                libsalt.simulationStep()
+                self.te_conn.increaseStep()
                 self.simulation_steps += 1
 
                 # gather visualization related info
                 if self.args.mode == 'test':
-                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
-                                       self.discrete_actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                    self.reward_mgmt.appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       self.discrete_actions, self.sa_obj, self.sa_name_list,
                                        self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
 
                 if self.simulation_steps % self.reward_info_collection_cycle == 0:
@@ -612,7 +595,7 @@ class SaltSappoEnvV3(gym.Env):
 
 
     def close(self):
-        libsalt.close()
+        self.te_conn.close()
         print('close')
 
 

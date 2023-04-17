@@ -2,24 +2,24 @@
 
 import numpy as np
 
-import libsalt
-
 from deprecated import deprecated
 
 from DebugConfiguration import DBG_OPTIONS
 
 
-class SaltActionMgmt:
+class SappoActionMgmt:
     '''
-    a class for Salt action mgmt
+    a class for SAPPO action management
     '''
-    def __init__(self, args, sa_obj, sa_name_list):
+    def __init__(self, te_conn, args, sa_obj, sa_name_list):
         '''
         constructor
+        :param te_conn
         :param args:
         :param sa_obj:
         :param sa_name_list:
         '''
+        self.te_conn = te_conn
         self.args = args
         self.sa_obj = sa_obj
         self.sa_name_list = sa_name_list
@@ -76,8 +76,8 @@ class SaltActionMgmt:
 
         return out_phase_arr_list
 
-
-    def __getGreenRatioAppliedPhaseArray(self, curr_sim_step, an_sa_obj, actions):
+    @deprecated
+    def __getGreenRatioAppliedPhaseArrayBefore20230407(self, curr_sim_step, an_sa_obj, actions):
         '''
         get green-ratio actions applied phase array list
 
@@ -93,8 +93,7 @@ class SaltActionMgmt:
         phase_list = []
         phase_array_list = []
 
-        if DBG_OPTIONS.RichActionOutput:
-            duration_list=[]
+        duration_list=[]
 
         for tlid_idx in range(len(tlid_list)):
             tlid = tlid_list[tlid_idx]
@@ -103,10 +102,11 @@ class SaltActionMgmt:
             # maxDur = an_sa_obj['maxDur_list'][tlid_idx]
             currDur = an_sa_obj['duration_list'][tlid_idx]
 
-            if DBG_OPTIONS.RichActionOutput:
-                new_duration = currDur.copy()
+            new_duration = currDur.copy()
 
-            mpv = libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector
+            mpv = self.te_conn.getCurrentSchedulePhaseVector(tlid)
+            #  [(26, 'rrrrrgrrGgrrrrrrGGG'), (4, 'rrrrryrryyrrrrrryyg'), (72, 'GGGGrrrrrrGGGGrrrrG'), (3, 'yyyyrrrrrryyyyrrrry'),
+            #        (17, 'rrrrGgrrrgrrrrGrrrr'), (3, 'rrrryyrrryrrrryrrrr'), (51, 'rrrrrrGGrrrrrrrGrrr'), (4, 'rrrrrryyrrrrrrryrrr')]
             mpv = list(mpv)
 
             action_list = an_sa_obj['action_list_list'][tlid_idx]
@@ -118,32 +118,91 @@ class SaltActionMgmt:
                 _m[0] = currDur[gi] + int(action[_i]) * self.args.add_time
                 mpv[gi] = tuple(_m)
 
-                if DBG_OPTIONS.RichActionOutput:
-                    new_duration[gi]=_m[0]
-            if DBG_OPTIONS.RichActionOutput:
-                duration_list.append(new_duration)
+                new_duration[gi]=_m[0]
 
-            scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-            libsalt.trafficsignal.setTLSPhaseVector(curr_sim_step, tlid, scheduleID, mpv)
+            duration_list.append(new_duration)
 
-            phase_sum = np.sum([x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector])
+            scheduleID = self.te_conn.getCurrentScheduleId(tlid)
+
+            self.te_conn.setPhaseVector(curr_sim_step, tlid, scheduleID, mpv)
+
+            current_schedule_phase_vector = self.te_conn.getCurrentSchedulePhaseVector(tlid)
+            phase_sum = np.sum([x[0] for x in current_schedule_phase_vector])
             phase_sum_list.append(phase_sum)
-            tl_phase_list = [x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector if
-                             x[0] > 5]
+            tl_phase_list = [x[0] for x in current_schedule_phase_vector if x[0] > 5]
                     # todo : should avoid CONSTANT 5... it reduce readibility
             phase_list.append(tl_phase_list)
-            tl_phase_list_include_y = [x[0] for x in
-                                       libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector]
+            tl_phase_list_include_y = [x[0] for x in current_schedule_phase_vector]
             phase_arr = []
 
             for i in range(len(tl_phase_list_include_y)):
                 phase_arr = np.append(phase_arr, np.ones(tl_phase_list_include_y[i]) * i)
             phase_array_list.append(np.roll(phase_arr, an_sa_obj['offset_list'][tlid_idx]))
 
-        if DBG_OPTIONS.RichActionOutput:
-            return phase_array_list, duration_list
-        else:
-            return phase_array_list
+        return phase_array_list, duration_list
+
+
+    def __getGreenRatioAppliedPhaseArray(self, curr_sim_step, an_sa_obj, actions):
+        '''
+        get green-ratio actions applied phase array list
+
+        :param curr_sim_step: current sumulation step
+        :param an_sa_obj: object which holds information about an SA
+        :param actions: actions to apply
+        :return:
+        '''
+        #
+        # cleaned up the code by deleting useless code
+        # see __getGreenRatioAppliedPhaseArrayBefore20230407() for the code before the clean-up
+        #
+        tlid_list = an_sa_obj["tlid_list"]
+        # sa_cycle = an_sa_obj["cycle_list"][0]
+
+        phase_array_list = []
+
+        duration_list=[]
+
+        for tlid_idx in range(len(tlid_list)):
+            tlid = tlid_list[tlid_idx]
+            green_idx = an_sa_obj["green_idx_list"][tlid_idx][0]
+            # min_dur = an_sa_obj["minDur_list"][tlid_idx]
+            # maxDur = an_sa_obj['maxDur_list'][tlid_idx]
+            currDur = an_sa_obj['duration_list'][tlid_idx]
+
+            new_duration = currDur.copy()
+
+            mpv = self.te_conn.getCurrentSchedulePhaseVector(tlid)
+            #  [(26, 'rrrrrgrrGgrrrrrrGGG'), (4, 'rrrrryrryyrrrrrryyg'), (72, 'GGGGrrrrrrGGGGrrrrG'), (3, 'yyyyrrrrrryyyyrrrry'),
+            #        (17, 'rrrrGgrrrgrrrrGrrrr'), (3, 'rrrryyrrryrrrryrrrr'), (51, 'rrrrrrGGrrrrrrrGrrr'), (4, 'rrrrrryyrrrrrrryrrr')]
+
+            mpv = list(mpv)
+
+            action_list = an_sa_obj['action_list_list'][tlid_idx]
+            action = action_list[actions[tlid_idx]]
+
+            for _i in range(len(green_idx)):
+                gi = green_idx[_i]
+                _m = list(mpv[gi])
+                _m[0] = currDur[gi] + int(action[_i]) * self.args.add_time
+                mpv[gi] = tuple(_m)
+
+                new_duration[gi]=_m[0]
+
+            duration_list.append(new_duration)
+
+            scheduleID = self.te_conn.getCurrentScheduleId(tlid)
+
+            self.te_conn.setPhaseVector(curr_sim_step, tlid, scheduleID, mpv)
+
+            current_schedule_phase_vector = self.te_conn.getCurrentSchedulePhaseVector(tlid)
+            tl_phase_list_include_y = [x[0] for x in current_schedule_phase_vector]
+            phase_arr = []
+
+            for i in range(len(tl_phase_list_include_y)):
+                phase_arr = np.append(phase_arr, np.ones(tl_phase_list_include_y[i]) * i)
+            phase_array_list.append(np.roll(phase_arr, an_sa_obj['offset_list'][tlid_idx]))
+
+        return phase_array_list, duration_list
 
 
     @deprecated
@@ -169,7 +228,7 @@ class SaltActionMgmt:
             # maxDur = an_sa_obj['maxDur_list'][tlid_idx]
             currDur = an_sa_obj['duration_list'][tlid_idx]
 
-            mpv = libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector
+            mpv = self.te_conn.getCurrentSchedulePhaseVector(tlid)
             mpv = list(mpv)
 
             action_list = an_sa_obj['action_list_list'][tlid_idx]
@@ -181,16 +240,16 @@ class SaltActionMgmt:
                 _m[0] = currDur[gi] + int(action[_i]) * self.args.add_time
                 mpv[gi] = tuple(_m)
 
-            scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-            libsalt.trafficsignal.setTLSPhaseVector(curr_sim_step, tlid, scheduleID, mpv)
+            scheduleID = self.te_conn.getCurrentScheduleId(tlid)
+            self.te_conn.setPhaseVector(curr_sim_step, tlid, scheduleID, mpv)
 
-            phase_sum = np.sum([x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector])
+            current_schedule_phase_vector = self.te_conn.getCurrentSchedulePhaseVector(tlid)
+
+            phase_sum = np.sum([x[0] for x in current_schedule_phase_vector])
             phase_sum_list.append(phase_sum)
-            tl_phase_list = [x[0] for x in libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector if
-                             x[0] > 5]
+            tl_phase_list = [x[0] for x in current_schedule_phase_vector if x[0] > 5]
             phase_list.append(tl_phase_list)
-            tl_phase_list_include_y = [x[0] for x in
-                                       libsalt.trafficsignal.getCurrentTLSScheduleByNodeID(tlid).myPhaseVector]
+            tl_phase_list_include_y = [x[0] for x in current_schedule_phase_vector]
             phase_arr = []
 
             for i in range(len(tl_phase_list_include_y)):
@@ -219,35 +278,31 @@ class SaltActionMgmt:
         #     : actions for green ratio adjustment, actions for offset adjustment
         actions_len = len(actions)
         gr_actions = []
-        offset_acctions = []
+        offset_actions = []
         for i in range(actions_len):
             if i % 2:
                 gr_actions.append(actions[i])
             else:
-                offset_acctions.append(actions[i])
+                offset_actions.append(actions[i])
 
         ## 2. do green ratio adjustment
-        if DBG_OPTIONS.RichActionOutput:
-            in_phase_array_list,  duration_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, gr_actions)
-        else:
-            in_phase_array_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, gr_actions)
+        in_phase_array_list,  duration_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, gr_actions)
 
         ## 3. do offset adjustment
         # offset + action
-        offset_list = [x + y for x, y in zip(an_sa_obj['offset_list'], offset_acctions)]
+        offset_list = [x + y for x, y in zip(an_sa_obj['offset_list'], offset_actions)]
 
         if DBG_OPTIONS.PrintAction:
             print(f"DBG offset_list={an_sa_obj['offset_list']} orignal")
 
         if 0: # changed 20220720PM : todo should check which one is correct
-            phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_acctions)
+            ##-- offset 0을 기준으로 action 반영 : offset = action
+            phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_actions)
         else:
+            ##-- TOD 상의 Offset을 기준으로 action 반영 : offset = TOD offset + action
             phase_array_list = self.__getOffsetAppliedPhaseArray(in_phase_array_list, offset_list)
 
-        if DBG_OPTIONS.RichActionOutput:
-            return phase_array_list, offset_list, duration_list
-        else:
-            return phase_array_list
+        return phase_array_list, offset_list, duration_list
 
 
 
@@ -271,8 +326,8 @@ class SaltActionMgmt:
             for tlid in tlid_list:
                 #t_phase = int(phase_arr[tlid_i][current_sim_step % sa_cycle])
                 t_phase = int(phase_arr[tlid_i][(current_sim_step-1) % sa_cycle])
-                scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
-                libsalt.trafficsignal.changeTLSPhase(current_sim_step, tlid, scheduleID, t_phase)
+                scheduleID = self.te_conn.getCurrentScheduleId(tlid)
+                self.te_conn.setPhase(current_sim_step, tlid, scheduleID, t_phase)
                 tlid_i += 1
 
         return 0
@@ -296,11 +351,11 @@ class SaltActionMgmt:
             tmp_phase_list = []
             for tlid_idx in range(len(tlid_list)):
                 tlid = tlid_list[tlid_idx]
-                scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
+                scheduleID = self.te_conn.getCurrentScheduleId(tlid)
                 phase_length = len(target_tl_obj[tlid]['duration'])
-                current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
+                current_phase = self.te_conn.getCurrentPhaseIndex(tlid)
                 next_phase = (current_phase + actions[tlid_idx]) % phase_length
-                libsalt.trafficsignal.changeTLSPhase(current_sim_step, tlid, scheduleID, int(next_phase))
+                self.te_conn.setPhase(current_sim_step, tlid, scheduleID, int(next_phase))
                 tmp_phase_list = np.append(tmp_phase_list, current_phase)  # store current phase
             phase_list.append(tmp_phase_list)
         return phase_list
@@ -324,14 +379,14 @@ class SaltActionMgmt:
             tmp_phase_list = []
             for tlid_idx in range(len(tlid_list)):
                 tlid = tlid_list[tlid_idx]
-                scheduleID = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
+                scheduleID = self.te_conn.getCurrentScheduleId(tlid)
                 phase_length = len(tl_obj[tlid]['duration'])
-                current_phase = libsalt.trafficsignal.getCurrentTLSPhaseIndexByNodeID(tlid)
+                current_phase = self.te_conn.getCurrentPhaseIndex(tlid)
                 if tl_obj[tlid]['duration'][current_phase] > 5:
                     next_phase = current_phase
                 else:
                     next_phase = (current_phase + actions[tlid_idx]) % phase_length
-                libsalt.trafficsignal.changeTLSPhase(current_sim_step, tlid, scheduleID, int(next_phase))
+                self.te_conn.setPhase(current_sim_step, tlid, scheduleID, int(next_phase))
                 tmp_phase_list = np.append(tmp_phase_list, next_phase)  # store next phase
             phase_list.append(tmp_phase_list)
         return phase_list
@@ -350,9 +405,8 @@ class SaltActionMgmt:
         sa = self.sa_name_list[sa_idx]
         an_sa_obj = self.sa_obj[sa]
 
-        if DBG_OPTIONS.RichActionOutput:
-            offset_list = []
-            duration_list = []
+        offset_list = []
+        duration_list = []
 
         if DBG_OPTIONS.PrintAction:
             print(f'DBG actions={actions}')
@@ -369,28 +423,19 @@ class SaltActionMgmt:
             pass # nothing to do
 
         elif self.args.action == 'gr':  # green ratio : ref. step() at sappo_green_single.py
-            if DBG_OPTIONS.RichActionOutput:
-                self.apply_phase_array_list[sa_idx], duration_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
-            else:
-                self.apply_phase_array_list[sa_idx] = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj,
-                                                                                            actions)
+            self.apply_phase_array_list[sa_idx], duration_list = self.__getGreenRatioAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
+
         elif self.args.action == 'gro':  # green ratio+offset : ref. step() at sappo_green_offset_single.py
-            if DBG_OPTIONS.RichActionOutput:
-                self.apply_phase_array_list[sa_idx], offset_list, duration_list = self.__getGreenRatioOffsetAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
-            else:
-                self.apply_phase_array_list[sa_idx] = self.__getGreenRatioOffsetAppliedPhaseArray(curr_sim_step,
-                                                                                                  an_sa_obj, actions)
+            self.apply_phase_array_list[sa_idx], offset_list, duration_list = self.__getGreenRatioOffsetAppliedPhaseArray(curr_sim_step, an_sa_obj, actions)
 
-        if DBG_OPTIONS.RichActionOutput:
+        if DBG_OPTIONS.PrintAction:
+            print(f'DBG offset_list_{sa_idx}={offset_list} changed ... in ActionMgmt')
+        if len(duration_list):
             if DBG_OPTIONS.PrintAction:
-                print(f'DBG offset_list_{sa_idx}={offset_list} changed ... in ActionMgmt')
-            if len(duration_list):
-                if DBG_OPTIONS.PrintAction:
-                    print(f'DBG duration_list_{sa_idx}={duration_list} changed  ... in ActionMgmt')
+                print(f'DBG duration_list_{sa_idx}={duration_list} changed  ... in ActionMgmt')
 
-            return offset_list, duration_list
-        else:
-            return 0
+        return offset_list, duration_list
+
 
 
 
