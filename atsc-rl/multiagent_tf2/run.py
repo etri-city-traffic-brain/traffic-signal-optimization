@@ -27,7 +27,14 @@ from env.sappo.SappoEnv import SappoEnv
 
 from env.sappo.SappoRewardMgmt import SappoRewardMgmt
 
-from policy.ppoTF2 import PPOAgentTF2
+if DBG_OPTIONS.PPO_VERSION == "V1.0":
+    from policy.ppoTF2 import PPOAgentTF2
+# elif DBG_OPTIONS.PPO_VERSION == "V1.x":
+#     from policy.ppoTF2_yjlee_v20230309 import PPOAgentTF2
+elif DBG_OPTIONS.PPO_VERSION == "V2.0":
+    from policy.ppoTF2V2 import PPOAgentTF2 #ppoTF2_yjlee_v20230412
+else: # default V1.0
+    from policy.ppoTF2 import PPOAgentTF2
 
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
@@ -312,7 +319,14 @@ def trainSappo(args, te_conn):
                 observation = cur_states[i].reshape(1, -1)  # [1,2,3]  ==> [ [1,2,3] ]
 
                 ###-- obtain actions from model
-                actions[i], logp_ts[i] = ppo_agent[i].act(observation)
+                if DBG_OPTIONS.PPO_VERSION == "V2.0":  # v20230412
+                    actions[i], logp_ts[i], _, _ = ppo_agent[i].act(observation)
+                else:  # V1.x, V1.0 : v20230309, ORIGINAL
+                    actions[i], logp_ts[i] = ppo_agent[i].act(observation)
+
+                if DBG_OPTIONS.PPO_VERSION != "V1.0":
+                    state_action_value = ppo_agent[i].evaluate_state_action(observation, actions[i])
+
                 actions[i], logp_ts[i] = actions[i][0], logp_ts[i][0]
 
 
@@ -557,7 +571,11 @@ def testSappo(args, te_conn):
                 print(f"DBG in testSappo() observation={observation}")
 
             ###--- obtain actions : infer by feeding current state to agent
-            actions[i], _ = ppo_agent[i].act(observation)
+            if DBG_OPTIONS.PPO_VERSION == "V2.0": # "v20230412"
+                actions[i], _, _, _ = ppo_agent[i].act(observation)
+            else:
+                actions[i], _ = ppo_agent[i].act(observation)
+
             actions[i] = actions[i][0]
 
             if DBG_OPTIONS.PrintAction :

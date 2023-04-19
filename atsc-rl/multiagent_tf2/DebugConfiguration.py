@@ -28,6 +28,9 @@ class DBG_OPTIONS :
 
         ActorCriticModelVersion = 1 # 1 : simple model. 2 : optimized model with resnet, regularizer
 
+        PPO_VERSION = "V1.0" # V1.0 : original : do with initial version of PPOAgentTF2
+                                     # V1.x : v20230309 : do with PPOAgentTF2(v20230309) modified by yjlee
+                                     # V2.0   : v20230412: do with PPOAgentTF2(v20230412) modified by yjlee
 
     ## bebug message : Options which are related to debug message
     if WITH_DBG_MSG :

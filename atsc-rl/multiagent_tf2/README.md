@@ -28,27 +28,34 @@
     * gym
     * matplotlib
     * Deprecated
-  * YAML 파일 참고 : [uniq.opt.env.yaml](./uniq.opt.env.yaml) 
-  
+  * YAML 파일 참고
+    * ppoTF2.py를 이용하기를 원하는 경우 : TF 2.3.x를 사용해야 함 
+      * [uniq.opt.env.yaml](./uniq.opt.env.yaml)
+    * ppoTF2V2.py 를 이용하기를 원하는 경우 : TF 2.6.x 사용해야 함
+      * [uniq.opt.v2.env.yaml](./uniq.opt.v2.env.yaml)
   
   * 실행 환경 생성 예
-  ```shell
-  ### 직접 패키지 인스톨하여 생성
-  conda create --name p3.8 python=3.8
-  pip install tensorflow==2.3.0
-  pip install keras==2.4.3
-  pip install pandas
-  pip install gym
-  pip install matplotlib
-  pip install Deprecated   
-
-  ### yaml 파일을 통한 생성
-  #### 원하는 경우, 가상 환경의 이름을 바꾸고, prefix 를 경로에 맞게 바꾸어준다
-  #### 예를 들어,   prefix: /home/[사용자이름]/Anaconda3/envs/[가상환경이름]
-  conda env create --file uniq.opt.env.yaml
-  ```
+    * 직접 패키지 인스톨하여 생성
+      ```shell
+      conda create --name p3.8 python=3.8
+      pip install tensorflow==2.3.0  # 2.6.2
+      pip install keras==2.4.3       # 2.6.2
+      pip install pandas
+      pip install gym
+      pip install matplotlib
+      pip install Deprecated   
+      ```
+    * yaml 파일을 통한 생성
+      * 원하는 경우, 가상 환경의 이름을 바꾸고, prefix 를 경로에 맞게 바꾸어준다
+        * 예를 들어,   prefix: /home/[사용자이름]/Anaconda3/envs/[가상환경이름]
+        ```
+        conda env create --file uniq.opt.env.yaml
+        ```
+      * ppoTF2V2.py 를 이용하기를 원하는 경우에는 TF 2.6.x 사용
+        * 참고 [uniq.opt.v2.env.yaml](./uniq.opt.v2.env.yaml)
   
 <br> <br>
+
 * 환경변수 SALT_HOME 와 PYTHONPATH 설정
   * SALT_HOME : SALT 시뮬레이터가 설치된 디렉토리
   * PYTHONPATH에 SALT 라이브러리 경로 추가

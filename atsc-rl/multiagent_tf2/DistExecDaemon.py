@@ -111,14 +111,20 @@ class LearningDaemonThread(threading.Thread):
                 assert method== 'sappo', f"Internal error in LearningDaemonThread::__copyTrainedModel() : methon({method}) is not supported"
 
                 if method == 'sappo': # use PPOAgentTF2
-                    # 2. get file extension
-                    tokens = fname.split('.')
-                    extension = tokens[-1]
+                    if 0:
+                        # 2. get file extension
+                        tokens = fname.split('.')
+                        extension = tokens[-1]
 
-                    model_name = tokens[-2].split('_')[-1]  # actor or critic
-                    # 3. make command
-                    cmd = 'cp "{}" "{}/{}-trial_{}_{}_{}.{}"'.format(fname, model_store_path, problem_var,
-                                                                          trial, tl, model_name, extension)
+                        model_name = tokens[-2].split('_')[-1]  # actor or critic
+                        # 3. make command
+                        cmd = 'cp "{}" "{}/{}-trial_{}_{}_{}.{}"'.format(fname, model_store_path, problem_var,
+                                                                              trial, tl, model_name, extension)
+                    else: #
+                        tokens = fname.split(f"_{tl}_") # ["SAPPO_..._trial_0", "_SA_101_", "critic_0.h5"]
+                        # tokens[-1]= actor.h5, critic_0.h5, critic_1.h5
+                        cmd = 'cp "{}" "{}/{}-trial_{}_{}_{}"'.format(fname, model_store_path, problem_var,
+                                                                         trial, tl, tokens[-1])
                 else :
                     print("Internal error : LearningDaemonThread::__copyTrainedModel()")
 

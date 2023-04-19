@@ -28,7 +28,13 @@ Traffic signal optimization with the help of machine learning, esp., reinforceme
     * gym
     * matplotlib
     * Deprecated
-  * You can refer YAML file : [uniq.opt.env.yaml](./uniq.opt.env.yaml) 
+  * You can refer YAML file 
+    * [uniq.opt.env.yaml](./uniq.opt.env.yaml)
+      * work with policy/ppoTF2.py
+      * tensorflow 2.3.x
+    * [uniq.opt.v2.env.yaml](./uniq.opt.v2.env.yaml)
+      * work with policy/ppoTF2V2.py
+      * tensorflow 2.6.2
   * example
     ```shell
     ### ex1. with package installing
