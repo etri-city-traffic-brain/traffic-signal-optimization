@@ -453,7 +453,7 @@ if __name__ == '__main__':
 
         ## calculate & dump elapsed time of current round
         current_round_elapsed_time = curent_round_end_time - curent_round_start_time
-        print(f'Time taken for {validation_trials}-th round experiment was {current_round_elapsed_time.seconds} seconds')
+        print(f'Time taken for {validation_trials}-th round experiment was {current_round_elapsed_time}.')
 
 
         ### set the checked result : state
