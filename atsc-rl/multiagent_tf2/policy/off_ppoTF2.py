@@ -300,7 +300,8 @@ class CriticModel:
     
     def buildDNN(self, network_layers, input_shape, action_space, lr, optimizer):
 
-        network_layers = (1024, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512)
+        #network_layers = (1024, 512, 512, 512, 512, 512, 512, 512, 512, 512, 512)
+        num_dual_stream_layers = int(len(network_layers)/2)
         #X_input = Input(input_shape)
         #old_values = Input(shape=(1,))
         state_input = Input(input_shape)
@@ -314,28 +315,23 @@ class CriticModel:
             
             if i == 0:
                 kernel_regularizer = tf.keras.regularizers.l2(l=0.00005)
-                #kernel_regularizer = tf.keras.regularizers.l2(l=0.0005)
                 
                 state_stream = Dense(size, activation=tf.nn.tanh, kernel_initializer='glorot_uniform', kernel_regularizer=kernel_regularizer)(state_stream)
                 action_stream = Dense(size, activation=tf.nn.tanh, kernel_initializer='glorot_uniform', kernel_regularizer=kernel_regularizer)(action_stream)
                 
-                #V = Dense(size, activation=tf.nn.tanh, kernel_initializer=tf.random_normal_initializer(stddev=0.01), kernel_regularizer=kernel_regularizer)(V)
             if i == 1:
                 state_stream  = BN_Tanh_Dense(size)(state_stream)                        
                 action_stream = BN_Tanh_Dense(size)(action_stream)                        
                 
-            #if 1 <= i <= 2: 
-            if 1 <= i <= 5: 
+            if 1 <= i <= num_dual_stream_layers:
                 state_stream  = ResBlock(size)(state_stream)
                 action_stream  = ResBlock(size)(action_stream)
 
-            #if i == 2: 
-            if i == 5: 
+            if i == num_dual_stream_layers: 
                 V = tf.concat([state_stream, action_stream], axis=-1)
                 V = BN_Tanh_Dense(size)(V)                        
 
-            #if i > 2:
-            if i > 5:
+            if i > num_dual_stream_layers:
                 V = ResBlock(size)(V)
                 
                 
