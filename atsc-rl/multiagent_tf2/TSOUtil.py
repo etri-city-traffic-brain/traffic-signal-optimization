@@ -13,7 +13,7 @@ from TSOConstants import _MODE_
 from TSOConstants import _MSG_TYPE_
 
 
-from policy.ppoTF2 import makePPOConfig, makePPOProblemVar
+from policy.off_ppoTF2 import makePPOConfig, makePPOProblemVar
 
 '''
 methods for file io
@@ -179,13 +179,14 @@ def addArgumentsToParser(parser):
     parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
+    parser.add_argument('--scenario', choices=['12th', 'kaist' ], default='12th', help='simulation scenario')
 
     parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
-    parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro'], default='gro',
+    parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro', 'gt', 'fx'], default='gro',
                         help='kc - keep or change(limit phase sequence), offset - offset, gr - green ratio, gro - green ratio+offset')
     parser.add_argument('--state', choices=['v', 'd', 'vd', 'vdd'], default='vdd',
                         help='v - volume, d - density, vd - volume + density, vdd - volume / density')
-    parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'tt', 'cwq'],
+    parser.add_argument('--reward-func', choices=['pn', 'wt', 'wt_max', 'wq', 'wq_median', 'wq_min', 'wq_max', 'tt', 'cwq', 'dt'],
                         default='cwq',
                         help='pn - passed num, wt - wating time, wq - waiting q length, tt - travel time, cwq - cumulative waiting q length')
 
