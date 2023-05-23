@@ -78,14 +78,14 @@ from env.off_ppo.SappoRewardMgmt import SaltRewardMgmtV3
 from policy.off_ppoTF2 import PPOAgentTF2 #from policy.ppoTF2 import PPOAgentTF2
 from ResultCompare import compareResult
 
-from TSOConstants_off_ppo import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
-from TSOUtil_off_ppo import addArgumentsToParser
-from TSOUtil_off_ppo import appendLine
-from TSOUtil_off_ppo import convertSaNameToId
-from TSOUtil_off_ppo import findOptimalModelNum
-from TSOUtil_off_ppo import makeConfigAndProblemVar
-from TSOUtil_off_ppo import writeLine
-
+from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
+from TSOUtil import addArgumentsToParser
+from TSOUtil import appendLine
+from TSOUtil import convertSaNameToId
+from TSOUtil import findOptimalModelNum
+from TSOUtil import makeConfigAndProblemVar
+from TSOUtil import writeLine
+from TSOUtil import getOutputDirectoryRoot
 
 
 def parseArgument():
@@ -424,7 +424,7 @@ class Agent:
     def save_agent(self, trial):
         args = self.args
         problem_var = self.problem_var
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, trial)
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var, trial)
         for agent in self.ppo_agent:
             agent.saveModel(fn_prefix)
 
@@ -433,7 +433,7 @@ class Agent:
     def load_agent(self, trial):
         args = self.args
         problem_var = self.problem_var
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var, trial)
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var, trial)
         for agent in self.ppo_agent:
             agent.loadModel(fn_prefix)
 
