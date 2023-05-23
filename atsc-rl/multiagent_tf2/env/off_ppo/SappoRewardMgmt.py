@@ -6,7 +6,7 @@ from deprecated import deprecated
 import libsalt
 
 from DebugConfiguration import DBG_OPTIONS
-from TSOConstants_off_ppo import _REWARD_GATHER_UNIT_
+from TSOConstants import _REWARD_GATHER_UNIT_
 
 
 @deprecated(reason="use another Class : SaltRewardMgmtV3")
