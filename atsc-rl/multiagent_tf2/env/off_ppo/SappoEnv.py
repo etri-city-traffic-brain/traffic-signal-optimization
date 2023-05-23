@@ -27,8 +27,7 @@ from env.off_ppo.SaltEnvUtil import makePosssibleSaNameList
 from env.off_ppo.SappoActionMgmt import SaltActionMgmt
 from env.off_ppo.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmtV3
 from TSOUtil import writeLine
-
-
+from TSOUtil import getOutputDirectoryRoot, _RESULT_COMP_
 
 class SaltSappoEnvV3(gym.Env):
     '''
@@ -191,8 +190,7 @@ class SaltSappoEnvV3(gym.Env):
             self.tso_output_info_dic = initTsoOutputInfo()
 
             if self.args.mode == 'test':
-                self.fn_rl_phase_reward_output = "{}/output/test/rl_phase_reward_output.txt".format(args.io_home)
-
+                self.fn_rl_phase_reward_output = f"{getOutputDirectoryRoot(args)}/output/test/{_RESULT_COMP_.RL_PHASE_REWARD_OUTPUT}"
                 writeLine(self.fn_rl_phase_reward_output,
                           'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
 
