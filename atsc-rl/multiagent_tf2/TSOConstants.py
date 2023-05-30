@@ -82,6 +82,7 @@ class _RESULT_COMP_:
     used to indicate the improvement rate from DataFrame object
     '''
     SIMULATION_OUTPUT='_PeriodicOutput.csv'
+    PHASE_REWARD_OUTPUT='rl_phase_reward_output.txt'
     FT_PHASE_REWARD_OUTPUT='ft_phase_reward_output.txt'
     RL_PHASE_REWARD_OUTPUT='rl_phase_reward_output.txt'
     SPEED_GATHER_INTERVAL = 30 # seconds; interval for gathering the average speed of intersection
