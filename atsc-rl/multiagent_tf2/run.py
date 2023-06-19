@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 #
+#  use "policy/ppoTF2.py" as a policy
+#  [$] conda activate UniqOpt.p3.8
+#  [$] python run.py --mode train --map doan --target-TL "SA 101, SA 104" --epoch 1
+#  [$] python run.py --mode test --map doan --target-TL "SA 101, SA 104" --model-num 0 --result-comp true
 #
 
 #
@@ -27,14 +31,7 @@ from env.sappo.SappoEnv import SappoEnv
 
 from env.sappo.SappoRewardMgmt import SappoRewardMgmt
 
-if DBG_OPTIONS.PPO_VERSION == "V1.0":
-    from policy.ppoTF2 import PPOAgentTF2
-# elif DBG_OPTIONS.PPO_VERSION == "V1.x":
-#     from policy.ppoTF2_yjlee_v20230309 import PPOAgentTF2
-elif DBG_OPTIONS.PPO_VERSION == "V2.0":
-    from policy.ppoTF2V2 import PPOAgentTF2 #ppoTF2_yjlee_v20230412
-else: # default V1.0
-    from policy.ppoTF2 import PPOAgentTF2
+from policy.ppoTF2 import PPOAgentTF2
 
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
@@ -319,14 +316,7 @@ def trainSappo(args, te_conn):
                 observation = cur_states[i].reshape(1, -1)  # [1,2,3]  ==> [ [1,2,3] ]
 
                 ###-- obtain actions from model
-                if DBG_OPTIONS.PPO_VERSION == "V2.0":  # v20230412
-                    actions[i], logp_ts[i], _, _ = ppo_agent[i].act(observation)
-                else:  # V1.x, V1.0 : v20230309, ORIGINAL
-                    actions[i], logp_ts[i] = ppo_agent[i].act(observation)
-
-                if DBG_OPTIONS.PPO_VERSION != "V1.0":
-                    state_action_value = ppo_agent[i].evaluate_state_action(observation, actions[i])
-
+                actions[i], logp_ts[i] = ppo_agent[i].act(observation)
                 actions[i], logp_ts[i] = actions[i][0], logp_ts[i][0]
 
 
@@ -571,11 +561,7 @@ def testSappo(args, te_conn):
                 print(f"DBG in testSappo() observation={observation}")
 
             ###--- obtain actions : infer by feeding current state to agent
-            if DBG_OPTIONS.PPO_VERSION == "V2.0": # "v20230412"
-                actions[i], _, _, _ = ppo_agent[i].act(observation)
-            else:
-                actions[i], _ = ppo_agent[i].act(observation)
-
+            actions[i], _ = ppo_agent[i].act(observation)
             actions[i] = actions[i][0]
 
             if DBG_OPTIONS.PrintAction :
@@ -625,6 +611,7 @@ def testSappo(args, te_conn):
 
 
 
+
 def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
     '''
     compare result of fxied-time-control and RL-agent-control
@@ -642,6 +629,7 @@ def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_sk
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
     total_output = env.te_conn.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
+
 
     shutil.copy2(result_fn, dst_fn)
 

@@ -107,7 +107,7 @@ if __name__ == "__main__":
     for i in range(600):
         libsalt.simulationStep()
 
-    if 1:
+    if 0:
         current_step = libsalt.getCurrentStep()
         # to understand   __getGreenRatioAppliedPhaseArray(self, curr_sim_step, an_sa_obj, actions) at ActionMgmt
         current_schedule_id = libsalt.trafficsignal.getCurrentTLSScheduleIDByNodeID(tlid)
@@ -161,3 +161,27 @@ if __name__ == "__main__":
         duration_info = [69, 4, 4, 59, 3, 3, 14, 3, 3, 38, 4, 4]
         logic_idx = 0
         changeTLPhase(tlid, logic_idx, duration_info)
+
+    libsalt.close()
+
+
+    if 1:
+        import tensorflow as tf
+
+        def configure_gpu():
+            gpus = tf.config.experimental.list_physical_devices('GPU')
+            if gpus:
+                try:
+                    # Currently, memory growth needs to be the same across GPUs
+                    for gpu in gpus:
+                        tf.config.experimental.set_memory_growth(gpu, True)
+                        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                except RuntimeError as e:
+                    # Memory growth must be set before GPUs have been initialized
+                    print(e)
+
+        os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+        print("before configure_gpu")
+        configure_gpu()
+        print("after configure_gpu")
