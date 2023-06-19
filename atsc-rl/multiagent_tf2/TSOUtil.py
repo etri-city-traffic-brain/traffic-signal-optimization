@@ -297,6 +297,8 @@ def addArgumentsToParser(parser):
 
     parser.add_argument("--distributed", type=str2bool, default=False, help='whether do distributed learning or not')
 
+    parser.add_argument("--copy-scenario-file", type=str2bool, default=False, help='whether do copy scenario file or not')
+
     # --------- end of addition
 
     return parser
@@ -572,6 +574,8 @@ def generateCommand(args):
     # infer-TL ... below
     # infer-model-path ... below
     # num-of-optimal-model-candidate ... below
+
+    cmd = cmd + ' --copy-scenario-file {}'.format(args.copy_scenario_file)
 
     if args.mode == _MODE_.TRAIN:
         cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)

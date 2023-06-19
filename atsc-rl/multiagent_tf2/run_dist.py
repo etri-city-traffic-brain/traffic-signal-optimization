@@ -73,7 +73,7 @@ from env.off_ppo.SaltEnvUtil import appendPhaseRewards, gatherTsoOutputInfo
 
 from env.off_ppo.SaltEnvUtil import appendTsoOutputInfoSignal, appendTsoOutputInfo, initTsoOutputInfo
 
-from env.off_ppo.SaltEnvUtil import copyScenarioFiles
+#from env.off_ppo.SaltEnvUtil import copyScenarioFiles
 from env.off_ppo.SaltEnvUtil import getSaRelatedInfo
 from env.off_ppo.SaltEnvUtil import getSimulationStartStepAndEndStep
 from env.off_ppo.SaltEnvUtil import makePosssibleSaNameList
@@ -106,13 +106,14 @@ from TSOUtil import writeLine
 ### this file is based on run_off_ppo.py
 ###
 ##### TSOUtil.py
-#from run_off_ppo_single import parseArgument
+
+# from run_off_ppo_single import parseArgument
 from run_off_ppo_single import makeDirectories
 # from run_off_ppo_single import createEnvironment
 
 # from run_off_ppo_single import makeLoadModelFnPrefix
-#----- modify it to work with distributed learning
-#----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
+# ----- modify it to work with distributed learning
+# ----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
 
 ##### run_off_ppo_single.py
 # from run_off_ppo_single import one_hot
@@ -126,8 +127,8 @@ from run_off_ppo_single import run_valid_episode
 from run_off_ppo_single import run_multi_thread
 
 # from run_off_ppo_single import compareResultAndStore
-#----- modify it to work with distributed learning
-#----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
+# ----- modify it to work with distributed learning
+# ----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
 
 from run_off_ppo_single import __printImprovementRate
 
@@ -338,6 +339,7 @@ class AgentDist(Agent):
 
 #----------------------------------------------------
 
+
 class EnvDist(Env):
 
     def __init__(self, args, output_dir_prefix):
@@ -410,9 +412,9 @@ class EnvDist(Env):
             if not DBG_OPTIONS.DoStateAugmentation:
                 pass
             else:
-                print(f"### Env::_reshape() {i} before augment() ... state[{i}].shape={obs.shape}")
+                #print(f"### Env::_reshape() {i} before augment() ... state[{i}].shape={obs.shape}")
                 obs = self.state_augment[i].augment(obs)
-                print(f"### Env::_reshape() {i} after augment() ... state[{i}].shape={obs.shape}")
+                #print(f"### Env::_reshape() {i} after augment() ... state[{i}].shape={obs.shape}")
 
 
             obs = obs.reshape(1, -1)  # [1,2,3]  ==> [ [1,2,3] ]
@@ -788,7 +790,11 @@ def fixedTimeSimulate(args):
     args.end_time = end_time
 
 
-    salt_scenario = copyScenarioFiles(args.scenario_file_path)
+    if args.copy_scenario_file:
+        salt_scenario = copyScenarioFiles(args.scenario_file_path)
+    else:
+        salt_scenario = args.scenario_file_path
+
     possible_sa_name_list = makePosssibleSaNameList(args.target_TL)
 
     target_tl_obj, target_sa_obj, _ = getSaRelatedInfo(args, possible_sa_name_list, salt_scenario)

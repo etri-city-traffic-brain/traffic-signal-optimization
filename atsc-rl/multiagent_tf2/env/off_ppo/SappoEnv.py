@@ -83,7 +83,11 @@ class SaltSappoEnvV3(gym.Env):
         self.start_step, self.end_step = getSimulationStartStepAndEndStep(args)
 
         ## copy scenario related files and get copied scenario file path
-        self.salt_scenario = copyScenarioFiles(args.scenario_file_path)
+        if args.copy_scenario_file:
+            self.salt_scenario = copyScenarioFiles(args.scenario_file_path)
+        else:
+            self.salt_scenario = args.scenario_file_path
+            #self.salt_scenario = copy.deepcopy(args.scenario_file_path)
 
         # gather information related to the intersection to be optimized from scenario file : TL, TSS, lane, link, ...
         if 1:
