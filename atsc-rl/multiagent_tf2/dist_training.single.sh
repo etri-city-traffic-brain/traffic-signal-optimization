@@ -18,7 +18,7 @@ OP_SHOW_RESULT="show-result" # dump training result by showing the calculated im
 OP_TEST="test" # do test with trained model
 OP_USAGE="usage" # show usage
 
-DO_EVAL=true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
+DO_EVAL=true # true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
 
 display_usage() {
   echo
@@ -52,7 +52,6 @@ display_usage() {
   echo "        [%] dist_training.sh test 220923 15 "
 }
 
-
 if [ "$OPERATION" == "$OP_USAGE" ]; then
   display_usage
   exit
@@ -72,18 +71,11 @@ if [ 1 ]; then
   #
 
   ###--- ip address of node to run control daemon
-  CTRL_DAEMON_IP="129.254.182.176"  # 101.79.1.126
-
-  ###--- directory for traffic signal optimization(TSO) execution : Controller
-  #CTRL_DIR="/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
-  CTRL_DIR="/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
+  CTRL_DAEMON_IP="129.254.182.173" # "129.254.182.173"  "129.254.182.176" "129.254.184.123"  # 101.79.1.126
 
   ###--- ip address of nodes to run execution daemon
-  ###    EXEC_DAEMON_IPS should pair with EXEC_DIRS
   EXEC_DAEMON_IPS=(
-                    "129.254.182.176"
-                    "129.254.182.176"
-                    "129.254.182.176"
+                    "129.254.182.173"
                   )
   #
   # 129.254.184.239		uniq1
@@ -94,52 +86,35 @@ if [ 1 ]; then
   # 129.254.184.248		uniq6
   # 129.254.184.53		uniq7
   # 129.254.184.54		uniq8
-  # 129.254.182.176		6th
-
-  ###--- directories for traffic signal optimization(TSO) execution : Executor
-  ###    EXEC_DIRS should pair with EXEC_DAEMON_IPS
-  #EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
-  EXEC_DIRS=(
-	     "/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
-	     "/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.1"
-	     "/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.2"
-           )
+  # 129.254.182.172   uniq9
+  # 129.254.182.173   uniq10
 
   ###--- number of execution daemon
   NUM_EXEC_DAEMON=${#EXEC_DAEMON_IPS[@]}
-
-  ###-- make uniq ip address of nodes to run exec daemon
-  ###   this will be used to execute some operations such as terminate/clean/clean-all/monitor
-  TMP_FILE="/tmp/__IPS"
-  rm -rf $TMP_FILE
-  touch $TMP_FILE
-  echo ${CTRL_DAEMON_IP} >> $TMP_FILE
-  for ip in ${EXEC_DAEMON_IPS[@]}
-  do
-    echo ${ip} >> $TMP_FILE
-  done
-  UNIQ_EXP_IPS=`cat $TMP_FILE | sort | uniq `
-  #echo UNIQ_EXP_IPS $UNIQ_EXP_IPS
-  rm -rf $TMP_FILE
 
   ###--- port to communicate btn ctrl daemon and exec daemon
   PORT=2727 #2727 3001  3101  3201  3301
 
   ###--- port for tensorboard
-  ###--- TB_PORTS should pair with EXEC_DAEMON_IPS
-  #TB_PORT=6006 #6006 7001 7101 7201 7301
-  TB_PORTS=(
-	    6006
-	    6016
-	    6026
-	  )
+  TB_PORT=6006 #6006 7001 7101 7201 7301
+
+  ###--- directory for traffic signal optimization(TSO) execution
+  ###    You must deploy the code for execution to the same location specified below on all nodes.
+  #EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
+  #EXEC_DIR="/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
+
+  #EXEC_DIR=/home/tsoexp/z.uniq/2023.dev/multiagent_tf2
+  # EXEC_DIR=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist.tag/atsc-rl/multiagent_tf2
+  EXEC_DIR=/home/tsoexp/PycharmProjects/traffic-signal-optimization-for-dist/atsc-rl/multiagent_tf2
+
 
   ###--- conda environment for TSO
-  CONDA_ENV_NAME="UniqOpt.p3.8"
+  CONDA_ENV_NAME="UniqOpt.p3.8.v2" # "UniqOpt.p3.8" "UniqOpt.p3.8.v2" "opt"
   ACTIVATE_CONDA_ENV="source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate $CONDA_ENV_NAME "
 
   ###-- libsalt path
-  SALT_HOME=/home/tsoexp/z.uniq/traffic-simulator
+  SALT_HOME=/home/tsoexp/z.uniq/2023.dev/traffic-simulator
+  #SALT_HOME=/home/tsoexp/z.uniq/traffic-simulator
 
   #######
   ## exec program
@@ -152,10 +127,10 @@ if [ 1 ]; then
 
   ###--- whether do execute LDT in ExecDaemon(in a node) parallelly or not
   ###    use this flag for comparison
-  DO_PARALLEL="true"
+  DO_PARALLEL="true" # "true"
 
   ###-- reinforcement learning main
-  RL_PROG="run.py"
+  RL_PROG="run_dist.py"
 
   #######
   ## output file : to save verbosely dumped messages
@@ -186,11 +161,12 @@ if [ 1 ]; then
   ###--- name of map to simulate
   RL_MAP="doan" # one of { doan, cdd1, cdd2, cdd3, sa_1_6_17, dj_all }
 
+
   ###-- set target to train
   if [ "$RL_MAP" == "doan" ]
   then
     ###--- target to train
-    RL_TARGET="SA 101, SA 104, SA 107, SA 111" # SA 101,SA 104,SA 107,SA 111"
+    RL_TARGET="SA 101, SA 104" # SA 101, SA 104, SA 107, SA 111"
   elif [ "$RL_MAP" == "cdd1" ]  # 51 TS
   then
     ###--- target to train
@@ -228,14 +204,15 @@ if [ 1 ]; then
 
   ###--- state, action, reward for RL
   RL_STATE="vdd" # v, d, vd, vdd
-  RL_ACTION="gro"  # offset, gr, gro, kc
+  RL_ACTION="gt"  # offset, gr, gro, kc, gt
   RL_REWARD="cwq"  # wq, cwq, pn, wt, tt
 
   ###--- training epoch
-  RL_EPOCH=200	# 200
+  RL_EPOCH=1	# 200
 
   ###--- interval for model saving : how open save model
   RL_MODEL_SAVE_PERIOD=1
+
 
   ###-- network-size
   NETWORK_SIZE="1024,512,512,512,512" # string of comma separated integer values are expected
@@ -244,11 +221,20 @@ if [ 1 ]; then
   RL_MODEL_ACTOR_LR=0.0001
   RL_MODEL_CRITIC_LR=0.0001
 
-
   ###--- replay memory length
-  RL_MODEL_MEM_LEN=500  # default 1000
+  RL_MODEL_MEM_LEN=10  # 500  # default 1000
   FORGET_RATIO=0.5 # default 0.8  .. RL_MODEL_MEM_LEN * (1-FORGET_RATIO) experiences are used to update model
 
+
+  ###--- number of env when we use to train an agent; it is to increase experience
+  ###     NUM_CONCURRENT_ENV environment process will be created
+  NUM_CONCURRENT_ENV=2   # 10
+
+  ##--- maximum number of simulations for learning using generated environment process;
+  ##    it is to avoid memory related problem
+  MAX_RUN_WITH_AN_ENV_PROCESS=20 #100
+
+  DISTRIBUTED=True
   #######
   ## distributed Reinforcement Learning related parameters
   ##
@@ -303,7 +289,7 @@ then
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
-  CMD="$CMD cd $CTRL_DIR; "
+  CMD="$CMD cd $EXEC_DIR; "
   CMD="$CMD $INNER_CMD \" "
   echo [%] $CMD
 
@@ -313,7 +299,7 @@ then
     eval $CMD
   fi
 
-  #  python run.py --mode simulate --map $RL_MAP --target-TL $RL_TARGET --method $RL_METHOD --state $RL_STATE  \
+  #  python $RL_PROG --mode simulate --map $RL_MAP --target-TL $RL_TARGET --method $RL_METHOD --state $RL_STATE  \
   #         --action $RL_ACTION --reward-func $RL_REWARD
   echo
   echo
@@ -341,10 +327,14 @@ then
   INNER_CMD="$INNER_CMD --network-size $NETWORK_SIZE "
   INNER_CMD="$INNER_CMD --a-lr $RL_MODEL_ACTOR_LR --c-lr $RL_MODEL_CRITIC_LR "
   INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
+  INNER_CMD="$INNER_CMD --num-concurrent-env $NUM_CONCURRENT_ENV "
+  INNER_CMD="$INNER_CMD --max-run-with-an-env-process $MAX_RUN_WITH_AN_ENV_PROCESS "
+  INNER_CMD="$INNER_CMD --distributed $DISTRIBUTED "
+
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
-  CMD="$CMD cd $CTRL_DIR; "
+  CMD="$CMD cd $EXEC_DIR; "
   CMD="$CMD $INNER_CMD > $FN_CTRL_OUT 2>&1 & \" &"
 
   echo
@@ -361,16 +351,14 @@ then
 
 
   # (2) launch execution daemon
-  for i in $(seq 0 `expr $NUM_EXEC_DAEMON - 1 ` )
+  for ip in ${EXEC_DAEMON_IPS[@]}
   do
-    # echo "#### i=$i  num_exec_daemon=$NUM_EXEC_DAEMON "
-
     ## (2.1) construct command
     INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
 
-    CMD="ssh $ACCOUNT@${EXEC_DAEMON_IPS[$i]}  "
+    CMD="ssh $ACCOUNT@$ip  "
     CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
-    CMD="$CMD cd ${EXEC_DIRS[$i]}; "
+    CMD="$CMD cd $EXEC_DIR; "
     # CMD="$CMD $INNER_CMD \" &"
     CMD="$CMD $INNER_CMD > $FN_EXEC_OUT 2>&1 & \" &"
 
@@ -392,15 +380,15 @@ then
 #
 elif [ "$OPERATION" == "$OP_TENSORBOARD" ]
 then
-  for i in $(seq 0 `expr $NUM_EXEC_DAEMON - 1 ` )
+  for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ## (1) construct command
-    INNER_CMD="nohup tensorboard --logdir ./logs --host ${EXEC_DAEMON_IPS[$i]} --port ${TB_PORTS[$i]} "
+    INNER_CMD="nohup tensorboard --logdir ./logs --host $ip --port $TB_PORT "
 
 
-    CMD="ssh $ACCOUNT@${EXEC_DAEMON_IPS[$i]}  "
+    CMD="ssh $ACCOUNT@$ip  "
     CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
-    CMD="$CMD cd ${EXEC_DIRS[$i]}; "
+    CMD="$CMD cd $EXEC_DIR; "
     CMD="$CMD $INNER_CMD > $FN_TB_OUT 2>&1 & \" &"
 
     echo
@@ -436,58 +424,42 @@ then
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD ps -def | grep $CTRL_DAEMON | grep $PORT "
   echo [%] $CMD
-  if $DO_EVAL
-  then
-    eval $CMD
-  fi
+  eval $CMD
   echo
 
-
-  ## (2) exec daemon & rl prog
-  for ip in ${UNIQ_EXP_IPS[@]}
+  ## (2) exec node
+  for ip in ${EXEC_DAEMON_IPS[@]}
   do
-      echo "##"
-      echo "## " $ip
-      ### for exec daemon
-      ###--- construct command
-      CMD="ssh $ACCOUNT@$ip  "
-      CMD="$CMD ps -def | grep $EXEC_DAEMON | grep $PORT "
-
-      echo [%] $CMD
-      if $DO_EVAL
-      then
-        eval $CMD
-      fi
-      echo
-
-
-      ### for rl prog
-      ### construct command
-      CMD="ssh $ACCOUNT@$ip   "
-      CMD="$CMD ps -def | grep $RL_PROG | grep $START_DAY | grep $RESULT_DIR_LEAF "
-      echo [%] $CMD
-      if $DO_EVAL
-      then
-        eval $CMD
-      fi
-      echo
-  done
-
-  ## (3) tensorboard
-  for i in $(seq 0 `expr $NUM_EXEC_DAEMON - 1 ` )
-  do
+    echo "##"
+    echo "## " ${ip}
+    ### exec daemon
     ###--- construct command
-    CMD="ssh $ACCOUNT@${EXEC_DAEMON_IPS[$i]}  "
-    CMD="$CMD ps -def | grep tensorboard | grep ${TB_PORTS[$i]} "
+    CMD="ssh $ACCOUNT@$ip  "
+    CMD="$CMD ps -def | grep $EXEC_DAEMON | grep $PORT "
     echo [%] $CMD
-    if $DO_EVAL
-    then
-      eval $CMD
-    fi
+    eval $CMD
+    echo
+
+
+    ### rl prog
+    ### construct command
+    CMD="ssh $ACCOUNT@$ip  "
+    CMD="$CMD ps -def | grep $RL_PROG | grep $START_DAY | grep $RESULT_DIR_LEAF "
+    echo [%] $CMD
+    eval $CMD
+    echo
+
+
+    ### tensorboard
+    ###--- construct command
+    CMD="ssh $ACCOUNT@$ip  "
+    CMD="$CMD ps -def | grep tensorboard | grep $TB_PORT "
+    echo [%] $CMD
+    eval $CMD
     echo
   done
 
-  echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
+  echo "You can not find $RL_PROG process with this script when we do first round beacuse infer-mode-path is not set. "
 
 #-- 1.5 terminate process forcely using kill command
 elif [ "$OPERATION" == "$OP_TERMINATE" ]
@@ -503,25 +475,18 @@ then
 
 
 
-  ## (1) exec daemon & rl prog
-  for ip in ${UNIQ_EXP_IPS[@]}
+  ## (1) exec node
+  for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ### exec daemon
     ###--- construct command
-    CMD="ssh $ACCOUNT@${ip}  "
+    CMD="ssh $ACCOUNT@$ip  "
     CMD="$CMD ps -def | grep $EXEC_DAEMON | grep $PORT | awk '{print $"
     CMD="${CMD}2}' "
 
-
-    if $DO_EVAL
-    then
-      pid=`eval $CMD`
-    else
-      echo $CMD
-    fi
-
+    pid=`eval $CMD`
     if [[ -n "$pid" ]] ; then
-      CMD="ssh $ACCOUNT@${ip}  "
+      CMD="ssh $ACCOUNT@$ip  "
       CMD="$CMD kill -9 $pid"
       echo $CMD  ... terminate $EXEC_DAEMON
       eval $CMD
@@ -530,42 +495,28 @@ then
 
     ### rl prog
     ### construct command
-    CMD="ssh $ACCOUNT@${ip}  "
+    CMD="ssh $ACCOUNT@$ip  "
     CMD="$CMD ps -def | grep $RL_PROG | grep $START_DAY | grep $RESULT_DIR_LEAF | awk '{print $"
     CMD="${CMD}2}' "
 
-    if $DO_EVAL
-    then
-      pid=`eval $CMD`
-    else
-      echo $CMD
-    fi
-
+    pid=`eval $CMD`
     if [[ -n "$pid" ]] ; then
-      CMD="ssh $ACCOUNT@${ip}  "
+      CMD="ssh $ACCOUNT@$ip  "
       CMD="$CMD kill -9 $pid"
       echo $CMD ... terminate $RL_PROG
       eval $CMD
     fi
-  done
 
-  ## (2) tensorboard
-  for i in $(seq 0 `expr $NUM_EXEC_DAEMON - 1 ` )
-  do
+
+    ### tensorboard
     ###--- construct command
-    CMD="ssh $ACCOUNT@${EXEC_DAEMON_IPS[$i]}  "
-    CMD="$CMD ps -def | grep tensorboard | grep ${TB_PORTS[$i]} | awk '{print $"
+    CMD="ssh $ACCOUNT@$ip  "
+    CMD="$CMD ps -def | grep tensorboard | grep $TB_PORT | awk '{print $"
     CMD="${CMD}2}' "
 
-    if $DO_EVAL
-    then
-      pid=`eval $CMD`
-    else
-      echo $CMD
-    fi
-
+    pid=`eval $CMD`
     if [[ -n "$pid" ]] ; then
-      CMD="ssh $ACCOUNT@${EXEC_DAEMON_IPS[$i]}  "
+      CMD="ssh $ACCOUNT@$ip  "
       CMD="$CMD kill -9 $pid"
       echo $CMD ... terminate tensorboard
       eval $CMD
@@ -573,18 +524,12 @@ then
   done
 
 
-  ## (3) ctrl daemon
+  ## (2) ctrl daemon
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD ps -def | grep $CTRL_DAEMON | grep $PORT | awk '{print $"
   CMD="${CMD}2}'"
 
-  if $DO_EVAL
-  then
-    pid=`eval $CMD`
-  else
-    echo $CMD
-  fi
-
+  pid=`eval $CMD`
   if [[ -n "$pid" ]] ; then
     CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
     CMD="$CMD kill -9 $pid"
@@ -592,7 +537,7 @@ then
     eval $CMD
   fi
 
-  echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
+  echo "You can not find $RL_PROG process with this script when we do first round because infer-mode-path is not set. "
 
 
 #
@@ -605,18 +550,18 @@ then
 
   ## (1) ctrl daemon
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
-  CMD="$CMD 'cd $CTRL_DIR; rm -rf ${TO_DELETE} ' "
-  #CMD="$CMD 'cd $CTRL_DIR; rm -rf ${FN_PREFIX}.*'"
+  CMD="$CMD 'cd $EXEC_DIR; rm -rf ${TO_DELETE} ' "
+  #CMD="$CMD 'cd $EXEC_DIR; rm -rf ${FN_PREFIX}.*'"
   echo [%] $CMD
   eval $CMD
 
   ## (2) exec node
-  for i in $(seq 0 `expr $NUM_EXEC_DAEMON - 1 ` )
+  for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ### exec daemon
     ###--- construct command
-    CMD="ssh $ACCOUNT@${EXEC_DAEMON_IPS[$i]}  "
-    CMD="$CMD 'cd ${EXEC_DIRS[$i]}; rm -rf ${TO_DELETE} ' "
+    CMD="ssh $ACCOUNT@$ip  "
+    CMD="$CMD 'cd $EXEC_DIR; rm -rf ${TO_DELETE} ' "
     echo [%] $CMD
     eval $CMD
   done
@@ -636,17 +581,17 @@ then
 
   ## (1) ctrl daemon
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
-  CMD="$CMD 'cd $CTRL_DIR; rm -rf $TO_DELETE'"
+  CMD="$CMD 'cd $EXEC_DIR; rm -rf $TO_DELETE'"
   echo [%] $CMD
   eval $CMD
 
   ## (2) exec node
-  for i in $(seq 0 `expr $NUM_EXEC_DAEMON - 1 ` )
+  for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ### exec daemon
     ###--- construct command
-    CMD="ssh $ACCOUNT@${EXEC_DAEMON_IPS[$i]}  "
-    CMD="$CMD 'cd ${EXEC_DIRS[$i]}; rm -rf $TO_DELETE'"
+    CMD="ssh $ACCOUNT@$ip  "
+    CMD="$CMD 'cd $EXEC_DIR; rm -rf $TO_DELETE'"
     echo [%] $CMD
     eval $CMD
   done
@@ -690,7 +635,7 @@ then
   RESULT_DIR_LEAF=${RL_MAP}_${RL_STATE}_${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # ex., doan_vdd_gr_wq_all
   RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
 
-  INNER_CMD="SALT_HOME=$SALT_HOME nohup python run.py "
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $RL_PROG "
   INNER_CMD="$INNER_CMD  --mode test "
   INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
   INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' "
@@ -709,7 +654,8 @@ then
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
-  CMD="$CMD cd $CTRL_DIR; "
+  #CMD="$CMD cd $CTRL_DIR; "
+  CMD="$CMD cd $EXEC_DIR; "
   CMD="$CMD $INNER_CMD > $FN_TEST_OUT 2>&1 & \" &"
 
 
@@ -729,7 +675,8 @@ then
   echo ""
   echo "You should make sure that performance of ground zero was collected for comparison with the performance of a trained model."
   echo "Visit following directory to see Test Results"
-  echo "    $CTRL_DIR/output/test  "
+  #echo "    $CTRL_DIR/output/test  "
+  echo "    $EXEC_DIR/output/test  "
 
 
 #
