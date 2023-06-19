@@ -18,6 +18,7 @@ from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
+from TSOConstants import _LENGTH_OF_MAX_MSG_
 from TSOConstants import _RESULT_COMPARE_SKIP_
 
 from TSOUtil import addArgumentsToParser
@@ -137,7 +138,7 @@ class ServingClientThread(threading.Thread):
         :param conn:
         :return:
         '''
-        recv_msg = conn.recv(2048)
+        recv_msg = conn.recv(_LENGTH_OF_MAX_MSG_)
         recv_msg_obj = doUnpickling(recv_msg)
 
         if DBG_OPTIONS.PrintServingThread:

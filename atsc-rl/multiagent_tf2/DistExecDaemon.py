@@ -93,8 +93,9 @@ class LearningDaemonThread(threading.Thread):
             tl = tl.strip().replace(' ', '_')
 
             # 1. get related files
-            # filter = "{}-trial-{}".format(tl, opt_model_num)
-            filter = "-trial_{}_{}".format(opt_model_num, tl)
+            # bugfix-20230614 : tl이  SA_3인 경우, filtered_filelist에  SA_3, SA_38, SA_301 등이 모두 포함될 수 있다.
+            #filter = "-trial_{}_{}".format(opt_model_num, tl)
+            filter = "-trial_{}_{}_".format(opt_model_num, tl)
 
             filelist = glob.glob(path)
             filtered_filelist = [fname for fname in filelist if filter in fname]
@@ -111,19 +112,9 @@ class LearningDaemonThread(threading.Thread):
                 assert method== 'sappo', f"Internal error in LearningDaemonThread::__copyTrainedModel() : methon({method}) is not supported"
 
                 if method == 'sappo': # use PPOAgentTF2
-                    if 0:
-                        # 2. get file extension
-                        tokens = fname.split('.')
-                        extension = tokens[-1]
-
-                        model_name = tokens[-2].split('_')[-1]  # actor or critic
-                        # 3. make command
-                        cmd = 'cp "{}" "{}/{}-trial_{}_{}_{}.{}"'.format(fname, model_store_path, problem_var,
-                                                                              trial, tl, model_name, extension)
-                    else: #
-                        tokens = fname.split(f"_{tl}_") # ["SAPPO_..._trial_0", "_SA_101_", "critic_0.h5"]
-                        # tokens[-1]= actor.h5, critic_0.h5, critic_1.h5
-                        cmd = 'cp "{}" "{}/{}-trial_{}_{}_{}"'.format(fname, model_store_path, problem_var,
+                    tokens = fname.split(f"_{tl}_") # ["SAPPO_..._trial_0", "_SA_101_", "critic_0.h5"]
+                    # tokens[-1]= actor.h5, critic_0.h5, critic_1.h5
+                    cmd = 'cp "{}" "{}/{}-trial_{}_{}_{}"'.format(fname, model_store_path, problem_var,
                                                                          trial, tl, tokens[-1])
                 else :
                     print("Internal error : LearningDaemonThread::__copyTrainedModel()")
