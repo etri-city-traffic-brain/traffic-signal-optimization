@@ -167,7 +167,7 @@ def addArgumentsToParser(parser):
                         help='train - RL model training, test - trained model testing, simulate - fixed-time simulation before test')
 
     parser.add_argument('--scenario-file-path', type=str, default='data/envs/salt/', help='home directory of scenario; relative path')
-    parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17', 'cdd1', 'cdd2', 'cdd3'], default='doan',
+    parser.add_argument('--map', choices=['dj_all', 'doan', 'sa_1_6_17', 'cdd1', 'cdd2', 'cdd3', 'dj200'], default='doan',
                         help='name of map')
                 # doan : SA 101, SA 104, SA 107, SA 111
                 # sa_1_6_17 : SA 1,SA 6,SA 17
@@ -179,7 +179,8 @@ def addArgumentsToParser(parser):
     parser.add_argument('--start-time', type=int, default=0, help='start time of traffic simulation; seconds') # 25400
     parser.add_argument('--end-time', type=int, default=86400, help='end time of traffic simulation; seconds') # 32400
 
-    parser.add_argument('--scenario', choices=['12th', 'kaist' ], default='12th', help='simulation scenario')
+    if DBG_OPTIONS.YJLEE:
+        parser.add_argument('--scenario', choices=['12th', 'kaist' ], default='12th', help='simulation scenario')
 
     parser.add_argument('--method', choices=['sappo'], default='sappo', help='optimizing method')
     parser.add_argument('--action', choices=['kc', 'offset', 'gr', 'gro', 'gt', 'fx'], default='gro',
@@ -288,7 +289,13 @@ def addArgumentsToParser(parser):
                         help="root directory to save files which is created when we do RL; relative path from IO_HOME")
 
     parser.add_argument('--num-concurrent-env', type=int, default=1,
-                        help="number of env when we use to train an agent")
+                        help="number of env when we use to train an agent; it is to increase experience")
+
+    parser.add_argument('--max-run-with-an-env-process', type=int, default=100,
+                        help="maximum number of simulations for learning using generated environment process;"
+                             + " it is to avoid memory related problem")
+
+    parser.add_argument("--distributed", type=str2bool, default=False, help='whether do distributed learning or not')
 
     # --------- end of addition
 
@@ -488,7 +495,7 @@ def generateCommand(args):
 
     :return: generated command
     '''
-    cmd = ' python run.py '
+    cmd = ' python run_dist.py '
     cmd = cmd + ' --traffic-env {} '.format(args.traffic_env)
     cmd = cmd + ' --mode {} '.format(args.mode)
     cmd = cmd + ' --scenario-file-path {}'.format(args.scenario_file_path)
@@ -587,6 +594,11 @@ def generateCommand(args):
         # print(f'args.target_TL={args.target_TL}    output_home = {output_home}')
 
         cmd = cmd + ' --num-concurrent-env {}'.format(args.num_concurrent_env)
+
+        cmd = cmd + ' --max-run-with-an-env-process {}'.format(args.max_run_with_an_env_process)
+        cmd = cmd + ' --distributed {}'.format(args.distributed)
+
+
 
     elif args.mode == _MODE_.TEST:
         assert args.infer_model_number >= 0, f"internal error : args.infer_model_number ({args.infer_model_number}) should greater than 0 "
