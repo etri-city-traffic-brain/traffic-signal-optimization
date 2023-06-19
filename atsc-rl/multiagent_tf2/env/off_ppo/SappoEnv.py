@@ -574,9 +574,12 @@ class SaltSappoEnvV3(gym.Env):
 
         ## initialize observation. i.e., reset
         self.observations.clear()
-        for sa_name in self.sa_name_list:
-            an_obs = np.array([0] * self.sa_obj[sa_name]['state_space'])
-            self.observations.append(an_obs)
+        if 0:
+            for sa_name in self.sa_name_list:
+                an_obs = np.array([0] * self.sa_obj[sa_name]['state_space'])
+                self.observations.append(an_obs)
+        else:
+            self.observations = list([] for i in range(self.agent_num))  # [ [], ...,[]]
 
         #
         # action 을 적용해야 하는 곳까지 시뮬레이션을 수행한다.

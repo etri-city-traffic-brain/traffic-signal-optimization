@@ -344,15 +344,6 @@ class EnvDist(Env):
         self.output_dir_prefix = output_dir_prefix
         super(EnvDist, self).__init__(args)
 
-        if DBG_OPTIONS.V20230605_PR_DBG_MSG:  # for debugging;  should DELETE todo V20230605_StateAugmentation
-            from threading import Thread
-            import threading
-            import os
-
-            self.thread_id = threading.get_native_id()
-            self.process_id = os.getpid()
-
-
 
     ## added _calculateStepSize() func to fix bug in state-augmentation
     def _calculateStepSize(self, trial_len, sa_cycle):
@@ -397,7 +388,7 @@ class EnvDist(Env):
                 else:
                     raise Exception(f"Internal Error: You should check whether {self.args.action} is valid action")
 
-            if not DBG_OPTIONS.V20230605_StateAugmentation: ##### 20230605 DELETE  DBG_OPTIONS.WithoutAugment
+            if not DBG_OPTIONS.DoStateAugmentation:
                 state_size = (state_space,)
             else:
                 state_size = (state_space+self.step_size[i],)
@@ -407,34 +398,27 @@ class EnvDist(Env):
             
         return self.env_name, self.agent_num, action_sizes, state_sizes, self.sa_name_list, self.target_sa_name_list
 
-    def _reshape_state(self, state):
+
+    def _reshape_state(self, state, idx_of_act_sa):
 
         state = copy.deepcopy(state)
 
-        idx_of_act_sa = self.idx_of_act_sa
         for i in idx_of_act_sa:
-            if DBG_OPTIONS.V20230605_PR_DBG_MSG:  ## @todo DELETE DBG_OPTIONS.V20230605_StateAugmentation
-                print(f"### [ {self.process_id} , {self.thread_id} ] in Env::_reshape() {i} before reshape(1,-1)... state[{i}].shape={state[i].shape}  idx_of_act_as={idx_of_act_sa}")
 
             obs = state[i]
 
-            if not DBG_OPTIONS.V20230605_StateAugmentation:  ###### 20230605  DBG_OPTIONS.V20230605_StateAugmentation
+            if not DBG_OPTIONS.DoStateAugmentation:
                 pass
             else:
-                if DBG_OPTIONS.V20230605_PR_DBG_MSG:  ## @todo DELETE DBG_OPTIONS.V20230605_StateAugmentation
-                    print(f"### [ {self.process_id} , {self.thread_id} ] in Env::_reshape() {i} before augment() ... state[{i}].shape={obs.shape}")
+                print(f"### Env::_reshape() {i} before augment() ... state[{i}].shape={obs.shape}")
                 obs = self.state_augment[i].augment(obs)
-                if DBG_OPTIONS.V20230605_PR_DBG_MSG:  ## @todo DELETE DBG_OPTIONS.V20230605_StateAugmentation
-                    print(f"### [ {self.process_id} , {self.thread_id} ] in Env::_reshape() {i} after augment() ... state[{i}].shape={obs.shape}")
+                print(f"### Env::_reshape() {i} after augment() ... state[{i}].shape={obs.shape}")
+
 
             obs = obs.reshape(1, -1)  # [1,2,3]  ==> [ [1,2,3] ]
             state[i] = obs
 
-            if DBG_OPTIONS.V20230605_PR_DBG_MSG:  ## @todo DELETE DBG_OPTIONS.V20230605_StateAugmentation
-                print(f"### [ {self.process_id} , {self.thread_id} ] in Env::_reshape() {i} after reshape(1,-1)... state[{i}].shape={state[i].shape}  idx_of_act_as={idx_of_act_sa}")
-
         return state
-
 
 def isolatedDist(conn, args, output_dir_prefix):
     

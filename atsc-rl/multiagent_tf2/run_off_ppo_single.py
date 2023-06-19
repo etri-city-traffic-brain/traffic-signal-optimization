@@ -15,7 +15,7 @@ import os
 from multiprocessing import Process, Pipe
 from threading import Thread
 
-#os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 #from tensorflow.python.client import device_lib
 #device_lib.list_local_devices()
 
@@ -28,11 +28,8 @@ def configure_gpu():
             # Currently, memory growth needs to be the same across GPUs
             for gpu in gpus:
                 tf.config.experimental.set_memory_growth(gpu, True)
-                #--ValueError: Memory growth cannot differ between GPU devices
-                # logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                # print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
 
         except RuntimeError as e:
             # Memory growth must be set before GPUs have been initialized
@@ -343,116 +340,100 @@ class StateAugmentation:
         return state
 
 
+
 class Agent:
-    
+
     def __init__(self, env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args):
 
-            
         self._init_holder(agent_num, action_sizes)
         self.env_name = env_name
         self.ppo_config = ppo_config
         self.problem_var = problem_var
-        
+
         self.args = args
-        
-                            
+
         self.ppo_agent = []
         for i in range(agent_num):
-            agent = PPOAgentTF2(env_name, ppo_config, action_sizes[i], state_sizes[i], target_sas[i].strip().replace(' ', '_'))
+            agent = PPOAgentTF2(env_name, ppo_config, action_sizes[i], state_sizes[i],
+                                target_sas[i].strip().replace(' ', '_'))
             self.ppo_agent.append(agent)
-                
-        
 
     def _init_holder(self, agent_num, action_sizes):
 
         actions, logps = [], []
-            
+
         for i in range(agent_num):
             actions.append(list(0 for _ in range(action_sizes[i])))
             logps.append([0])
-    
+
         self._action_holder = actions
         self._logp_holder = logps
-        
 
-        
     def act(self, state, info, sampling=True):
-        
+
+        action_holder = copy.deepcopy(self._action_holder)  # For multi-treading
+        logp_holder = copy.deepcopy(self._logp_holder)
+
         idx_of_act_sa = info['idx_of_act_sa']
-        
+
         for i in idx_of_act_sa:
-            
             obs = state[i]
             action, logp, mu, std = self.ppo_agent[i].action(obs, sampling)
 
-#            print('mu', mu)
-#            print('std', std)
-#            print('action:', action)
-#            state_action_value = self.ppo_agent[i].evaluate_state_action(obs, action)
-#            print('state_action_value:', state_action_value)
-                    
-            #print('action[0]:', action[0])
             self._action_holder[i] = action[0]
             self._logp_holder[i] = logp[0]
-        
-        #return self._action_holder, self._logp_holder
+
         action_holder = copy.deepcopy(self._action_holder)
         logp_holder = copy.deepcopy(self._logp_holder)
-        
-        return action_holder, logp_holder
-        
 
-    
+        return action_holder, logp_holder
 
     def store(self, current_state, action, reward, new_state, done, logp, info):
 
         idx_of_act_sa = info['idx_of_act_sa']
-        for i in idx_of_act_sa:
-            
-            self.ppo_agent[i].memory.store(current_state[i], 
-                          action[i], 
-                          reward[i], 
-                          new_state[i], 
-                          done, 
-                          logp[i])
 
+        for i in idx_of_act_sa:
+
+            if current_state[i] is not None and new_state[i] is not None:
+                self.ppo_agent[i].memory.store(current_state[i],
+                                               action[i],
+                                               reward[i],
+                                               new_state[i],
+                                               done,
+                                               logp[i])
 
     def train(self):
 
         for agent in self.ppo_agent:
             agent.replayNew()
-            
+
     def getMemorySize(self):
         memory_size = self.ppo_agent[0].memory.getSize()
         return memory_size
-    
-    
+
     def save_agent(self, trial):
         args = self.args
         problem_var = self.problem_var
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var, trial)
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                        trial)
         for agent in self.ppo_agent:
             agent.saveModel(fn_prefix)
 
-    
-    
     def load_agent(self, trial):
         args = self.args
         problem_var = self.problem_var
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var, trial)
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                        trial)
         for agent in self.ppo_agent:
             agent.loadModel(fn_prefix)
 
 
-    
-
-    
 class Env(SaltSappoEnvV3):
-    
-    def __init__(self, args):
-        
-        args = copy.deepcopy(args)
 
+    def __init__(self, args):
+
+        args = copy.deepcopy(args)
+        # args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
         if DBG_OPTIONS.YJLEE:
             args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
 
@@ -461,35 +442,34 @@ class Env(SaltSappoEnvV3):
 
         args.start_time = start_time
         args.end_time = end_time
-        
+
         super(Env, self).__init__(args)
         self._init_holder()
 
         self.step_size = []
         self.state_augment = []
-        for sa_cycle in self.sa_cycle_list: #SappoEnv.py Line 156
-            #print('sa_cycle:', sa_cycle)
-            ## @todo DELETE  DBG_OPTIONS.V20230605_StateAugmentation....
-            ## add _calculateStepSize() func to fix bug in state-augmentation
+        for sa_cycle in self.sa_cycle_list:  # SappoEnv.py Line 156
+            # print('sa_cycle:', sa_cycle)
             # step_size = int(trial_len/(sa_cycle * args.control_cycle))
+            # step_size = int(np.ceil(trial_len/(sa_cycle * args.control_cycle)))
             step_size = self._calculateStepSize(trial_len, sa_cycle)
+            # print('step_size:', step_size)
             aug = StateAugmentation(step_size, on_value=1.0, off_value=-1.0)
-            
-            #print('step_size', step_size)
+
+            # print('step_size', step_size)
             self.step_size.append(step_size)
             self.state_augment.append(aug)
 
     def _calculateStepSize(self, trial_len, sa_cycle):
-        return int(trial_len/(sa_cycle * args.control_cycle))
-
+        return int(np.ceil(trial_len / (sa_cycle * args.control_cycle)))
 
     def get_agent_configuration(self):
-        
+
         env_name = self.env_name
         args = self.args
         ppo_config, problem_var = makeConfigAndProblemVar(self.args)
         agent_num = self.agent_num
-        
+
         action_sizes = []
         state_sizes = []
         target_sas = []
@@ -504,50 +484,43 @@ class Env(SaltSappoEnvV3):
 
             ##-- TF 2.x : ppo_continuous_hs,py
             action_size = action_space.shape[0]
-            #print('action_size', action_size)
-            #state_size = (state_space,)
-            state_size = (state_space+self.step_size[i],)
-            
+            # print('action_size', action_size)
+            # state_size = (state_space,)
+            state_size = (state_space + self.step_size[i],)
+
             action_sizes.append(action_size)
             state_sizes.append(state_size)
             target_sas.append(target_sa)
-            
-        return env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args
 
+        return env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args
 
     def _init_holder(self):
 
         # To store reward history of each episode
         self.ep_reward_list = []
-    
-        #self.current_state = [] # Actually, it is not used. Keep it to maintain consistency with the previous code.
 
-        #actions, logp_ts = [], []
+        # self.current_state = [] # Actually, it is not used. Keep it to maintain consistency with the previous code.
+
+        # actions, logp_ts = [], []
         agent_num = self.agent_num
-    
+
         discrete_actions = []
-        
+
         for i in range(agent_num):
             target_sa = self.sa_name_list[i]
             action_space = self.sa_obj[target_sa]['action_space']
             action_size = action_space.shape[0]
-            #actions.append(list(0 for _ in range(action_size)))
-            #logp_ts.append([0])
-            
+            # actions.append(list(0 for _ in range(action_size)))
+            # logp_ts.append([0])
+
             discrete_actions.append(list(0 for _ in range(action_size)))
-                # zero because the offset of the fixed signal is used as it is
 
-#        self._action_holder = actions
-#        self._logp_holder = logp_ts
         self._discrete_action_holder = discrete_actions
-        #self._episodic_agent_reward_holder = [0] * agent_num
-        
 
-    def _reshape_state(self, state):
+    def _reshape_state(self, state, idx_of_act_sa):
 
         state = copy.deepcopy(state)
-            
-        idx_of_act_sa = self.idx_of_act_sa
+
         for i in idx_of_act_sa:
             obs = state[i]
             obs = self.state_augment[i].augment(obs)
@@ -555,64 +528,59 @@ class Env(SaltSappoEnvV3):
             state[i] = obs
 
         return state
-        
 
     def reset(self):
-        
+
         for aug in self.state_augment: aug.reset()
-            
+        self._augmented_state = [None for i in range(self.agent_num)]
+
         state = super(Env, self).reset()
-        state = self._reshape_state(state)        
-        #info = {'idx_of_act_sa':self.idx_of_act_sa} #
-        info = {'idx_of_act_sa':copy.deepcopy(self.idx_of_act_sa)} 
-        
-        #self.current_state = state
-        
-        
+
+        idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
+        augmented_state = self._reshape_state(state, idx_of_act_sa)
+        for i in idx_of_act_sa:
+            self._augmented_state[i] = augmented_state[i]
+
+        augmented_state = copy.deepcopy(self._augmented_state)
+        info = {'idx_of_act_sa': idx_of_act_sa}
+
         self.episodic_reward = 0
         self.episodic_agent_reward = [0] * self.agent_num
-                
-        return state, info
 
-    
+        return augmented_state, info
+
     def step(self, actions):
-        
+
         idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
-        
         for i in idx_of_act_sa:
-            
             sa_name = self.sa_name_list[i]
-            #print('actions[i]', actions[i])
-            
-            discrete_action = np.clip(actions[i], -1.0, +1.0) 
+
+            discrete_action = np.clip(actions[i], -1.0, +1.0)
             discrete_action = self.action_mgmt.convertToDiscreteAction(sa_name, discrete_action)
-            #print('discrete_action', discrete_action)
             self._discrete_action_holder[i] = discrete_action
 
-        #print('self._discrete_action_holder', self._discrete_action_holder)
-        
-        state, reward, done, info = super(Env, self).step(self._discrete_action_holder) #After calling step(), self.idx_of_act_sa is updated. 
-        state = self._reshape_state(state)
-        
+        next_state, reward, done, info = super(Env, self).step(
+            self._discrete_action_holder)  # After calling step(), self.idx_of_act_sa is updated.
+
         idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
+        augmented_next_state = self._reshape_state(next_state, idx_of_act_sa)
+
         # update observation
         for i in idx_of_act_sa:
-            #self.current_state[i] = state[i]
+            self._augmented_state[i] = augmented_next_state[i]
             self.episodic_reward += reward[i]
             self.episodic_agent_reward[i] += reward[i]
-    
-        
-        #info['idx_of_act_sa'] = self.idx_of_act_sa 
+
+        next_augmented_state = copy.deepcopy(self._augmented_state)
         info['idx_of_act_sa'] = idx_of_act_sa
-    
+
         if done:
             self.ep_reward_list.append(self.episodic_reward)
             info['episodic_reward'] = self.episodic_reward
             info['recent_returns'] = self.ep_reward_list[-10:]
             info['ma40_reward'] = np.mean(self.ep_reward_list[-40:])
-            
-        return state, reward, done, info
-    
+
+        return next_augmented_state, reward, done, info
 
 
 def isolated(conn, args):
