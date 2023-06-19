@@ -15,7 +15,7 @@ import os
 from multiprocessing import Process, Pipe
 from threading import Thread
 
-#os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+#os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 #from tensorflow.python.client import device_lib
 #device_lib.list_local_devices()
 
@@ -28,8 +28,12 @@ def configure_gpu():
             # Currently, memory growth needs to be the same across GPUs
             for gpu in gpus:
                 tf.config.experimental.set_memory_growth(gpu, True)
-                logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-                print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+                #--ValueError: Memory growth cannot differ between GPU devices
+                # logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+                # print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+
         except RuntimeError as e:
             # Memory growth must be set before GPUs have been initialized
             print(e)
@@ -76,7 +80,9 @@ from env.off_ppo.SappoEnv import SaltSappoEnvV3
 from env.off_ppo.SappoRewardMgmt import SaltRewardMgmtV3
 
 from policy.off_ppoTF2 import PPOAgentTF2 #from policy.ppoTF2 import PPOAgentTF2
-from ResultCompare import compareResult
+
+# from ResultCompare import compareResult
+from env.SaltConnector import SaltConnector
 
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
@@ -446,7 +452,10 @@ class Env(SaltSappoEnvV3):
     def __init__(self, args):
         
         args = copy.deepcopy(args)
-        args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+
+        if DBG_OPTIONS.YJLEE:
+            args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+
         start_time, end_time = getSimulationStartStepAndEndStep(args)
         trial_len = end_time - start_time
 
@@ -460,13 +469,19 @@ class Env(SaltSappoEnvV3):
         self.state_augment = []
         for sa_cycle in self.sa_cycle_list: #SappoEnv.py Line 156
             #print('sa_cycle:', sa_cycle)
-            step_size = int(trial_len/(sa_cycle * args.control_cycle)) 
+            ## @todo DELETE  DBG_OPTIONS.V20230605_StateAugmentation....
+            ## add _calculateStepSize() func to fix bug in state-augmentation
+            # step_size = int(trial_len/(sa_cycle * args.control_cycle))
+            step_size = self._calculateStepSize(trial_len, sa_cycle)
             aug = StateAugmentation(step_size, on_value=1.0, off_value=-1.0)
             
             #print('step_size', step_size)
             self.step_size.append(step_size)
             self.state_augment.append(aug)
-            
+
+    def _calculateStepSize(self, trial_len, sa_cycle):
+        return int(trial_len/(sa_cycle * args.control_cycle))
+
 
     def get_agent_configuration(self):
         
@@ -783,7 +798,15 @@ def trainSappo(args):
     '''
     
     valid_args = copy.deepcopy(args)
-    valid_args.scenario = '12th'
+
+    if DBG_OPTIONS.YJLEE :
+        valid_args.scenario = '12th'
+    else:
+        valid_args_scenario = '12th'
+        args_scenario = '12th'
+        args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args_scenario}.scenario.json"
+        valid_args.scenario_file_path = f"{valid_args.scenario_file_path}/{valid_args.map}/{valid_args.map}_{valid_args.mode}_{valid_args_scenario}.scenario.json"
+    
     
     num_envs = 10
     envs =  []
@@ -791,11 +814,14 @@ def trainSappo(args):
         env = IsolatedEnv(args)
         envs.append(env)
     
-    #create a validation/test evnironment. 
+    #create a validation/test evnironment.
     valid_env = IsolatedEnv(valid_args)
     best_trial = 0; best_score = -np.inf
-    
-    print('Train:', args.scenario, 'Valid:', valid_args.scenario)
+
+    if DBG_OPTIONS.YJLEE:
+        print('Train:', args.scenario, 'Valid:', valid_args.scenario)
+    else:
+        print('Train:', args.scenario_file_path, 'Valid:', valid_args.scenario_file_path)
     
     #agent_config = envs[0].get_agent_configuration()
     agent_config = valid_env.get_agent_configuration()
@@ -819,7 +845,14 @@ def trainSappo(args):
             best_trial, best_score = run_valid_episode(trial, valid_env, agent, best_trial,  best_score)
 
         print('Best trial:', best_trial, best_score)
-       
+
+    for i, env in enumerate(envs):
+        env.close()
+        print(f"{i}-th env.close() called ")
+
+    valid_env.close()
+    print(f"valid_env.close() called ")
+
     optimal_model_num = 0
     return optimal_model_num
 
@@ -845,12 +878,17 @@ def testSappo(args):
     problem_var = agent_config[5]
     # compare traffic simulation results
     if args.result_comp:
+        # -- should check path;  see simulationStart() @ off_ppo/SappoEnv.py
         #ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
         #rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
         
-        ft_output = pd.read_csv("{}/output/simulate/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
-        rl_output = pd.read_csv("{}/output/test/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
-        
+        # ft_output = pd.read_csv("{}/output/simulate/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+        # rl_output = pd.read_csv("{}/output/test/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+
+        ft_output = pd.read_csv("{}/{}/output/simulate/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+        rl_output = pd.read_csv("{}/{}/output/test/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+
+
         comp_skip = _RESULT_COMPARE_SKIP_
         result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
         __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
@@ -879,7 +917,11 @@ def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_sk
     '''
     result_fn = "{}/output/test/{}_s{}_{}.csv".format(args.io_home, problem_var, comp_skip, args.model_num)
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
-    total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+
+    #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    sc = SaltConnector()
+    total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
     shutil.copy2(result_fn, dst_fn)
@@ -914,6 +956,17 @@ def fixedTimeSimulate(args):
     :return:
     '''
 
+    if 0:
+        pass
+    else:
+        args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+        dir_name_list = [
+                    #f"{args.io_home}/output/simulate/{args.scenario}",
+                    f"{args.io_home}/{args.scenario}/output/simulate",
+
+        ]
+        makeDirectories(dir_name_list)
+
     # calculate the length of simulation step of this trial : trial_len
     start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
@@ -931,8 +984,11 @@ def fixedTimeSimulate(args):
 
 
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
+    #-- should check path;  see simulationStart() @ off_ppo/SappoEnv.py
     #output_ft_dir = f'{args.io_home}/output/{args.mode}'
-    output_ft_dir = f'{args.io_home}/output/{args.mode}/{args.scenario}'
+    # output_ft_dir = f'{args.io_home}/output/{args.mode}/{args.scenario}'
+    output_ft_dir = f'{args.io_home}/{args.scenario}/output/{args.mode}/'
+
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
 
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
@@ -943,7 +999,9 @@ def fixedTimeSimulate(args):
 
 
     ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
-    libsalt.start(salt_scenario)
+    #-- should check path;  see simulationStart() @ off_ppo/SappoEnv.py
+    #libsalt.start(salt_scenario, outdirprefix='output/'+ args.mode )
+    libsalt.start(salt_scenario, outdirprefix=args.scenario)
     libsalt.setCurrentStep(start_time)
 
     actions = []
@@ -994,6 +1052,9 @@ if __name__ == "__main__":
     ## dump launched time
     launched = datetime.datetime.now()
     print(f'launched at {launched}')
+
+    #  이 값을 변경하면 (시뮬레이션)출력이 생성되는 경로들을 확인해서 일관성있게 조정해 주어야 한다.
+    DBG_OPTIONS.YJLEE = True
 
     args = parseArgument()
 
