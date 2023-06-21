@@ -577,6 +577,8 @@ def generateCommand(args):
 
     cmd = cmd + ' --copy-scenario-file {}'.format(args.copy_scenario_file)
 
+    cmd = cmd + ' --distributed {}'.format(args.distributed)
+
     if args.mode == _MODE_.TRAIN:
         cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
 
@@ -600,7 +602,6 @@ def generateCommand(args):
         cmd = cmd + ' --num-concurrent-env {}'.format(args.num_concurrent_env)
 
         cmd = cmd + ' --max-run-with-an-env-process {}'.format(args.max_run_with_an_env_process)
-        cmd = cmd + ' --distributed {}'.format(args.distributed)
 
 
 
@@ -931,6 +932,18 @@ def checkTrafficEnvironment(traffic_env):
     else:
         print("internal error : {} is not supported".format(traffic_env))
 
+
+
+def calculateImprovementRate(df, target):
+    ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
+    rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
+    ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']
+    rl_sum_travel_time = df.at[target, 'rl_SumTravelTime_sum_0hop']
+
+    ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
+    rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
+    imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
+    return imp_rate
 
 ##
 #

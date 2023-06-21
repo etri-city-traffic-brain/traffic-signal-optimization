@@ -30,7 +30,7 @@ import copy
 from deprecated import deprecated
 
 
-#os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = "-1"
 #from tensorflow.python.client import device_lib
 #device_lib.list_local_devices()
 
@@ -89,6 +89,7 @@ from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
 # from TSOUtil import appendTsoOutputInfo
+from TSOUtil import calculateImprovementRate
 from TSOUtil import checkTrafficEnvironment
 from TSOUtil import convertSaNameToId
 from TSOUtil import copyScenarioFiles
@@ -130,7 +131,7 @@ from run_off_ppo_single import run_multi_thread
 # ----- modify it to work with distributed learning
 # ----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
 
-from run_off_ppo_single import __printImprovementRate
+#from run_off_ppo_single import __printImprovementRate
 
 
 ##
@@ -205,7 +206,273 @@ def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
     return fn_prefix
 
 
+
+
+
+##########
+# CompareResultDist  : DELETE  SIMPLE_COMPARE
+
+def __processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, individual_output):
+    '''
+    process statistics info to calculate improvement rate
+
+    :param field: filed name of interesting statistics info
+    :param op: 1 or -1
+    :param op2: "sum" or "mean"
+    :param ft_0: DataFrame object which contains statistics information (0-hop, fixed signal control)
+    :param ft_all: DataFrame object which contains statistics information (0-hop & 1-hop, fixed signal control)
+    :param rl_0: DataFrame object which contains statistics information (0-hop, inference-based signal control)
+    :param rl_all: DataFrame object which contains statistics information (0-hop & 1-hop, inference-based signal control)
+    :param individual_output: processed output
+    :return:
+    '''
+    op_dic = {"sum": np.sum, "mean": np.mean}
+
+    ft_passed = op_dic[op2](ft_0[field])  # np.sum(ft_0[field]) or np.mean(ft_0[field])
+    rl_passed = op_dic[op2](rl_0[field])
+
+    if ft_passed == 0.0:
+        imp = 0.0
+    else:
+        imp = op * (rl_passed - ft_passed) / ft_passed * 100
+    ft_passed = np.round(ft_passed, 2)
+    rl_passed = np.round(rl_passed, 2)
+    imp = np.round(imp, 2)
+
+    if DBG_OPTIONS.PrintResultCompare:
+        print("0-hop lanes Fixed Time {} {} {} RL {} {} {} Imp {}".format(field, op2, ft_passed,
+                                                                          field, op2, rl_passed, imp))
+    individual_output = pd.concat(
+        [individual_output, pd.DataFrame({'ft_{}_{}_0hop'.format(field, op2): [ft_passed],
+                                          'rl_{}_{}_0hop'.format(field, op2): [rl_passed],
+                                          'imp_{}_{}_0hop'.format(field, op2): [imp]})], axis=1)
+
+    ft_passed = op_dic[op2](ft_all[field])
+    rl_passed = op_dic[op2](rl_all[field])
+    ft_passed = np.round(ft_passed, 2)
+    rl_passed = np.round(rl_passed, 2)
+
+    if ft_passed == 0.0:
+        imp = 0.0
+    else:
+        imp = op * (rl_passed - ft_passed) / ft_passed * 100
+    imp = np.round(imp, 2)
+
+    if DBG_OPTIONS.PrintResultCompare:
+        print("1-hop lanes Fixed Time {} {} {} RL {} {} {} Imp {}".format(field, op2, ft_passed,
+                                                                          field, op2, rl_passed, imp))
+    individual_output = pd.concat(
+        [individual_output, pd.DataFrame({'ft_{}_{}_1hop'.format(field, op2, ): [ft_passed],
+                                          'rl_{}_{}_1hop'.format(field, op2, ): [rl_passed],
+                                          'imp_{}_{}_1hop'.format(field, op2, ): [imp]})], axis=1)
+    return individual_output
+
+
+def __getStatisticsInformationAboutGivenEdgeList(ft_output, rl_output, in_edge_list_0, in_edge_list,
+                                                 cut_interval):
+    '''
+    get statistics information which are related to given edge list
+
+    :param ft_output: DataFrame object which contains statistics information about traffic simulation using fixed signals to control traffic lights
+    :param rl_output:  DataFrame object which contains statistics information about traffic simulation using inference to control traffic lights
+    :param in_edge_list_0: edge list with 0-hop
+    :param in_edge_list: edge list with 0-, 1-hop
+    :param cut_interval: last time to delete statistics info
+    :return:
+    '''
+    ft_output2 = ft_output[ft_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list_0) + '$', na=False)]
+    rl_output2 = rl_output[rl_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list_0) + '$', na=False)]
+    ft_output3 = ft_output[ft_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list) + '$', na=False)]
+    rl_output3 = rl_output[rl_output['roadID'].str.contains('^' + '$|^'.join(in_edge_list) + '$', na=False)]
+    ft_output2 = ft_output2[ft_output2['intervalbegin'] >= cut_interval]  # 3600 초 이후의 것들만 성능 향상 계산 대상으로 한다.
+    rl_output2 = rl_output2[rl_output2['intervalbegin'] >= cut_interval]
+    ft_output3 = ft_output3[ft_output3['intervalbegin'] >= cut_interval]
+    rl_output3 = rl_output3[rl_output3['intervalbegin'] >= cut_interval]
+    return ft_output2, ft_output3, rl_output2, rl_output3
+
+
+def __compareResultDistInternal(individual_output, comp_tl_list, target_tl_obj, ft_output, rl_output, cut_interval):
+        ##-- set the info to be extracted : kind, method
+        if 1: ######### compare several factors(avg speed, wt, tt, ... etc)
+            ##---- kinds of information to be extracted
+            varList = ['VehPassed', 'AverageSpeed', 'WaitingTime', 'AverageDensity', 'SumTravelTime', 'WaitingQLength']
+
+            ##----methods how to calculate
+            ##     larger is good if this value is positive, smaller is good if this value is negative
+            varOp = [1, 1, -1, -1, -1, -1]
+            varOp2 = ['sum', 'mean', 'sum', 'mean', 'sum', 'mean']
+        else: ######### compare only average travel time
+            ##---- kinds of information to be extracted
+            varList = ['VehPassed', 'SumTravelTime']
+
+            ##----methods how to calculate
+            ##     larger is good if this value is positive, smaller is good if this value is negative
+            varOp = [1, -1]
+            varOp2 = ['sum', 'sum']
+
+        in_edge_list = []
+        in_edge_list_0 = []
+
+        for tl in comp_tl_list:
+            in_edge_list = np.append(in_edge_list, target_tl_obj[tl]['in_edge_list'])
+            in_edge_list_0 = np.append(in_edge_list_0, target_tl_obj[tl]['in_edge_list_0'])
+            # if DBG_OPTIONS.PrintResultCompare:
+            #     print(target_tl_obj[tl]['crossName'], target_tl_obj[tl]['in_edge_list_0'])
+
+        if DBG_OPTIONS.PrintResultCompare:
+            # print("\nAll Target TL summary.....")
+            print(f"\n{individual_output['name'][0]} summary.....")
+
+        ft_output2, ft_output3, rl_output2, rl_output3 = \
+            __getStatisticsInformationAboutGivenEdgeList(ft_output, rl_output, in_edge_list_0, in_edge_list, cut_interval)
+
+        # process by information type(kind) and add it to DataFrame object
+        for v in range(len(varList)):
+            individual_output = __processStatisticalInformation(varList[v], varOp[v], varOp2[v],
+                                                              ft_output2, ft_output3, rl_output2, rl_output3,
+                                                              individual_output)
+        return individual_output
+
+
+def compareResultDistOrg(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip=-1):
+    '''
+    compare two result files and calculate improvement rate for each intersection, each SA and overall
+    This func compare results and then make statistical info per TL, SA, and whole target.
+    originaly from __compareResult() @ SaltConnector.py
+    :param args:
+    :param target_tl_obj: information about target TL
+    :param ft_output: a data frame object which was generated by reading an output (csv) file of simulator
+                           that performed the signal control simulation based on the fixed signal
+    :param rl_output: a data frame object which was generated by reading an output (csv) file of simulator
+                           that performed signal control simulation based on reinforcement learning inference
+    :param model_num: number which indicate optimal model which was used to TEST
+    :param passed_res_comp_skip : steps to skip to exclude comparison(result comparison)
+    :return:
+    '''
+    ##
+    ## Various statistical information related to intersections is extracted from the DataFrame object
+    ##      containing the contents of the CSV file created by the simulator.
+    ##-- create empty DataFrame object
+    total_output = pd.DataFrame()
+
+    if passed_res_comp_skip == -1:
+        cut_interval = args.start_time + _RESULT_COMPARE_SKIP_  # 2시간 테스트시 앞에  일정 시간은 비교대상에서 제외
+    else:
+        cut_interval = args.start_time + passed_res_comp_skip
+
+    if DBG_OPTIONS.PrintResultCompare:
+        print(f"training step: {args.start_time} to {args.end_time}")
+        print(f"comparing step: {cut_interval} to {args.end_time}")
+        print(f"model number: {model_num}")
+
+    #
+    # for each intersection
+    #
+    target_sa_tl_dic = {}  # to save TL info per SA
+    for tl in target_tl_obj:
+        if "SA " not in target_tl_obj[tl]['signalGroup']:
+            target_tl_obj[tl]['signalGroup'] = 'SA ' + target_tl_obj[tl]['signalGroup']
+            # add columns : crossName, signalGroup
+        individual_output = pd.DataFrame(
+            {'name': [target_tl_obj[tl]['crossName']], 'SA': [target_tl_obj[tl]['signalGroup']]})
+
+        individual_output = __compareResultDistInternal(individual_output, [tl], target_tl_obj, ft_output, rl_output,
+                                                         cut_interval)
+        total_output = pd.concat([total_output, individual_output])
+
+        ## gather SA info
+        sa_name = target_tl_obj[tl]['signalGroup']
+        if sa_name in target_sa_tl_dic.keys():
+            target_sa_tl_dic[sa_name].append(tl)
+        else:
+            target_sa_tl_dic[sa_name] = [tl]
+
+        if DBG_OPTIONS.PrintResultCompare:
+            print(f"sa_name={sa_name}  tl_name={target_tl_obj[tl]['crossName']}  tl_node_id={tl}")
+
+    #
+    # for each SA
+    #
+    for sa in target_sa_tl_dic.keys():
+        if DBG_OPTIONS.PrintResultCompare:
+            print(f'{sa}')
+            for tl in list(target_sa_tl_dic[sa]):
+                print(target_tl_obj[tl]['crossName'])
+
+        individual_output = pd.DataFrame({'name': [sa], 'SA': ['total']})
+        individual_output = __compareResultDistInternal(individual_output, list(target_sa_tl_dic[sa]), target_tl_obj,
+                                                         ft_output, rl_output, cut_interval)
+        total_output = pd.concat([total_output, individual_output])
+
+    #
+    # for entire target
+    #
+    individual_output = pd.DataFrame({'name': ['total'], 'SA': ['total']})
+    individual_output = __compareResultDistInternal(individual_output, list(target_tl_obj.keys()), target_tl_obj,
+                                                     ft_output, rl_output, cut_interval)
+    total_output = pd.concat([total_output, individual_output])
+
+    total_output = total_output.sort_values(by=["SA", "name"], ascending=True)
+
+    return total_output
+
+
+def compareResultDist(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip=-1):
+    '''
+    compare two result files and calculate improvement rate for each intersection, each SA and overall
+    This function compares results of whole target.
+
+    originaly from __compareResult() @ SaltConnector.py
+    :param args:
+    :param target_tl_obj: information about target TL
+    :param ft_output: a data frame object which was generated by reading an output (csv) file of simulator
+                           that performed the signal control simulation based on the fixed signal
+    :param rl_output: a data frame object which was generated by reading an output (csv) file of simulator
+                           that performed signal control simulation based on reinforcement learning inference
+    :param model_num: number which indicate optimal model which was used to TEST
+    :param passed_res_comp_skip : steps to skip to exclude comparison(result comparison)
+    :return:
+    '''
+    ##
+    ## Various statistical information related to intersections is extracted from the DataFrame object
+    ##      containing the contents of the CSV file created by the simulator.
+    ##-- create empty DataFrame object
+    total_output = pd.DataFrame()
+
+    if passed_res_comp_skip == -1:
+        cut_interval = args.start_time + _RESULT_COMPARE_SKIP_  # 2시간 테스트시 앞에  일정 시간은 비교대상에서 제외
+    else:
+        cut_interval = args.start_time + passed_res_comp_skip
+
+    if DBG_OPTIONS.PrintResultCompare:
+        print(f"training step: {args.start_time} to {args.end_time}")
+        print(f"comparing step: {cut_interval} to {args.end_time}")
+        print(f"model number: {model_num}")
+
+    #
+    # for entire target
+    #
+    individual_output = pd.DataFrame({'name': ['total'], 'SA': ['total']})
+    individual_output = __compareResultDistInternal(individual_output, list(target_tl_obj.keys()), target_tl_obj,
+                                                     ft_output, rl_output, cut_interval)
+    total_output = pd.concat([total_output, individual_output])
+
+    total_output = total_output.sort_values(by=["SA", "name"], ascending=True)
+
+    return total_output
+
+
+##########
+
+
+
 def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
+    if args.distributed:
+        return compareResultAndStore4Dist(args, env, ft_output, rl_output, problem_var,  comp_skip)
+    else:
+        return compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp_skip)
+
+def compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp_skip):
     '''
     compare result of fxied-time-control and RL-agent-control
     and save the comparison results
@@ -222,8 +489,41 @@ def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_sk
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
 
     #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    sc = SaltConnector()
-    total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    if 0:  # DELETE  SIMPLE_COMPARE
+        sc = SaltConnector()
+        total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    else: # DELETE
+        total_output = compareResultDistOrg(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+
+    total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
+
+    shutil.copy2(result_fn, dst_fn)
+
+    return result_fn
+
+
+def compareResultAndStore4Dist(args, env, ft_output, rl_output, problem_var,  comp_skip):
+    '''
+    compare result of fxied-time-control and RL-agent-control
+    and save the comparison results
+
+    :param args:
+    :param env:
+    :param ft_output: result of traffic signal control by fixed-time
+    :param rl_output: result of traffic signal control by RL-agent
+    :param problem_var:
+    :param comp_skip: time interval to exclude from result comparison
+    :return:
+    '''
+    result_fn = "{}/output/test/{}_s{}_{}.csv".format(getOutputDirectoryRoot(args), problem_var, comp_skip, args.model_num)
+    dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
+
+    #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    if 0:  # DELETE  SIMPLE_COMPARE
+        sc = SaltConnector()
+        total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    else:
+        total_output = compareResultDist(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
 
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
@@ -336,6 +636,14 @@ class AgentDist(Agent):
         for agent in self.ppo_agent:
             if agent.is_train:
                 agent.saveModel(fn_prefix)
+
+    def load_agent(self, trial):
+        args = self.args
+        problem_var = self.problem_var
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(),
+                                                        problem_var, trial)
+        for agent in self.ppo_agent:
+            agent.loadModel(fn_prefix)
 
 #----------------------------------------------------
 
@@ -590,9 +898,6 @@ def dumpReplayMemory(args, agents):
 
 
 
-##########
-
-    
 
 def trainSappo(args):
     '''
@@ -713,6 +1018,31 @@ def trainSappo(args):
  
 
 
+
+def printImprovementRate(result_fn, target_sa_name_list=[], msg="Skip one hour"):
+    df = pd.read_csv(result_fn, index_col=0)
+    for sa in target_sa_name_list:
+        printImprovementRateInternal(df, sa, msg)
+    tot_imp_rate = printImprovementRateInternal(df, 'total', msg)
+    return tot_imp_rate
+
+
+# def calculateImprovementRate(df, target):  # TSOUtil.py
+#     ft_passed_num = df.at[target, 'ft_VehPassed_sum_0hop']
+#     rl_passed_num = df.at[target, 'rl_VehPassed_sum_0hop']
+#     ft_sum_travel_time = df.at[target, 'ft_SumTravelTime_sum_0hop']
+#     rl_sum_travel_time = df.at[target, 'rl_SumTravelTime_sum_0hop']
+#
+#     ft_avg_travel_time = ft_sum_travel_time / ft_passed_num
+#     rl_avg_travel_time = rl_sum_travel_time / rl_passed_num
+#     imp_rate = (ft_avg_travel_time - rl_avg_travel_time) / ft_avg_travel_time * 100
+#     return imp_rate
+
+def printImprovementRateInternal(df, target, msg="Skip one hour"):
+    imp_rate = calculateImprovementRate(df, target)
+    print(f'{msg} Average Travel Time ({target}): {imp_rate}% improved')
+    return imp_rate
+
 def testSappo(args):
     '''
     test trained model
@@ -754,12 +1084,21 @@ def testSappo(args):
 
         comp_skip = _RESULT_COMPARE_SKIP_
         result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
-        __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
+        # __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
+        if args.distributed:
+            printImprovementRate(result_fn, msg=f'Skip {comp_skip} second')
+        else:
+            printImprovementRate(result_fn, env.target_sa_name_list, msg=f'Skip {comp_skip} second')
+
 
         if DBG_OPTIONS.ResultCompareSkipWarmUp: # comparison excluding warm-up time
             comp_skip = args.warmup_time
             result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
-            __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
+            #__printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
+            if args.distributed:
+                printImprovementRate(result_fn, msg=f'Skip {comp_skip} second')
+            else:
+                printImprovementRate(result_fn, env.target_sa_name_list, msg=f'Skip {comp_skip} second')
 
         end_time = time.time()
         print(f"Time used to compare result : {end_time - start_time} seconds")
