@@ -19,7 +19,7 @@ class DBG_OPTIONS :
 
         YJLEE = True  # only for YJLEE script
         #V20230605 = True # try to fix bugs which are related to multiple SA
-        DoStateAugmentation = True # try to fix bugs which are related to state augmentation
+        DoStateAugmentation = False # try to fix bugs which are related to state augmentation
 
         ##-- ing
         IngCompResult = False
