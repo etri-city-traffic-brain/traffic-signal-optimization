@@ -130,7 +130,7 @@ if [ 1 ]; then
   DO_PARALLEL="true" # "true"
 
   ###-- reinforcement learning main
-  RL_PROG="run_dist.py"
+  RL_PROG="run_dist_considered.py"
 
   #######
   ## output file : to save verbosely dumped messages

@@ -497,7 +497,7 @@ def generateCommand(args):
 
     :return: generated command
     '''
-    cmd = ' python run_dist.py '
+    cmd = ' python run_dist_considered.py '
     cmd = cmd + ' --traffic-env {} '.format(args.traffic_env)
     cmd = cmd + ' --mode {} '.format(args.mode)
     cmd = cmd + ' --scenario-file-path {}'.format(args.scenario_file_path)

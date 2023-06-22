@@ -2,16 +2,13 @@
 #
 #  use "policy/off_ppoTF2.py" as a policy
 #  [$] conda activate opt
-#  [$] python run_dist.py --distributed False --mode train --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --epoch 1 --num-concurrent-env 2  --output-home zzz
-#  [$] python run_dist.py --distributed False --mode simulate --map doan --target-TL "SA 101" --output-home zzz
-#  [$] python run_dist.py --distributed False --mode test --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --model-num 0  --output-home zzz
+#  [$] python run_dist_considered.py  --mode train --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --epoch 1 --num-concurrent-env 2  --output-home zzz
+#  [$] python run_dist_considered.py  --mode simulate --map doan --target-TL "SA 101" --output-home zzz
+#  [$] python run_dist_considered.py  --mode test --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --model-num 0  --output-home zzz
 
-#  [$] python run_dist.py --distributed True --mode train --map doan --target-TL "SA 101, SA 104" --model-save-period 1 --mem-len 10 --epoch 1
-#  [$] python run.py --mode test --map doan --target-TL "SA 101, SA 104" --model-num 0 --result-comp true
+#  [$] python run_dist_considered.py --distributed True --mode train --map doan --target-TL "SA 101, SA 104" --model-save-period 1 --mem-len 10 --epoch 1
 
-#
-#  python run.py --mode train --map doan --target "SA 101,SA 104" --action offset --epoch 2 --model-num 0 --reward-func pn --reward-gather-unit sa
-#  python run.py --mode train --map doan --target "SA 101,SA 104" --action offset   --reward-func pn --reward-gather-unit sa   --model-save-period 10  --epoch 1000
+
 #
 import argparse
 import datetime
@@ -30,7 +27,7 @@ import copy
 from deprecated import deprecated
 
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "-1"
+#os.environ['CUDA_VISIBLE_DEVICES'] = "-1" # "0" # "0,1,2"
 #from tensorflow.python.client import device_lib
 #device_lib.list_local_devices()
 
@@ -971,7 +968,10 @@ def trainSappo(args):
 
     for trial in range(args.epoch):
         #run_multi_thread(trial, envs, agent)
+        start_time = time.time()
         rewards, mean, std = run_multi_thread(trial, envs, agent)
+        end_time = time.time()
+        print(f"Training time for {args.target_TL}: {end_time - start_time} seconds")
 
         if dbg_options_opt_choice == 2 :
             ### rewards에는num_envs 개수만큼 들어있다. 이것(평균)을 계속 저장해서 가지고 있다가 최적 모델 선정에 활용할 수 있을 것 같다.
@@ -981,7 +981,7 @@ def trainSappo(args):
         start_time = time.time()
         agent.train()
         end_time = time.time()
-        print(f"Training time : {end_time - start_time} seconds")
+        print(f"Agent Training(Update) time for {args.target_TL}: {end_time - start_time} seconds")
 
         ### model save
         if trial % args.model_save_period == 0:
@@ -1051,25 +1051,20 @@ def testSappo(args):
     :return:
     '''
 
-    if 0:
-        env = Env(args)
-        agent_config = env.get_agent_configuration()
-        agent = Agent(*agent_config)
+    env = EnvDist(args, args.output_home)
+    # _env_name, _agent_num, _action_sizes, _state_sizes, sa_name_list, target_sa_name_list = env.get_agent_configuration()
+    cfg1 = env.get_agent_configuration()
 
-        if args.action != 'fx': agent.load_agent(trial=args.model_num)
+    ppo_config, problem_var = makeConfigAndProblemVar(args)
+    agent_config = cfg1 + (ppo_config, problem_var, args)
+    agent = AgentDist(*agent_config)
+    # if args.action != 'fx': agent.load_agent(trial=args.model_num)
 
-    else:
-        env = EnvDist(args, args.output_home)
-        # _env_name, _agent_num, _action_sizes, _state_sizes, sa_name_list, target_sa_name_list = env.get_agent_configuration()
-        cfg1 = env.get_agent_configuration()
+    start_time = time.time()
+    run_test_episode(0, env, agent)
+    end_time = time.time()
+    print(f"Time used to run with test-mode : {end_time - start_time} seconds")
 
-        ppo_config, problem_var = makeConfigAndProblemVar(args)
-        agent_config = cfg1 + (ppo_config, problem_var, args)
-        agent = AgentDist(*agent_config)
-        # if args.action != 'fx': agent.load_agent(trial=args.model_num)
-
-    for trial in range(1):
-        run_test_episode(trial, env, agent)
 
     # _env_name, _agent_num, _action_sizes, _state_sizes, sa_name_list, target_sa_name_list, ppo_config, problem_var, args
     problem_var = agent_config[7] # i.e, problem_var
