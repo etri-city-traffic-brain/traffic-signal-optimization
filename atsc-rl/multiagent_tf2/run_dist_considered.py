@@ -612,7 +612,8 @@ class AgentDist(Agent):
         idx_of_act_sa = info['idx_of_act_sa']
         for i in idx_of_act_sa:
             if self.ppo_agent[i].is_train:
-                self.ppo_agent[i].memory.store(current_state[i],
+                if current_state[i] is not None and new_state[i] is not None:
+                    self.ppo_agent[i].memory.store(current_state[i],
                                            action[i],
                                            reward[i],
                                            new_state[i],
