@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 #
+#  use "policy/ppoTF2.py" as a policy
+#  [$] conda activate UniqOpt.p3.8
+#  [$] python run.py --mode train --map doan --target-TL "SA 101, SA 104" --epoch 1
+#  [$] python run.py --mode test --map doan --target-TL "SA 101, SA 104" --model-num 0 --result-comp true
 #
 
 #
@@ -607,6 +611,7 @@ def testSappo(args, te_conn):
 
 
 
+
 def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
     '''
     compare result of fxied-time-control and RL-agent-control
@@ -624,6 +629,7 @@ def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_sk
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
     total_output = env.te_conn.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
+
 
     shutil.copy2(result_fn, dst_fn)
 

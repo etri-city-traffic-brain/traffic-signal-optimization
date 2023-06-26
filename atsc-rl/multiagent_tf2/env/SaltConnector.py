@@ -518,8 +518,9 @@ class SaltConnector(TrafficEnvironmentConnector):
         for x in traffic_signal:
             sg = x.attrib['signalGroup'].strip()
             if sg in sa_name_list:
-                target_tl_obj[x.attrib['nodeID']] = {}
-                target_tl_obj[x.attrib['nodeID']]['crossName'] = x.attrib['crossName']
+                nid = x.attrib['nodeID']
+                target_tl_obj[nid] = {}
+                target_tl_obj[nid]['crossName'] = x.attrib['crossName']
 
                 _signalGroup = x.attrib['signalGroup']
                 if "SA" not in _signalGroup:
@@ -527,57 +528,63 @@ class SaltConnector(TrafficEnvironmentConnector):
                 if "SA " not in _signalGroup:
                     _signalGroup = _signalGroup.replace("SA", "SA ")
 
-                target_tl_obj[x.attrib['nodeID']]['signalGroup'] = _signalGroup
+                target_tl_obj[nid]['signalGroup'] = _signalGroup
 
                 s_id = self.__getScheduleID(x, args.start_time)
 
                 # print(_signalGroup)
-                target_tl_obj[x.attrib['nodeID']]['offset'] = int(x.find(f"schedule[@id='{s_id}']").attrib['offset'])
-                target_tl_obj[x.attrib['nodeID']]['minDur'] = \
+                target_tl_obj[nid]['offset'] = int(x.find(f"schedule[@id='{s_id}']").attrib['offset'])
+                target_tl_obj[nid]['minDur'] = \
                     [int(y.attrib['minDur']) if 'minDur' in y.attrib else int(y.attrib['duration']) for
                                                                 y in x.findall(f"schedule[@id='{s_id}']/phase")]
-                target_tl_obj[x.attrib['nodeID']]['maxDur'] = \
+                target_tl_obj[nid]['maxDur'] = \
                     [int(y.attrib['maxDur']) if 'maxDur' in y.attrib else int(y.attrib['duration']) for
                                                                 y in x.findall(f"schedule[@id='{s_id}']/phase")]
-                target_tl_obj[x.attrib['nodeID']]['cycle'] = \
+                target_tl_obj[nid]['cycle'] = \
                     np.sum([int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")])
-                target_tl_obj[x.attrib['nodeID']]['duration'] = \
+                target_tl_obj[nid]['duration'] = \
                     [int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")]
                 tmp_duration_list = np.array([int(y.attrib['duration']) for y in x.findall(f"schedule[@id='{s_id}']/phase")])
-                # target_tl_obj[x.attrib['nodeID']]['green_idx'] = np.where(tmp_duration_list > 5)
-                target_tl_obj[x.attrib['nodeID']]['green_idx'] = \
-                    np.where(np.array(target_tl_obj[x.attrib['nodeID']]['minDur']) != np.array(target_tl_obj[x.attrib['nodeID']]['maxDur']))
+
+                if 0:
+                    target_tl_obj[nid]['green_idx'] = np.where(tmp_duration_list > 5)
+                else:
+                    # -- todo bug.... minDur과 maxDur이 같은 경우에  green_idx로 분류되지 않을 가능성이 있다.
+                    # ---- sg = 37 nodeid = cluster_554800075_554800077_554800078_554800080_554801615_554801640_554805918_554805919_554813394
+                    # ----     minDur과 maxDur이 동일한 Phase가  지속시간이 가장 긴 max_phase인 경우로 max_phase를 찾지못해서 IndexErr Exception이 발생한다.
+                    target_tl_obj[nid]['green_idx'] = \
+                        np.where(np.array(target_tl_obj[nid]['minDur']) != np.array(target_tl_obj[nid]['maxDur']))
 
                 ### for select discrete action with the current phase ratio from tanH Prob.
                 dur_arr = []
-                for g in target_tl_obj[x.attrib['nodeID']]['green_idx'][0]:
-                    dur_arr.append(target_tl_obj[x.attrib['nodeID']]['duration'][g])
+                for g in target_tl_obj[nid]['green_idx'][0]:
+                    dur_arr.append(target_tl_obj[nid]['duration'][g])
                 dur_ratio = dur_arr / np.sum(dur_arr)
                 tmp = -1
                 dur_bins = []
                 for dr in dur_ratio:
                     dur_bins.append(tmp + dr * 2)
                     tmp += dr * 2
-                # print(target_tl_obj[x.attrib['nodeID']]['green_idx'])
-                target_tl_obj[x.attrib['nodeID']]['duration_bins'] = dur_bins
-                target_tl_obj[x.attrib['nodeID']]['main_green_idx'] = \
+                # print(target_tl_obj[nid]['green_idx'])
+                target_tl_obj[nid]['duration_bins'] = dur_bins
+                target_tl_obj[nid]['main_green_idx'] = \
                     np.where(tmp_duration_list == np.max(tmp_duration_list))
-                target_tl_obj[x.attrib['nodeID']]['sub_green_idx'] = \
-                    list(set(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]) -
+                target_tl_obj[nid]['sub_green_idx'] = \
+                    list(set(target_tl_obj[nid]['green_idx'][0]) -
                          set(np.where(tmp_duration_list == np.max(tmp_duration_list))[0]))
-                target_tl_obj[x.attrib['nodeID']]['tl_idx'] = i
-                target_tl_obj[x.attrib['nodeID']]['remain'] = \
-                    target_tl_obj[x.attrib['nodeID']]['cycle'] - np.sum(target_tl_obj[x.attrib['nodeID']]['minDur'])
-                target_tl_obj[x.attrib['nodeID']]['max_phase'] = \
-                    np.where(target_tl_obj[x.attrib['nodeID']]['green_idx'][0] ==target_tl_obj[x.attrib['nodeID']]['main_green_idx'][0][0])
-                target_tl_obj[x.attrib['nodeID']]['action_space'] = len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0])
-                target_tl_obj[x.attrib['nodeID']]['action_list'] = \
-                    getPossibleActionList(args, target_tl_obj[x.attrib['nodeID']]['duration'],
-                                            target_tl_obj[x.attrib['nodeID']]['minDur'],
-                                            target_tl_obj[x.attrib['nodeID']]['maxDur'],
-                                            target_tl_obj[x.attrib['nodeID']]['green_idx'],
-                                            getActionList(len(target_tl_obj[x.attrib['nodeID']]['green_idx'][0]),
-                                            target_tl_obj[x.attrib['nodeID']]['max_phase'][0][0]))
+                target_tl_obj[nid]['tl_idx'] = i
+                target_tl_obj[nid]['remain'] = \
+                    target_tl_obj[nid]['cycle'] - np.sum(target_tl_obj[nid]['minDur'])
+                target_tl_obj[nid]['max_phase'] = \
+                    np.where(target_tl_obj[nid]['green_idx'][0] ==target_tl_obj[nid]['main_green_idx'][0][0])
+                target_tl_obj[nid]['action_space'] = len(target_tl_obj[nid]['green_idx'][0])
+                target_tl_obj[nid]['action_list'] = \
+                    getPossibleActionList(args, target_tl_obj[nid]['duration'],
+                                            target_tl_obj[nid]['minDur'],
+                                            target_tl_obj[nid]['maxDur'],
+                                            target_tl_obj[nid]['green_idx'],
+                                            getActionList(len(target_tl_obj[nid]['green_idx'][0]),
+                                            target_tl_obj[nid]['max_phase'][0][0]))
                 i += 1
 
         return target_tl_obj

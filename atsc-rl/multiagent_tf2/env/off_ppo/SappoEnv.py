@@ -27,7 +27,8 @@ from env.off_ppo.SaltEnvUtil import makePosssibleSaNameList
 from env.off_ppo.SappoActionMgmt import SaltActionMgmt
 from env.off_ppo.SappoRewardMgmt import _REWARD_GATHER_UNIT_, SaltRewardMgmtV3
 from TSOUtil import writeLine
-from TSOUtil import getOutputDirectoryRoot, _RESULT_COMP_
+from TSOUtil import getOutputDirectoryRoot
+from TSOConstants import _RESULT_COMP_
 
 class SaltSappoEnvV3(gym.Env):
     '''
@@ -82,7 +83,11 @@ class SaltSappoEnvV3(gym.Env):
         self.start_step, self.end_step = getSimulationStartStepAndEndStep(args)
 
         ## copy scenario related files and get copied scenario file path
-        self.salt_scenario = copyScenarioFiles(args.scenario_file_path)
+        if args.copy_scenario_file:
+            self.salt_scenario = copyScenarioFiles(args.scenario_file_path)
+        else:
+            self.salt_scenario = args.scenario_file_path
+            #self.salt_scenario = copy.deepcopy(args.scenario_file_path)
 
         # gather information related to the intersection to be optimized from scenario file : TL, TSS, lane, link, ...
         if 1:
@@ -134,7 +139,7 @@ class SaltSappoEnvV3(gym.Env):
                 #print(self.tl_obj[tl_id]['duration'])
                 #print(self.tl_obj[tl_id]['green_idx'])
                 #print(self.tl_obj[tl_id]['action_list'])
-                
+
             ##-- initialize so that information on one SA can be accessed with the same index
             ##         동일한 인덱스로 하나의 SA에 대한 정보에 접근 가능하도록 초기화
             ##      sa_name_list : SA name
@@ -503,6 +508,9 @@ class SaltSappoEnvV3(gym.Env):
         return self.observations, self.reward_mgmt.sa_rewards, self.done, info
 
 
+    def simulationStart(self):
+        #libsalt.start(self.salt_scenario, outdirprefix='output/'+self.args.mode)
+        libsalt.start(self.salt_scenario, outdirprefix=self.args.scenario)
 
 
     def reset(self):
@@ -510,8 +518,10 @@ class SaltSappoEnvV3(gym.Env):
         initialize simulation
         :return:
         '''
-        #libsalt.start(self.salt_scenario) 
-        libsalt.start(self.salt_scenario, outdirprefix='output/'+self.args.mode) 
+        #libsalt.start(self.salt_scenario)
+        # libsalt.start(self.salt_scenario, outdirprefix='output/'+self.args.mode)
+        self.simulationStart()
+
             
         libsalt.setCurrentStep(self.start_step)
         self.simulation_steps = libsalt.getCurrentStep()
@@ -566,7 +576,14 @@ class SaltSappoEnvV3(gym.Env):
             self.time_to_act_list[i] = self.__getNextTimeToAct(self.simulation_steps, self.sa_cycle_list[i],
                                                                self.control_cycle)
 
-        self.observations = list([] for i in range(self.agent_num))  # [ [], ...,[]]
+        ## initialize observation. i.e., reset
+        self.observations.clear()
+        if 0:
+            for sa_name in self.sa_name_list:
+                an_obs = np.array([0] * self.sa_obj[sa_name]['state_space'])
+                self.observations.append(an_obs)
+        else:
+            self.observations = list([] for i in range(self.agent_num))  # [ [], ...,[]]
 
         #
         # action 을 적용해야 하는 곳까지 시뮬레이션을 수행한다.

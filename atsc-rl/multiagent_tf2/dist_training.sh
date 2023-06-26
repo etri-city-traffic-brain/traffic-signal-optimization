@@ -18,7 +18,7 @@ OP_SHOW_RESULT="show-result" # dump training result by showing the calculated im
 OP_TEST="test" # do test with trained model
 OP_USAGE="usage" # show usage
 
-DO_EVAL=true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
+DO_EVAL=true # true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
 
 display_usage() {
   echo
@@ -71,14 +71,13 @@ if [ 1 ]; then
   #
 
   ###--- ip address of node to run control daemon
-  CTRL_DAEMON_IP="129.254.182.176" # "129.254.184.123"  # 101.79.1.126
+  CTRL_DAEMON_IP="129.254.182.172" # "129.254.184.123" "129.254.182.176" "129.254.184.123"  # 101.79.1.126
 
   ###--- ip address of nodes to run execution daemon
   EXEC_DAEMON_IPS=(
-                    "129.254.184.123"
+                    "129.254.182.172"
                     "129.254.184.184"
-                    "129.254.184.238"
-                    "129.254.184.248"
+                    "129.254.184.123"
                   )
   #
   # 129.254.184.239		uniq1
@@ -89,6 +88,8 @@ if [ 1 ]; then
   # 129.254.184.248		uniq6
   # 129.254.184.53		uniq7
   # 129.254.184.54		uniq8
+  # 129.254.182.172   uniq9
+  # 129.254.182.173   uniq10
 
   ###--- number of execution daemon
   NUM_EXEC_DAEMON=${#EXEC_DAEMON_IPS[@]}
@@ -102,14 +103,16 @@ if [ 1 ]; then
   ###--- directory for traffic signal optimization(TSO) execution
   ###    You must deploy the code for execution to the same location specified below on all nodes.
   #EXEC_DIR=/home/tsoexp/z.uniq/traffic-signal-optimization/atsc-rl/multiagent_tf2
-  EXEC_DIR="/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
+  #EXEC_DIR="/home/tsoexp/PycharmProjects/traffic-signal-optimization/atsc-rl/multiagent_tf2.0"
+  EXEC_DIR=/home/tsoexp/z.uniq/2023.dev/multiagent_tf2
+
 
   ###--- conda environment for TSO
-  CONDA_ENV_NAME="UniqOpt.p3.8"
+  CONDA_ENV_NAME="UniqOpt.p3.8.v2" # "UniqOpt.p3.8" "UniqOpt.p3.8.v2" "opt"
   ACTIVATE_CONDA_ENV="source /home/tsoexp/miniforge3/etc/profile.d/conda.sh; conda activate $CONDA_ENV_NAME "
 
   ###-- libsalt path
-  SALT_HOME=/home/tsoexp/z.uniq/traffic-simulator
+  SALT_HOME=/home/tsoexp/z.uniq/2023.dev/traffic-simulator
 
   #######
   ## exec program
@@ -125,7 +128,7 @@ if [ 1 ]; then
   DO_PARALLEL="true"
 
   ###-- reinforcement learning main
-  RL_PROG="run.py"
+  RL_PROG="run_dist_considered.py" #"run.py"
 
   #######
   ## output file : to save verbosely dumped messages
@@ -154,7 +157,7 @@ if [ 1 ]; then
   RL_SCENARIO_FILE_PATH="data/envs/salt"
 
   ###--- name of map to simulate
-  RL_MAP="doan" # one of { doan, cdd1, cdd2, cdd3, sa_1_6_17, dj_all }
+  RL_MAP="dj200" # one of { doan, cdd1, cdd2, cdd3, sa_1_6_17, dj_all, dj200 }
 
 
   ###-- set target to train
@@ -178,6 +181,12 @@ if [ 1 ]; then
   then
     ###--- target to train
     RL_TARGET="SA 1, SA 6, SA 17"  # SA 1, SA 6, SA 17
+  elif [ "$RL_MAP" == "dj200" ]
+  then
+    ###--- target to train
+    #RL_TARGET="SA 3, SA 28, SA 101, SA 37, SA 38, SA 1, SA 102, SA 104, SA 33, SA 30"
+    RL_TARGET="SA 3, SA 28, SA 101, SA 6, SA 41, SA 37, SA 38, SA 1, SA 102, SA 104, SA 33, SA 30"
+    #RL_TARGET="SA 3, SA 28, SA 101, SA 6, SA 41, SA 20, SA 37, SA 38, SA 9, SA 1, SA 57, SA 102, SA 104, SA 98, SA 8, SA 33, SA 59, SA 30"
   elif [ "$RL_MAP" == "dj_all" ]
   then
     ###--- target to train
@@ -199,11 +208,11 @@ if [ 1 ]; then
 
   ###--- state, action, reward for RL
   RL_STATE="vdd" # v, d, vd, vdd
-  RL_ACTION="gro"  # offset, gr, gro, kc
+  RL_ACTION="gt"  # offset, gr, gro, kc, gt
   RL_REWARD="cwq"  # wq, cwq, pn, wt, tt
 
   ###--- training epoch
-  RL_EPOCH=200	# 200
+  RL_EPOCH=20	# 200
 
   ###--- interval for model saving : how open save model
   RL_MODEL_SAVE_PERIOD=1
@@ -217,10 +226,19 @@ if [ 1 ]; then
   RL_MODEL_CRITIC_LR=0.0001
 
   ###--- replay memory length
-  RL_MODEL_MEM_LEN=500  # default 1000
+  RL_MODEL_MEM_LEN=100  # default 1000
   FORGET_RATIO=0.5 # default 0.8  .. RL_MODEL_MEM_LEN * (1-FORGET_RATIO) experiences are used to update model
 
 
+  ###--- number of env when we use to train an agent; it is to increase experience
+  ###     NUM_CONCURRENT_ENV environment process will be created
+  NUM_CONCURRENT_ENV=5  # 10
+
+  ##--- maximum number of simulations for learning using generated environment process;
+  ##    it is to avoid memory related problem
+  MAX_RUN_WITH_AN_ENV_PROCESS=50 #100
+
+  DISTRIBUTED=True
 
   #######
   ## distributed Reinforcement Learning related parameters
@@ -286,7 +304,7 @@ then
     eval $CMD
   fi
 
-  #  python run.py --mode simulate --map $RL_MAP --target-TL $RL_TARGET --method $RL_METHOD --state $RL_STATE  \
+  #  python $RL_PROG --mode simulate --map $RL_MAP --target-TL $RL_TARGET --method $RL_METHOD --state $RL_STATE  \
   #         --action $RL_ACTION --reward-func $RL_REWARD
   echo
   echo
@@ -314,6 +332,11 @@ then
   INNER_CMD="$INNER_CMD --network-size $NETWORK_SIZE "
   INNER_CMD="$INNER_CMD --a-lr $RL_MODEL_ACTOR_LR --c-lr $RL_MODEL_CRITIC_LR "
   INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
+  INNER_CMD="$INNER_CMD --num-concurrent-env $NUM_CONCURRENT_ENV "
+  INNER_CMD="$INNER_CMD --max-run-with-an-env-process $MAX_RUN_WITH_AN_ENV_PROCESS "
+  INNER_CMD="$INNER_CMD --distributed $DISTRIBUTED "
+
+
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
   CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
@@ -442,7 +465,7 @@ then
     echo
   done
 
-  echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
+  echo "You can not find $RL_PROG process with this script when we do first round beacuse infer-mode-path is not set. "
 
 #-- 1.5 terminate process forcely using kill command
 elif [ "$OPERATION" == "$OP_TERMINATE" ]
@@ -520,7 +543,7 @@ then
     eval $CMD
   fi
 
-  echo "You can not find run.py process with this script when we do first round beacuse infer-mode-path is not set. "
+  echo "You can not find $RL_PROG process with this script when we do first round beacuse infer-mode-path is not set. "
 
 
 #
@@ -618,7 +641,7 @@ then
   RESULT_DIR_LEAF=${RL_MAP}_${RL_STATE}_${RL_ACTION}_${RL_REWARD}_${EXP_OPTION} # ex., doan_vdd_gr_wq_all
   RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
 
-  INNER_CMD="SALT_HOME=$SALT_HOME nohup python run.py "
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $RL_PROG "
   INNER_CMD="$INNER_CMD  --mode test "
   INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
   INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' "

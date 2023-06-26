@@ -15,7 +15,7 @@ import os
 from multiprocessing import Process, Pipe
 from threading import Thread
 
-#os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 #from tensorflow.python.client import device_lib
 #device_lib.list_local_devices()
 
@@ -30,6 +30,7 @@ def configure_gpu():
                 tf.config.experimental.set_memory_growth(gpu, True)
                 logical_gpus = tf.config.experimental.list_logical_devices('GPU')
                 print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+
         except RuntimeError as e:
             # Memory growth must be set before GPUs have been initialized
             print(e)
@@ -76,7 +77,9 @@ from env.off_ppo.SappoEnv import SaltSappoEnvV3
 from env.off_ppo.SappoRewardMgmt import SaltRewardMgmtV3
 
 from policy.off_ppoTF2 import PPOAgentTF2 #from policy.ppoTF2 import PPOAgentTF2
-from ResultCompare import compareResult
+
+# from ResultCompare import compareResult
+from env.SaltConnector import SaltConnector
 
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
@@ -337,144 +340,136 @@ class StateAugmentation:
         return state
 
 
+
 class Agent:
-    
+
     def __init__(self, env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args):
 
-            
         self._init_holder(agent_num, action_sizes)
         self.env_name = env_name
         self.ppo_config = ppo_config
         self.problem_var = problem_var
-        
+
         self.args = args
-        
-                            
+
         self.ppo_agent = []
         for i in range(agent_num):
-            agent = PPOAgentTF2(env_name, ppo_config, action_sizes[i], state_sizes[i], target_sas[i].strip().replace(' ', '_'))
+            agent = PPOAgentTF2(env_name, ppo_config, action_sizes[i], state_sizes[i],
+                                target_sas[i].strip().replace(' ', '_'))
             self.ppo_agent.append(agent)
-                
-        
 
     def _init_holder(self, agent_num, action_sizes):
 
         actions, logps = [], []
-            
+
         for i in range(agent_num):
             actions.append(list(0 for _ in range(action_sizes[i])))
             logps.append([0])
-    
+
         self._action_holder = actions
         self._logp_holder = logps
-        
 
-        
     def act(self, state, info, sampling=True):
-        
+
+        action_holder = copy.deepcopy(self._action_holder)  # For multi-treading
+        logp_holder = copy.deepcopy(self._logp_holder)
+
         idx_of_act_sa = info['idx_of_act_sa']
-        
+
         for i in idx_of_act_sa:
-            
             obs = state[i]
             action, logp, mu, std = self.ppo_agent[i].action(obs, sampling)
 
-#            print('mu', mu)
-#            print('std', std)
-#            print('action:', action)
-#            state_action_value = self.ppo_agent[i].evaluate_state_action(obs, action)
-#            print('state_action_value:', state_action_value)
-                    
-            #print('action[0]:', action[0])
             self._action_holder[i] = action[0]
             self._logp_holder[i] = logp[0]
-        
-        #return self._action_holder, self._logp_holder
+
         action_holder = copy.deepcopy(self._action_holder)
         logp_holder = copy.deepcopy(self._logp_holder)
-        
-        return action_holder, logp_holder
-        
 
-    
+        return action_holder, logp_holder
 
     def store(self, current_state, action, reward, new_state, done, logp, info):
 
         idx_of_act_sa = info['idx_of_act_sa']
-        for i in idx_of_act_sa:
-            
-            self.ppo_agent[i].memory.store(current_state[i], 
-                          action[i], 
-                          reward[i], 
-                          new_state[i], 
-                          done, 
-                          logp[i])
 
+        for i in idx_of_act_sa:
+
+            if current_state[i] is not None and new_state[i] is not None:
+                self.ppo_agent[i].memory.store(current_state[i],
+                                               action[i],
+                                               reward[i],
+                                               new_state[i],
+                                               done,
+                                               logp[i])
 
     def train(self):
 
         for agent in self.ppo_agent:
             agent.replayNew()
-            
+
     def getMemorySize(self):
         memory_size = self.ppo_agent[0].memory.getSize()
         return memory_size
-    
-    
+
     def save_agent(self, trial):
         args = self.args
         problem_var = self.problem_var
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var, trial)
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                        trial)
         for agent in self.ppo_agent:
             agent.saveModel(fn_prefix)
 
-    
-    
     def load_agent(self, trial):
         args = self.args
         problem_var = self.problem_var
-        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(getOutputDirectoryRoot(args), args.method, args.method.upper(), problem_var, trial)
+        fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                        trial)
         for agent in self.ppo_agent:
             agent.loadModel(fn_prefix)
 
 
-    
-
-    
 class Env(SaltSappoEnvV3):
-    
+
     def __init__(self, args):
-        
+
         args = copy.deepcopy(args)
-        args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+        # args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+        if DBG_OPTIONS.YJLEE:
+            args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+
         start_time, end_time = getSimulationStartStepAndEndStep(args)
         trial_len = end_time - start_time
 
         args.start_time = start_time
         args.end_time = end_time
-        
+
         super(Env, self).__init__(args)
         self._init_holder()
 
         self.step_size = []
         self.state_augment = []
-        for sa_cycle in self.sa_cycle_list: #SappoEnv.py Line 156
-            #print('sa_cycle:', sa_cycle)
-            step_size = int(trial_len/(sa_cycle * args.control_cycle)) 
+        for sa_cycle in self.sa_cycle_list:  # SappoEnv.py Line 156
+            # print('sa_cycle:', sa_cycle)
+            # step_size = int(trial_len/(sa_cycle * args.control_cycle))
+            # step_size = int(np.ceil(trial_len/(sa_cycle * args.control_cycle)))
+            step_size = self._calculateStepSize(trial_len, sa_cycle)
+            # print('step_size:', step_size)
             aug = StateAugmentation(step_size, on_value=1.0, off_value=-1.0)
-            
-            #print('step_size', step_size)
+
+            # print('step_size', step_size)
             self.step_size.append(step_size)
             self.state_augment.append(aug)
-            
+
+    def _calculateStepSize(self, trial_len, sa_cycle):
+        return int(np.ceil(trial_len / (sa_cycle * args.control_cycle)))
 
     def get_agent_configuration(self):
-        
+
         env_name = self.env_name
         args = self.args
         ppo_config, problem_var = makeConfigAndProblemVar(self.args)
         agent_num = self.agent_num
-        
+
         action_sizes = []
         state_sizes = []
         target_sas = []
@@ -489,50 +484,43 @@ class Env(SaltSappoEnvV3):
 
             ##-- TF 2.x : ppo_continuous_hs,py
             action_size = action_space.shape[0]
-            #print('action_size', action_size)
-            #state_size = (state_space,)
-            state_size = (state_space+self.step_size[i],)
-            
+            # print('action_size', action_size)
+            # state_size = (state_space,)
+            state_size = (state_space + self.step_size[i],)
+
             action_sizes.append(action_size)
             state_sizes.append(state_size)
             target_sas.append(target_sa)
-            
-        return env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args
 
+        return env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args
 
     def _init_holder(self):
 
         # To store reward history of each episode
         self.ep_reward_list = []
-    
-        #self.current_state = [] # Actually, it is not used. Keep it to maintain consistency with the previous code.
 
-        #actions, logp_ts = [], []
+        # self.current_state = [] # Actually, it is not used. Keep it to maintain consistency with the previous code.
+
+        # actions, logp_ts = [], []
         agent_num = self.agent_num
-    
+
         discrete_actions = []
-        
+
         for i in range(agent_num):
             target_sa = self.sa_name_list[i]
             action_space = self.sa_obj[target_sa]['action_space']
             action_size = action_space.shape[0]
-            #actions.append(list(0 for _ in range(action_size)))
-            #logp_ts.append([0])
-            
+            # actions.append(list(0 for _ in range(action_size)))
+            # logp_ts.append([0])
+
             discrete_actions.append(list(0 for _ in range(action_size)))
-                # zero because the offset of the fixed signal is used as it is
 
-#        self._action_holder = actions
-#        self._logp_holder = logp_ts
         self._discrete_action_holder = discrete_actions
-        #self._episodic_agent_reward_holder = [0] * agent_num
-        
 
-    def _reshape_state(self, state):
+    def _reshape_state(self, state, idx_of_act_sa):
 
         state = copy.deepcopy(state)
-            
-        idx_of_act_sa = self.idx_of_act_sa
+
         for i in idx_of_act_sa:
             obs = state[i]
             obs = self.state_augment[i].augment(obs)
@@ -540,64 +528,59 @@ class Env(SaltSappoEnvV3):
             state[i] = obs
 
         return state
-        
 
     def reset(self):
-        
+
         for aug in self.state_augment: aug.reset()
-            
+        self._augmented_state = [None for i in range(self.agent_num)]
+
         state = super(Env, self).reset()
-        state = self._reshape_state(state)        
-        #info = {'idx_of_act_sa':self.idx_of_act_sa} #
-        info = {'idx_of_act_sa':copy.deepcopy(self.idx_of_act_sa)} 
-        
-        #self.current_state = state
-        
-        
+
+        idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
+        augmented_state = self._reshape_state(state, idx_of_act_sa)
+        for i in idx_of_act_sa:
+            self._augmented_state[i] = augmented_state[i]
+
+        augmented_state = copy.deepcopy(self._augmented_state)
+        info = {'idx_of_act_sa': idx_of_act_sa}
+
         self.episodic_reward = 0
         self.episodic_agent_reward = [0] * self.agent_num
-                
-        return state, info
 
-    
+        return augmented_state, info
+
     def step(self, actions):
-        
+
         idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
-        
         for i in idx_of_act_sa:
-            
             sa_name = self.sa_name_list[i]
-            #print('actions[i]', actions[i])
-            
-            discrete_action = np.clip(actions[i], -1.0, +1.0) 
+
+            discrete_action = np.clip(actions[i], -1.0, +1.0)
             discrete_action = self.action_mgmt.convertToDiscreteAction(sa_name, discrete_action)
-            #print('discrete_action', discrete_action)
             self._discrete_action_holder[i] = discrete_action
 
-        #print('self._discrete_action_holder', self._discrete_action_holder)
-        
-        state, reward, done, info = super(Env, self).step(self._discrete_action_holder) #After calling step(), self.idx_of_act_sa is updated. 
-        state = self._reshape_state(state)
-        
+        next_state, reward, done, info = super(Env, self).step(
+            self._discrete_action_holder)  # After calling step(), self.idx_of_act_sa is updated.
+
         idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
+        augmented_next_state = self._reshape_state(next_state, idx_of_act_sa)
+
         # update observation
         for i in idx_of_act_sa:
-            #self.current_state[i] = state[i]
+            self._augmented_state[i] = augmented_next_state[i]
             self.episodic_reward += reward[i]
             self.episodic_agent_reward[i] += reward[i]
-    
-        
-        #info['idx_of_act_sa'] = self.idx_of_act_sa 
+
+        next_augmented_state = copy.deepcopy(self._augmented_state)
         info['idx_of_act_sa'] = idx_of_act_sa
-    
+
         if done:
             self.ep_reward_list.append(self.episodic_reward)
             info['episodic_reward'] = self.episodic_reward
             info['recent_returns'] = self.ep_reward_list[-10:]
             info['ma40_reward'] = np.mean(self.ep_reward_list[-40:])
-            
-        return state, reward, done, info
-    
+
+        return next_augmented_state, reward, done, info
 
 
 def isolated(conn, args):
@@ -783,7 +766,15 @@ def trainSappo(args):
     '''
     
     valid_args = copy.deepcopy(args)
-    valid_args.scenario = '12th'
+
+    if DBG_OPTIONS.YJLEE :
+        valid_args.scenario = '12th'
+    else:
+        valid_args_scenario = '12th'
+        args_scenario = '12th'
+        args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args_scenario}.scenario.json"
+        valid_args.scenario_file_path = f"{valid_args.scenario_file_path}/{valid_args.map}/{valid_args.map}_{valid_args.mode}_{valid_args_scenario}.scenario.json"
+    
     
     num_envs = 10
     envs =  []
@@ -791,11 +782,14 @@ def trainSappo(args):
         env = IsolatedEnv(args)
         envs.append(env)
     
-    #create a validation/test evnironment. 
+    #create a validation/test evnironment.
     valid_env = IsolatedEnv(valid_args)
     best_trial = 0; best_score = -np.inf
-    
-    print('Train:', args.scenario, 'Valid:', valid_args.scenario)
+
+    if DBG_OPTIONS.YJLEE:
+        print('Train:', args.scenario, 'Valid:', valid_args.scenario)
+    else:
+        print('Train:', args.scenario_file_path, 'Valid:', valid_args.scenario_file_path)
     
     #agent_config = envs[0].get_agent_configuration()
     agent_config = valid_env.get_agent_configuration()
@@ -819,7 +813,14 @@ def trainSappo(args):
             best_trial, best_score = run_valid_episode(trial, valid_env, agent, best_trial,  best_score)
 
         print('Best trial:', best_trial, best_score)
-       
+
+    for i, env in enumerate(envs):
+        env.close()
+        print(f"{i}-th env.close() called ")
+
+    valid_env.close()
+    print(f"valid_env.close() called ")
+
     optimal_model_num = 0
     return optimal_model_num
 
@@ -845,12 +846,17 @@ def testSappo(args):
     problem_var = agent_config[5]
     # compare traffic simulation results
     if args.result_comp:
+        # -- should check path;  see simulationStart() @ off_ppo/SappoEnv.py
         #ft_output = pd.read_csv("{}/output/simulate/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
         #rl_output = pd.read_csv("{}/output/test/{}".format(args.io_home, _RESULT_COMP_.SIMULATION_OUTPUT))
         
-        ft_output = pd.read_csv("{}/output/simulate/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
-        rl_output = pd.read_csv("{}/output/test/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
-        
+        # ft_output = pd.read_csv("{}/output/simulate/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+        # rl_output = pd.read_csv("{}/output/test/{}/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+
+        ft_output = pd.read_csv("{}/{}/output/simulate/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+        rl_output = pd.read_csv("{}/{}/output/test/{}".format(args.io_home, args.scenario, _RESULT_COMP_.SIMULATION_OUTPUT))
+
+
         comp_skip = _RESULT_COMPARE_SKIP_
         result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
         __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
@@ -879,7 +885,11 @@ def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_sk
     '''
     result_fn = "{}/output/test/{}_s{}_{}.csv".format(args.io_home, problem_var, comp_skip, args.model_num)
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
-    total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+
+    #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    sc = SaltConnector()
+    total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
     shutil.copy2(result_fn, dst_fn)
@@ -914,6 +924,17 @@ def fixedTimeSimulate(args):
     :return:
     '''
 
+    if 0:
+        pass
+    else:
+        args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+        dir_name_list = [
+                    #f"{args.io_home}/output/simulate/{args.scenario}",
+                    f"{args.io_home}/{args.scenario}/output/simulate",
+
+        ]
+        makeDirectories(dir_name_list)
+
     # calculate the length of simulation step of this trial : trial_len
     start_time, end_time = getSimulationStartStepAndEndStep(args)
     trial_len = end_time - start_time
@@ -931,8 +952,11 @@ def fixedTimeSimulate(args):
 
 
     ### 가시화 서버용 교차로별 고정 시간 신호 기록용
+    #-- should check path;  see simulationStart() @ off_ppo/SappoEnv.py
     #output_ft_dir = f'{args.io_home}/output/{args.mode}'
-    output_ft_dir = f'{args.io_home}/output/{args.mode}/{args.scenario}'
+    # output_ft_dir = f'{args.io_home}/output/{args.mode}/{args.scenario}'
+    output_ft_dir = f'{args.io_home}/{args.scenario}/output/{args.mode}/'
+
     fn_ft_phase_reward_output = f"{output_ft_dir}/ft_phase_reward_output.txt"
 
     writeLine(fn_ft_phase_reward_output, 'step,tl_name,actions,phase,reward,avg_speed,avg_travel_time,sum_passed,sum_travel_time')
@@ -943,7 +967,9 @@ def fixedTimeSimulate(args):
 
 
     ### 교차로별 고정 시간 신호 기록하면서 시뮬레이션
-    libsalt.start(salt_scenario)
+    #-- should check path;  see simulationStart() @ off_ppo/SappoEnv.py
+    #libsalt.start(salt_scenario, outdirprefix='output/'+ args.mode )
+    libsalt.start(salt_scenario, outdirprefix=args.scenario)
     libsalt.setCurrentStep(start_time)
 
     actions = []
@@ -994,6 +1020,9 @@ if __name__ == "__main__":
     ## dump launched time
     launched = datetime.datetime.now()
     print(f'launched at {launched}')
+
+    #  이 값을 변경하면 (시뮬레이션)출력이 생성되는 경로들을 확인해서 일관성있게 조정해 주어야 한다.
+    DBG_OPTIONS.YJLEE = True
 
     args = parseArgument()
 

@@ -18,10 +18,12 @@ from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
+from TSOConstants import _LENGTH_OF_MAX_MSG_
 from TSOConstants import _RESULT_COMPARE_SKIP_
 
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
+from TSOUtil import calculateImprovementRate
 from TSOUtil import execTrafficSignalOptimization
 from TSOUtil import generateCommand
 from TSOUtil import readLine
@@ -137,7 +139,7 @@ class ServingClientThread(threading.Thread):
         :param conn:
         :return:
         '''
-        recv_msg = conn.recv(2048)
+        recv_msg = conn.recv(_LENGTH_OF_MAX_MSG_)
         recv_msg_obj = doUnpickling(recv_msg)
 
         if DBG_OPTIONS.PrintServingThread:
@@ -257,6 +259,10 @@ def __copySimulationOutput(args, fn_origin):
 
 
 def validate(args, validation_trials, fn_dist_learning_history):
+    #return validateOrg_WithTotalTT(args, validation_trials, fn_dist_learning_history)
+    return validateNew_WithAvgTT(args, validation_trials, fn_dist_learning_history)
+
+def validateOrg_WithTotalTT(args, validation_trials, fn_dist_learning_history):
     '''
     check whether optimization criterior is satified
     :param args:
@@ -264,7 +270,7 @@ def validate(args, validation_trials, fn_dist_learning_history):
     :return:
     '''
 
-
+    print("validate with total travel time")
     ## make command to execute TSO program with trained models
 
     local_learning_epoch = args.epoch
@@ -307,6 +313,79 @@ def validate(args, validation_trials, fn_dist_learning_history):
                                               args.model_num)
         df = pd.read_csv(fn_result, index_col=0)
         imp_rate_1 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
+
+    if DBG_OPTIONS.ResultCompareSkipWarmUp:
+        appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}, {imp_rate_1}")
+    else:
+        appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}")
+
+    success = _CHECK_.SUCCESS if imp_rate_0 >= args.validation_criteria else _CHECK_.FAIL
+
+    improvement_rate = imp_rate_0
+    if DBG_OPTIONS.PrintImprovementRate:
+        print("improvement_rate={} got from result comp file".format(improvement_rate))
+
+    if DBG_OPTIONS.PrintCtrlDaemon:
+        waitForDebug("after check....... improvement_rate={}  validation_criteria={} success={} ".
+                     format(improvement_rate, args.validation_criteria, success))
+
+    return success
+
+
+def validateNew_WithAvgTT(args, validation_trials, fn_dist_learning_history):
+    '''
+    check whether optimization criterior is satified
+    :param args:
+    :param validation_trials: used to get current performance
+    :return:
+    '''
+
+    print("validate with average travel time, i.e., sumTT/sumPN")
+
+    ## make command to execute TSO program with trained models
+
+    local_learning_epoch = args.epoch
+    args.mode = _MODE_.TEST
+    args.epoch = 1
+    args.infer_model_number = validation_trials
+    args.model_num = validation_trials
+    validation_cmd = generateCommand(args)
+    args.epoch = local_learning_epoch
+
+    #waitForDebug("before exec validation .... ")
+
+    ## execute traffic signal optimization program
+    result = execTrafficSignalOptimization(validation_cmd)
+
+    ## copy simulation output file to kepp test history
+    if args.copy_simulation_output:
+        # copy simulation output file
+        __copySimulationOutput(args, _RESULT_COMP_.SIMULATION_OUTPUT)
+
+        # copy phase/reward output
+        __copySimulationOutput(args, _RESULT_COMP_.RL_PHASE_REWARD_OUTPUT)
+
+
+    # read a file which contains the result of comparison
+    # and get the improvement rate
+
+    # case 0:  when the duration of skip for result comparition is given
+    comp_skip = _RESULT_COMPARE_SKIP_
+    fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip,
+                                          args.model_num)
+    df = pd.read_csv(fn_result, index_col=0)
+    # imp_rate_0 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
+    imp_rate_0 = calculateImprovementRate(df, _RESULT_COMP_.ROW_NAME)
+
+    if DBG_OPTIONS.ResultCompareSkipWarmUp:
+        # case 1:  when the duration of skip for result comparison is warming-up time
+        # zz.result_comp_s600.0.csv
+        comp_skip = args.warmup_time
+        fn_result = "{}/{}_s{}.{}.csv".format(args.model_store_root_path, _FN_PREFIX_.RESULT_COMP, comp_skip,
+                                              args.model_num)
+        df = pd.read_csv(fn_result, index_col=0)
+        # imp_rate_1 = df.at[_RESULT_COMP_.ROW_NAME, _RESULT_COMP_.COLUMN_NAME]
+        imp_rate_1 = calculateImprovementRate(df, _RESULT_COMP_.ROW_NAME)
 
     if DBG_OPTIONS.ResultCompareSkipWarmUp:
         appendLine(fn_dist_learning_history, f"{args.model_num},{imp_rate_0}, {imp_rate_1}")
@@ -453,7 +532,7 @@ if __name__ == '__main__':
 
         ## calculate & dump elapsed time of current round
         current_round_elapsed_time = curent_round_end_time - curent_round_start_time
-        print(f'Time taken for {validation_trials}-th round experiment was {current_round_elapsed_time.seconds} seconds')
+        print(f'Time taken for {validation_trials}-th round experiment was {current_round_elapsed_time}.')
 
 
         ### set the checked result : state

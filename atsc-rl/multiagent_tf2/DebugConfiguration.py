@@ -15,7 +15,11 @@ class DBG_OPTIONS :
         AddControlCycleIntoProblemVar = False # add control_cycle into problemVar or not;
                          # problemVar is used to construct the file name where the trained model is stored
 
-        # RichActionOutput = True # actions#oofse#duration_per_phase
+        RichActionOutput = True # actions#oofse#duration_per_phase
+
+        YJLEE = True  # only for YJLEE script
+        #V20230605 = True # try to fix bugs which are related to multiple SA
+        DoStateAugmentation = False # try to fix bugs which are related to state augmentation
 
         ##-- ing
         IngCompResult = False
