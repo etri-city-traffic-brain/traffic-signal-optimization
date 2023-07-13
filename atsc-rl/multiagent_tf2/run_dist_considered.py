@@ -978,7 +978,8 @@ def trainSappo(args):
             ### rewards에는num_envs 개수만큼 들어있다. 이것(평균)을 계속 저장해서 가지고 있다가 최적 모델 선정에 활용할 수 있을 것 같다.
             ## gather reward info of trials
             ep_reward_list.append(np.average(rewards))
-        
+
+        print("##### now..... agent train for parameter update")
         start_time = time.time()
         agent.train()
         end_time = time.time()

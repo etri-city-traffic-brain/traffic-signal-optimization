@@ -10,16 +10,67 @@ import argparse
 import glob
 
 from TSOUtil import doPickling, doUnpickling, Msg, str2bool
-from TSOConstants import _MSG_TYPE_
+from TSOConstants import _MSG_TYPE_, _ACK_
 
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _FN_PREFIX_, _MODE_
-from TSOConstants import _LENGTH_OF_MAX_MSG_
+# from TSOConstants import _LENGTH_OF_MAX_MSG_
+from TSOConstants import _LENGTH_OF_PICKLED_FIVE_BYTE_STRING_, _LENGTH_OF_PICKLED_ACK_
 from TSOUtil import convertSaNameToId
 from TSOUtil import execTrafficSignalOptimization, generateCommand, readLine, readLines
 from TSOUtil import removeWhitespaceBtnComma
+
+
+def convertLengthToFiveByteString(length):
+    '''
+    Convert message length (integer) to fixed-length string : i.e, 10 --> '00010'
+
+    If you convert a 5-byte string with pickle.dump(), it becomes 20 bytes.
+    see _LENGTH_OF_PICKLED_FIVE_BYTE_STRING_ at TSOConstants.py
+
+    Reason for converting to string:
+      In the case of integer type, the length after pickling is not constant as shown below.
+       int(10) --pickling--> len(pockled_obj)=5
+       int(100) --pickling--> len(pockled_obj)=5
+       int(256) --pickling--> len(pockled_obj)=15
+       int(1024) --pickling--> len(pockled_obj)=15
+       int(2048) --pickling--> len(pockled_obj)=15
+       int(65536) --pickling--> len(pockled_obj)=17
+    '''
+    return '{0:05d}'.format(length)
+
+
+
+
+def getBytesStream(soc, length):
+    buf = b''
+    cnt = 0  # DELETE
+    try:
+        step = length
+        while True:
+            data = soc.recv(step)
+            if data == b'':
+                raise RuntimeError("socket connection broken")
+
+            buf += data
+            if 1:
+                received_len = len(buf)
+                print(f"## {cnt}-th total len(received msg)={received_len}")
+                cnt = cnt + 1
+
+            if len(buf) == length:
+                break
+            elif len(buf) < length:
+                step = length - len(buf)
+
+    except Exception as e:
+        print(e)
+
+    return buf[:length]
+
+
 
 # Here's our thread:
 class LearningDaemonThread(threading.Thread):
@@ -148,6 +199,8 @@ class LearningDaemonThread(threading.Thread):
 
 
 
+
+
 class ExecDaemon:
     '''
     Daemon for local learning
@@ -162,20 +215,40 @@ class ExecDaemon:
         if DBG_OPTIONS.PrintExecDaemon:
             print("dbg : exec daemon to connect {}:{} was created".format(ip_addr, port))
 
-
     def sendMsg(self, soc, msg_type, msg_contents):
         '''
         send a message
+        separate length & contents because socket::recv() can not guarantee that it receives the whole message
         :param soc:
         :param msg_type:
         :param msg_contents:
         :return:
         '''
+        ## 1. do pickle message
         send_msg = Msg(msg_type, msg_contents)
         pickled_msg = doPickling(send_msg)
-        soc.send(pickled_msg)
-        if DBG_OPTIONS.PrintExecDaemon:
-            print("## send_msg to {}:{} -- {}".format(self.connect_ip_addr, self.connect_port, send_msg.toString()))
+
+        ## 2. send size of msg
+        len_of_pickled_msg = len(pickled_msg)
+
+        ## 2.1 convert integer value to 5 bytes string value : 10 --> "00010"
+        len_of_pickled_msg = convertLengthToFiveByteString(len_of_pickled_msg)
+
+        ## 2.2 do pickling
+        packet = doPickling(len_of_pickled_msg)
+
+        ## 2.3 send msg
+        soc.sendall(packet) # None or raise Exception
+
+        ## 3. receive ack
+        # packet = soc.recv(_LENGTH_OF_MAX_MSG_)
+        packet = soc.recv(_LENGTH_OF_PICKLED_ACK_)
+        ack = doUnpickling(packet)
+        assert ack == _ACK_, f"internal error : in sendMsg()"
+
+        ## 4. send contents
+        soc.sendall(pickled_msg)  #None or raise Exception
+
         return pickled_msg
 
 
@@ -183,16 +256,39 @@ class ExecDaemon:
     def receiveMsg(self, soc):
         '''
         receive a message
+        separate length & contents because socket::recv() can not guarantee that it receives the whole message
+
         :param soc:
         :return:
         '''
-        #todo check the length of msg...
-        #     there is a possibility that it is not work if len(msg) is greater than TSOConstants._LENGTH_OF_MAX_MSG_
-        recv_msg = soc.recv(_LENGTH_OF_MAX_MSG_)
+
+        ## 1. receive message len
+        # we converted int value (length of message) to 5 byte string
+        # ref. convertLengthToFiveByteString()
+        packet = getBytesStream(soc, _LENGTH_OF_PICKLED_FIVE_BYTE_STRING_)
+
+        if packet == b'':
+            raise RuntimeError("socket connection broken")
+        msg_len = doUnpickling(packet)
+        msg_len = int(msg_len)   ##-- convert string to integer
+
+        ## 2. send ack
+        packet = doPickling(_ACK_)
+        soc.sendall(packet)
+
+        ## 2. receive message contents
+        # recv_msg = conn.recv(_LENGTH_OF_MAX_MSG_)
+        recv_msg = getBytesStream(soc, msg_len)
         recv_msg_obj = doUnpickling(recv_msg)
         if DBG_OPTIONS.PrintExecDaemon:
-            print("## recv_msg from {}:{} -- {}".format(self.connect_ip_addr, self.connect_port, recv_msg_obj.toString()))
+            import sys
+            print("## [with_contents] recv_msg from {}:{} len={} sys.getsizeof={}-- {}".format(self.connect_ip_addr,
+                                                                                               self.connect_port,
+                                                                                               len(recv_msg),
+                                                                                               sys.getsizeof(recv_msg),
+                                                                                               recv_msg_obj.toString()))
         return recv_msg_obj
+
 
 
     def doLocalLearning(self, recv_msg_obj):
@@ -239,8 +335,12 @@ class ExecDaemon:
                         new_args.infer_TL = f"{args.infer_TL}"
                     elif len(args.infer_TL.strip()) == 0 and len(remains) == 0:
                         new_args.infer_TL = ""
+                    # elif len(args.infer_TL.strip()) == 0 and len(remains) > 0:
+                    #     # it is only for running with single node...
+                    #     # Dist Learning usually run with multiple nodes
+                    #     new_args.infer_TL = f"{remains.strip(',')}"
                     else:
-                        print("\tinternal error ExecDaemon::doLocalLearning()")
+                        print(f"\tinternal error in ExecDaemon::doLocalLearning() : args.infer_TL={args.infer_TL.strip()}, remains={remains}")
 
                     if DBG_OPTIONS.PrintExecDaemon:
                         print(

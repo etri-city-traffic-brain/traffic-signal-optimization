@@ -9,7 +9,12 @@ ONE_HOUR = 3600 # 1 hour is 3600 seconds(=60 * 60)
 TEN_MINUTE = 600 # ten minute is 600 seconds(=10 * 60)
 _RESULT_COMPARE_SKIP_ = TEN_MINUTE # ONE_HOUR
 
-_LENGTH_OF_MAX_MSG_ = 4096 # 2048  # maximum length of message
+# _LENGTH_OF_MAX_MSG_ = 1024 #4096 # 2048  # maximum length of message
+
+# len(pickled 5 byte string) ... see. convertLengthToFiveByteString() at DistExecDeamon.py
+_LENGTH_OF_PICKLED_FIVE_BYTE_STRING_ = 20
+_ACK_ = "1"
+_LENGTH_OF_PICKLED_ACK_ = 16
 
 
 class _INTERVAL_:
