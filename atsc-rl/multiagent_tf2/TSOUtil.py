@@ -295,7 +295,8 @@ def addArgumentsToParser(parser):
                         help="maximum number of simulations for learning using generated environment process;"
                              + " it is to avoid memory related problem")
 
-    parser.add_argument("--distributed", type=str2bool, default=False, help='whether do distributed learning or not')
+    parser.add_argument("--comp-total-only", type=str2bool, default=False,
+                        help='whether do compare total only or not; for fast comparison when we do result-comp')
 
     parser.add_argument("--copy-scenario-file", type=str2bool, default=False, help='whether do copy scenario file or not')
 
@@ -481,7 +482,7 @@ def findOptimalModelNum(ep_reward_list, model_save_period, num_of_candidate):
         # print(f"i={i} num_of_candidate={num_of_candidate} next_candidate={next_candidate}  ep_reward_list={ep_reward_list} ==> opt_model_num = {optimal_model_num}")
 
     if DBG_OPTIONS.PrintFindOptimalModel:
-        print("ZZZZZZZZZZZZZZZ found optimal_model_num={}".format(optimal_model_num))
+        print("found optimal_model_num={}".format(optimal_model_num))
     return optimal_model_num
 
 
@@ -577,8 +578,6 @@ def generateCommand(args):
 
     cmd = cmd + ' --copy-scenario-file {}'.format(args.copy_scenario_file)
 
-    cmd = cmd + ' --distributed {}'.format(args.distributed)
-
     if args.mode == _MODE_.TRAIN:
         cmd = cmd + ' --num-of-optimal-model-candidate {}'.format(args.num_of_optimal_model_candidate)
 
@@ -617,6 +616,9 @@ def generateCommand(args):
         cmd = cmd + ' --result-comp True '
 
         cmd = cmd + ' --output-home . '
+
+
+        cmd = cmd + ' --comp-total-only {}'.format(args.comp_total_only)
 
 
     if DBG_OPTIONS.PrintGeneratedCommand:

@@ -234,7 +234,7 @@ if [ 1 ]; then
   ##    it is to avoid memory related problem
   MAX_RUN_WITH_AN_ENV_PROCESS=20 #100
 
-  DISTRIBUTED=True
+  COMP_TOTAL_ONLY=True
   #######
   ## distributed Reinforcement Learning related parameters
   ##
@@ -313,7 +313,9 @@ then
 elif [ "$OPERATION" == "$OP_TRAIN" ]
 then
   # (1) execute controller daemon
-  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
+  #    -u : forcely flush print  ... ref.https://www.delftstack.com/ko/howto/python/python-print-flush/
+  # INNER_CMD="SALT_HOME=$SALT_HOME nohup python $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python -u $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
   INNER_CMD="$INNER_CMD --validation-criteria $IMPROVEMENT_GOAL "
   INNER_CMD="$INNER_CMD --num-of-optimal-model-candidate $NUM_OF_OPTIMAL_MODEL_CANDIDATE "
   INNER_CMD="$INNER_CMD --cumulative-training $CUMULATIVE_TRAINING "
@@ -329,7 +331,7 @@ then
   INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
   INNER_CMD="$INNER_CMD --num-concurrent-env $NUM_CONCURRENT_ENV "
   INNER_CMD="$INNER_CMD --max-run-with-an-env-process $MAX_RUN_WITH_AN_ENV_PROCESS "
-  INNER_CMD="$INNER_CMD --distributed $DISTRIBUTED "
+  INNER_CMD="$INNER_CMD --comp-total-only $COMP_TOTAL_ONLY "
 
 
   CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
@@ -354,7 +356,8 @@ then
   for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ## (2.1) construct command
-    INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
+    # INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
+    INNER_CMD="SALT_HOME=$SALT_HOME nohup python -u $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
 
     CMD="ssh $ACCOUNT@$ip  "
     CMD="$CMD \" $ACTIVATE_CONDA_ENV; "

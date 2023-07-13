@@ -5,8 +5,12 @@
 #  [$] python run_dist_considered.py  --mode train --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --epoch 1 --num-concurrent-env 2  --output-home zzz
 #  [$] python run_dist_considered.py  --mode simulate --map doan --target-TL "SA 101" --output-home zzz
 #  [$] python run_dist_considered.py  --mode test --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --model-num 0  --output-home zzz
+#  [$] python run_dist_considered.py  --mode test --map doan --target-TL "SA 101" --model-save-period 1
+#                                     --mem-len 10 --model-num 0  --output-home zzz
+#                                     --result-comp True --comp-total-only True
 
-#  [$] python run_dist_considered.py --distributed True --mode train --map doan --target-TL "SA 101, SA 104" --model-save-period 1 --mem-len 10 --epoch 1
+
+#  [$] python run_dist_considered.py --mode train --map doan --target-TL "SA 101, SA 104" --model-save-period 1 --mem-len 10 --epoch 1
 
 
 #
@@ -464,12 +468,12 @@ def compareResultDist(args, target_tl_obj, ft_output, rl_output, model_num, pass
 
 
 def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
-    if args.distributed:
-        return compareResultAndStore4Dist(args, env, ft_output, rl_output, problem_var,  comp_skip)
+    if args.comp_total_only:
+        return compareResultAndStoreTotalOnly(args, env, ft_output, rl_output, problem_var,  comp_skip)
     else:
-        return compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp_skip)
+        return compareResultAndStoreAll(args, env, ft_output, rl_output, problem_var,  comp_skip)
 
-def compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp_skip):
+def compareResultAndStoreAll(args, env, ft_output, rl_output, problem_var,  comp_skip):
     '''
     compare result of fxied-time-control and RL-agent-control
     and save the comparison results
@@ -499,7 +503,7 @@ def compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp
     return result_fn
 
 
-def compareResultAndStore4Dist(args, env, ft_output, rl_output, problem_var,  comp_skip):
+def compareResultAndStoreTotalOnly(args, env, ft_output, rl_output, problem_var,  comp_skip):
     '''
     compare result of fxied-time-control and RL-agent-control
     and save the comparison results
@@ -566,11 +570,6 @@ class AgentDist(Agent):
 
 
     def __loadModelAndReplayMemory(self):
-
-        # 빠르게 빠져나가길 바란다면....
-        # if args.distributed == False :  # @todo 인자로 distributed 추가
-        #     return
-
         for i in range(self.num_of_agent):
             sa_name = self.sa_name_list[i]
             an_agent = self.ppo_agent[i]
@@ -1082,7 +1081,7 @@ def testSappo(args):
         comp_skip = _RESULT_COMPARE_SKIP_
         result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
         # __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
-        if args.distributed:
+        if args.comp_total_only:
             printImprovementRate(result_fn, msg=f'Skip {comp_skip} second')
         else:
             printImprovementRate(result_fn, env.target_sa_name_list, msg=f'Skip {comp_skip} second')
@@ -1092,7 +1091,7 @@ def testSappo(args):
             comp_skip = args.warmup_time
             result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
             #__printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
-            if args.distributed:
+            if args.comp_total_only:
                 printImprovementRate(result_fn, msg=f'Skip {comp_skip} second')
             else:
                 printImprovementRate(result_fn, env.target_sa_name_list, msg=f'Skip {comp_skip} second')
