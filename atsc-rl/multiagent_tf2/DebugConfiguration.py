@@ -19,7 +19,10 @@ class DBG_OPTIONS :
 
         YJLEE = True  # only for YJLEE script
         #V20230605 = True # try to fix bugs which are related to multiple SA
-        DoStateAugmentation = False # try to fix bugs which are related to state augmentation
+        DoStateAugmentation = True # try to fix bugs which are related to state augmentation
+
+        USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE = True
+        ## for dist. processing, use codes in run_off_ppo_single.py if USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE is True
 
         ##-- ing
         IngCompResult = False
