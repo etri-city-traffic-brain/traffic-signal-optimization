@@ -20,8 +20,12 @@ class DBG_OPTIONS :
         YJLEE = True  # only for YJLEE script
         DoStateAugmentation = True # try to fix bugs which are related to state augmentation
 
+        ## for dist. processing,
+        ##-- use codes in run_off_ppo_single.py if USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE is True
+        ##-- use this flag (False) when you want to change codes in run_off_ppo_single.py to test
+        ##-- I recommend this flag is set 'True'
         USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE = True
-        ## for dist. processing, use codes in run_off_ppo_single.py if USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE is True
+
 
         ##-- ing
         IngCompResult = False
