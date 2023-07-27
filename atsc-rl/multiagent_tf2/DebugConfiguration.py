@@ -18,7 +18,6 @@ class DBG_OPTIONS :
         RichActionOutput = True # actions#oofse#duration_per_phase
 
         YJLEE = True  # only for YJLEE script
-        #V20230605 = True # try to fix bugs which are related to multiple SA
         DoStateAugmentation = True # try to fix bugs which are related to state augmentation
 
         USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE = True

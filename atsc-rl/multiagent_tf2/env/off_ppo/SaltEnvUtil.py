@@ -544,9 +544,12 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'] += [+1.0] * num_controllable_green_signals
 
         else:
+            num_controllable_green_signals = target_tl_obj[tl_obj]['action_space']
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 1
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'].append(0)
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)
+            # sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(num_controllable_green_signals - 1)
+
 
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['offset_list'].append(target_tl_obj[tl_obj]['offset'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['minDur_list'].append(target_tl_obj[tl_obj]['minDur'])

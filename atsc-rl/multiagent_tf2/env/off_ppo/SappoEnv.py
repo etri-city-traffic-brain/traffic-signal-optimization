@@ -414,7 +414,10 @@ class SaltSappoEnvV3(gym.Env):
                 self.action_mgmt.changePhaseArray(self.simulation_steps, i, actions[i])
 
         # apply changed phase array and increase simulation steps
-        if self.args.action in set(["offset", "gr", "gro", 'gt', 'fx']):
+        if self.args.action in set(["offset", "gr", "gro"]):
+            ### todo : should check gr/gro is correctly work with off_ppo
+            ###-- only cared offset (with off_ppo)
+            ###-- gr/gro is not cared(with off_ppo)
             #--clculate how many steps to increase
             next_act, idx_of_next_act_sa = self.__getTimeToActInfo()
             next_act = next_act if next_act < self.end_step else self.end_step
@@ -424,6 +427,31 @@ class SaltSappoEnvV3(gym.Env):
             for i in range(inc_step):
                 # 1. apply signal phase
                 self.action_mgmt.applyCurrentTrafficSignalPhaseToEnv(self.simulation_steps)
+
+                # 2. increase simulation step
+                libsalt.simulationStep()
+                self.simulation_steps += 1
+
+                #3. gather reward related info
+                if self.simulation_steps % self.reward_info_collection_cycle == 0:
+                    # self.reward_mgmt.gatherRewardRelatedInfo(self.action_t, self.simulation_steps, self.reward_info_collection_cycle)
+                    self.reward_mgmt.gatherRewardRelatedInfo(self.simulation_steps)
+
+                # 4. gather visualization related info
+                if self.args.mode == 'test':
+                    appendPhaseRewards(self.fn_rl_phase_reward_output, self.simulation_steps,
+                                       actions, self.reward_mgmt, self.sa_obj, self.sa_name_list,
+                                       self.tl_obj, self.target_tl_id_list, self.tso_output_info_dic)
+        elif self.args.action in set(['gt', 'fx']):
+            #--clculate how many steps to increase
+            next_act, idx_of_next_act_sa = self.__getTimeToActInfo()
+            next_act = next_act if next_act < self.end_step else self.end_step
+            inc_step = next_act - self.simulation_steps
+
+            #-- apply signal pahse, increase simulation step, and gather reward related info
+            for i in range(inc_step):
+                # # 1. apply signal phase
+                # self.action_mgmt.applyCurrentTrafficSignalPhaseToEnv(self.simulation_steps)
 
                 # 2. increase simulation step
                 libsalt.simulationStep()

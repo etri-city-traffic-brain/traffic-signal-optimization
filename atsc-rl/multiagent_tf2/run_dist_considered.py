@@ -82,9 +82,6 @@ from env.off_ppo.SappoRewardMgmt import SaltRewardMgmtV3
 
 from policy.off_ppoTF2 import PPOAgentTF2 #from policy.ppoTF2 import PPOAgentTF2
 
-# from ResultCompare import compareResult
-from env.SaltConnector import SaltConnector
-
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
@@ -946,11 +943,7 @@ def compareResultAndStoreAll(args, env, ft_output, rl_output, problem_var,  comp
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
 
     #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    if 0:  # DELETE  SIMPLE_COMPARE
-        sc = SaltConnector()
-        total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    else: # DELETE
-        total_output = compareResultAll(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    total_output = compareResultAll(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
 
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
@@ -976,11 +969,7 @@ def compareResultAndStoreTotalOnly(args, env, ft_output, rl_output, problem_var,
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
 
     #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    if 0:  # DELETE  SIMPLE_COMPARE
-        sc = SaltConnector()
-        total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    else:
-        total_output = compareResultTotalOnly(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    total_output = compareResultTotalOnly(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
 
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
