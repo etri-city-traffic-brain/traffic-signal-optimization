@@ -1696,4 +1696,4 @@ if __name__ == "__main__":
 
     ## calculate & dump duration
     interval = terminated-launched
-    print(f'Time taken for experiment was {interval.seconds} seconds')
+    print(f'Time taken for experiment was {interval} ')  #  2 days, 14:36:28.245176
