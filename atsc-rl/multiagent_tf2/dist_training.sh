@@ -468,6 +468,24 @@ then
     echo
   done
 
+  ####
+  #### show training target
+  echo ""
+
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $RL_PROG "
+  INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
+  INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' "
+
+  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
+  CMD="$CMD cd $EXEC_DIR; "
+  CMD="$CMD $INNER_CMD \" "
+
+  echo [%] $CMD
+  eval $CMD
+  echo
+
+
   echo "You can not find $RL_PROG process with this script when we do first round beacuse infer-mode-path is not set. "
 
 #-- 1.5 terminate process forcely using kill command
