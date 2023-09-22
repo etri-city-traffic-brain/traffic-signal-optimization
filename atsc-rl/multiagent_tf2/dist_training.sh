@@ -470,36 +470,6 @@ then
     echo
   done
 
-  ####
-  #### show training target
-  echo ""
-
-  SHOW_PROG="./tools/ShowTargetTL.py"
-  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $SHOW_PROG "
-  INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
-  INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' "
-
-  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
-  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
-  CMD="$CMD cd $EXEC_DIR; "
-  CMD="$CMD $INNER_CMD \""
-
-  echo [%] $CMD
-  eval $CMD
-  echo
-
-
-  ####
-  #### show path which stores trained models
-  echo ""
-  START_DAY=$2
-
-  RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
-
-  echo "You can see trained model by visiting following directory"
-  echo "     $MODEL_STORE_ROOT_PATH/$RESULT_DIR at $ACCOUNT@$CTRL_DAEMON_IP "
-
-
   echo ""
   echo ""
   echo "You can not find $RL_PROG process with this script when we do first round because infer-mode-path is not set. "
