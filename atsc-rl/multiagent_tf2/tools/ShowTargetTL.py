@@ -74,7 +74,7 @@ def showTargetTLs():
     args = parseArgument()
     args.target_TL = removeWhitespaceBtnComma(args.target_TL)
 
-    print(f"\n\n\n")
+    #print(f"\n\n\n")
     print(f"============================================================================")
     # print("##### showTargetTLsV2")
     # print(f"target Sub-Areas : {args.target_TL}")
@@ -124,7 +124,7 @@ def showTargetTLs():
     print(f" We are currently training RL agents to control traffic lights.")
     print(f" Agents are controlling traffic lights using trained models simultaneously.")
     print(f"============================================================================")
-    print(f"\n\n\n")
+    #print(f"\n\n\n")
 
 
 

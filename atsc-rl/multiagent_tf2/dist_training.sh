@@ -16,6 +16,7 @@ OP_CLEAN="clean" # do clean : remove daemon dump file (i.e.,  zz.out.*)
 OP_CLEAN_ALL="clean-all" # remove files which were generated when we do training
 OP_SHOW_RESULT="show-result" # dump training result by showing the calculated improvement rate of each round
 OP_TEST="test" # do test with trained model
+OP_TRAINING_INFO="show-training-info"   # show training info such as target TLs
 OP_USAGE="usage" # show usage
 
 DO_EVAL=true # true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
@@ -38,6 +39,7 @@ display_usage() {
   echo "                      You should check START-DAY value"
   echo "            test : do test with trained model"
   echo "                      You should check START-DAY value"
+  echo "            show-training-info : dump training info such as target TLs"
   echo ""
   echo "        START-DAY : start day of training; yymmdd;"
   echo "                    You should pass this value which indicates the day training was started."
@@ -719,6 +721,40 @@ then
   #echo "    $CTRL_DIR/output/test  "
   echo "    $EXEC_DIR/output/test  "
 
+
+#
+#-- 1.10 show-training-info : show training info such as target TLs
+#
+elif [ "$OPERATION" == "$OP_TRAINING_INFO" ]
+then
+  ####
+  #### show training target
+  echo ""
+
+  SHOW_PROG="./tools/ShowTargetTL.py"
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $SHOW_PROG "
+  INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
+  INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' "
+
+  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
+  CMD="$CMD cd $EXEC_DIR; "
+  CMD="$CMD $INNER_CMD \""
+
+  #echo [%] $CMD
+  eval $CMD
+  echo
+
+
+  ####
+  #### show path which stores trained models
+  echo ""
+  START_DAY=$2
+
+  RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
+
+  echo "You can see trained model by visiting following directory"
+  echo "     $MODEL_STORE_ROOT_PATH/$RESULT_DIR at $ACCOUNT@$CTRL_DAEMON_IP "
 
 #
 #-- error : entered argument is not valid
