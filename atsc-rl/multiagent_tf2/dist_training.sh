@@ -255,7 +255,10 @@ if [ 1 ]; then
   ###--- directory to save training result
   START_DAY=`date +"%g%m%d"`  # 220701
 
-  EXP_OPTION="all" # all , sa101, sa6, rm
+  EXP_OPTION="all" # all , sa101, sa6, rm, long, short
+  #EXP_OPTION=all_${RL_MODEL_MEM_LEN}Rml${RL_EPOCH}Epoch${NUM_CONCURRENT_ENV}Conc # all , sa101, sa6, rm, long, short
+  #EXP_OPTION=long_${RL_MODEL_MEM_LEN}Rml${RL_EPOCH}Epoch${NUM_CONCURRENT_ENV}Conc # all , sa101, sa6, rm, long, short
+
   #
   # SA 101, SA 104 ==> SA101,SA104 ==>SA101_SA104
   #EXP_OPTION="${RL_TARGET// /}" # remove blank
