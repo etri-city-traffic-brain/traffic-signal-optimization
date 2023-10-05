@@ -209,9 +209,9 @@ if [ 1 ]; then
   RL_METHOD="sappo"
 
   ###--- state, action, reward for RL
-  RL_STATE="vdd" # v, d, vd, vdd
+  RL_STATE="vd" # v, d, vd, vdd
   RL_ACTION="gt"  # offset, gr, gro, kc, gt
-  RL_REWARD="cwq"  # wq, cwq, pn, wt, tt
+  RL_REWARD="wq"  # wq, cwq, pn, wt, tt
 
   ###--- training epoch
   RL_EPOCH=20	# 200
@@ -319,6 +319,7 @@ then
 #
 elif [ "$OPERATION" == "$OP_TRAIN" ]
 then
+
   # (1) execute controller daemon
   #    -u : forcely flush print  ... ref.https://www.delftstack.com/ko/howto/python/python-print-flush/
   #INNER_CMD="SALT_HOME=$SALT_HOME nohup python $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
@@ -385,6 +386,21 @@ then
   done
 
   sleep 3
+
+
+  # (3) copy this script
+  CMD="cp $0 $MODEL_STORE_ROOT_PATH/$RESULT_DIR"
+
+  ## (3.1) evaluate command
+  echo
+  echo [%] $CMD
+  echo
+
+  ## (3.2) evaluate command
+  if $DO_EVAL
+  then
+    eval $CMD
+  fi
 
 #
 #-- 1.3 launch tensorboard daemon
