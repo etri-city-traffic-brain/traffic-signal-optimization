@@ -16,6 +16,7 @@ OP_CLEAN="clean" # do clean : remove daemon dump file (i.e.,  zz.out.*)
 OP_CLEAN_ALL="clean-all" # remove files which were generated when we do training
 OP_SHOW_RESULT="show-result" # dump training result by showing the calculated improvement rate of each round
 OP_TEST="test" # do test with trained model
+OP_TRAINING_INFO="show-training-info"   # show training info such as target TLs
 OP_USAGE="usage" # show usage
 
 DO_EVAL=true # true # whether do execution or not;  do evaluate commands if true, otherwise just dump commands
@@ -38,10 +39,12 @@ display_usage() {
   echo "                      You should check START-DAY value"
   echo "            test : do test with trained model"
   echo "                      You should check START-DAY value"
+  echo "            show-training-info : dump training info such as target TLs"
+  echo "                      You should check START-DAY value"
   echo ""
   echo "        START-DAY : start day of training; yymmdd;"
   echo "                    You should pass this value which indicates the day training was started."
-  echo "                    valid if operation is one of [monitor|terminate|show-result|test] "
+  echo "                    valid if operation is one of [monitor|show-result|show-training-info|terminate|test] "
   echo ""
   echo "        TEST-MODEL-NUMBER : model number to do test"
   echo "                    valid if operation is one of [test] "
@@ -207,9 +210,9 @@ if [ 1 ]; then
   RL_METHOD="sappo"
 
   ###--- state, action, reward for RL
-  RL_STATE="vdd" # v, d, vd, vdd
+  RL_STATE="vd" # v, d, vd, vdd
   RL_ACTION="gt"  # offset, gr, gro, kc, gt
-  RL_REWARD="cwq"  # wq, cwq, pn, wt, tt
+  RL_REWARD="wq"  # wq, cwq, pn, wt, tt
 
   ###--- training epoch
   RL_EPOCH=20	# 200
@@ -238,7 +241,7 @@ if [ 1 ]; then
   ##    it is to avoid memory related problem
   MAX_RUN_WITH_AN_ENV_PROCESS=50 #100
 
-  DISTRIBUTED=True
+  COMP_TOTAL_ONLY=True  # compare total only when we do compare result; for fast comparison
 
   #######
   ## distributed Reinforcement Learning related parameters
@@ -253,7 +256,10 @@ if [ 1 ]; then
   ###--- directory to save training result
   START_DAY=`date +"%g%m%d"`  # 220701
 
-  EXP_OPTION="all" # all , sa101, sa6, rm
+  EXP_OPTION="all" # all , sa101, sa6, rm, long, short
+  #EXP_OPTION=all_${RL_MODEL_MEM_LEN}Rml${RL_EPOCH}Epoch${NUM_CONCURRENT_ENV}Conc # all , sa101, sa6, rm, long, short
+  #EXP_OPTION=long_${RL_MODEL_MEM_LEN}Rml${RL_EPOCH}Epoch${NUM_CONCURRENT_ENV}Conc # all , sa101, sa6, rm, long, short
+
   #
   # SA 101, SA 104 ==> SA101,SA104 ==>SA101_SA104
   #EXP_OPTION="${RL_TARGET// /}" # remove blank
@@ -317,8 +323,11 @@ then
 #
 elif [ "$OPERATION" == "$OP_TRAIN" ]
 then
+
   # (1) execute controller daemon
-  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
+  #    -u : forcely flush print  ... ref.https://www.delftstack.com/ko/howto/python/python-print-flush/
+  #INNER_CMD="SALT_HOME=$SALT_HOME nohup python $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python -u $CTRL_DAEMON --port $PORT --num-of-learning-daemon $NUM_EXEC_DAEMON "
   INNER_CMD="$INNER_CMD --validation-criteria $IMPROVEMENT_GOAL "
   INNER_CMD="$INNER_CMD --num-of-optimal-model-candidate $NUM_OF_OPTIMAL_MODEL_CANDIDATE "
   INNER_CMD="$INNER_CMD --cumulative-training $CUMULATIVE_TRAINING "
@@ -334,7 +343,7 @@ then
   INNER_CMD="$INNER_CMD --mem-len $RL_MODEL_MEM_LEN --mem-fr $FORGET_RATIO "
   INNER_CMD="$INNER_CMD --num-concurrent-env $NUM_CONCURRENT_ENV "
   INNER_CMD="$INNER_CMD --max-run-with-an-env-process $MAX_RUN_WITH_AN_ENV_PROCESS "
-  INNER_CMD="$INNER_CMD --distributed $DISTRIBUTED "
+  INNER_CMD="$INNER_CMD --comp-total-only $COMP_TOTAL_ONLY "
 
 
 
@@ -360,7 +369,8 @@ then
   for ip in ${EXEC_DAEMON_IPS[@]}
   do
     ## (2.1) construct command
-    INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
+    # INNER_CMD="SALT_HOME=$SALT_HOME nohup python $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
+    INNER_CMD="SALT_HOME=$SALT_HOME nohup python -u $EXEC_DAEMON --ip-addr $CTRL_DAEMON_IP --port $PORT --do-parallel $DO_PARALLEL"
 
     CMD="ssh $ACCOUNT@$ip  "
     CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
@@ -380,6 +390,21 @@ then
   done
 
   sleep 3
+
+
+  # (3) copy this script
+  CMD="cp $0 $MODEL_STORE_ROOT_PATH/$RESULT_DIR"
+
+  ## (3.1) evaluate command
+  echo
+  echo [%] $CMD
+  echo
+
+  ## (3.2) evaluate command
+  if $DO_EVAL
+  then
+    eval $CMD
+  fi
 
 #
 #-- 1.3 launch tensorboard daemon
@@ -465,7 +490,9 @@ then
     echo
   done
 
-  echo "You can not find $RL_PROG process with this script when we do first round beacuse infer-mode-path is not set. "
+  echo ""
+  echo ""
+  echo "You can not find $RL_PROG process with this script when we do first round because infer-mode-path is not set. "
 
 #-- 1.5 terminate process forcely using kill command
 elif [ "$OPERATION" == "$OP_TERMINATE" ]
@@ -684,6 +711,40 @@ then
   #echo "    $CTRL_DIR/output/test  "
   echo "    $EXEC_DIR/output/test  "
 
+
+#
+#-- 1.10 show-training-info : show training info such as target TLs
+#
+elif [ "$OPERATION" == "$OP_TRAINING_INFO" ]
+then
+  ####
+  #### show training target
+  echo ""
+
+  SHOW_PROG="./tools/ShowTargetTL.py"
+  INNER_CMD="SALT_HOME=$SALT_HOME nohup python $SHOW_PROG "
+  INNER_CMD="$INNER_CMD --scenario-file-path $RL_SCENARIO_FILE_PATH "
+  INNER_CMD="$INNER_CMD --map $RL_MAP --target-TL '$RL_TARGET' "
+
+  CMD="ssh $ACCOUNT@$CTRL_DAEMON_IP  "
+  CMD="$CMD \" $ACTIVATE_CONDA_ENV; "
+  CMD="$CMD cd $EXEC_DIR; "
+  CMD="$CMD $INNER_CMD \""
+
+  #echo [%] $CMD
+  eval $CMD
+  echo
+
+
+  ####
+  #### show path which stores trained models
+  echo ""
+  START_DAY=$2
+
+  RESULT_DIR=${START_DAY}/${RESULT_DIR_LEAF} # ex., 220713/doan_gr_wq_all
+
+  echo "You can see trained model by visiting following directory"
+  echo "     $MODEL_STORE_ROOT_PATH/$RESULT_DIR at $ACCOUNT@$CTRL_DAEMON_IP "
 
 #
 #-- error : entered argument is not valid

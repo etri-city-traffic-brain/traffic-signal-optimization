@@ -11,14 +11,15 @@ import pandas as pd
 from deprecated import deprecated
 
 from TSOUtil import doPickling, doUnpickling, Msg
-from TSOConstants import _MSG_TYPE_
+from TSOConstants import _MSG_TYPE_, _ACK_
 
 from DebugConfiguration import DBG_OPTIONS, waitForDebug
 from TSOConstants import _INTERVAL_
 from TSOConstants import _MSG_CONTENT_
 from TSOConstants import _CHECK_, _MODE_, _STATE_
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_
-from TSOConstants import _LENGTH_OF_MAX_MSG_
+# from TSOConstants import _LENGTH_OF_MAX_MSG_
+from TSOConstants import _LENGTH_OF_PICKLED_FIVE_BYTE_STRING_, _LENGTH_OF_PICKLED_ACK_
 from TSOConstants import _RESULT_COMPARE_SKIP_
 
 from TSOUtil import addArgumentsToParser
@@ -31,7 +32,7 @@ from TSOUtil import removeWhitespaceBtnComma
 from TSOUtil import str2bool
 from TSOUtil import writeLine
 
-
+from DistExecDaemon import convertLengthToFiveByteString, getBytesStream
 
 class ServingClientThread(threading.Thread):
     '''
@@ -113,22 +114,42 @@ class ServingClientThread(threading.Thread):
         '''
         self.check_termination_condition = val
 
-
-
     def sendMsg(self, conn, msg_type, msg_contents):
         '''
         send a message
+        separate length & contents because socket::recv() can not guarantee that it receives the whole message
 
         :param conn:
         :param msg_type:
         :param msg_contents:
         :return:
         '''
+
+        ## 1. do pickle message
         send_msg = Msg(msg_type, msg_contents)
         pickled_msg = doPickling(send_msg)
-        conn.send(pickled_msg)
-        if DBG_OPTIONS.PrintServingThread:
-            print("## send_msg to {}:{} -- {}".format(self.details[0], self.details[1], send_msg.toString()))
+
+        ## 2. send size of msg
+        len_of_pickled_msg = len(pickled_msg)
+
+        ## 2.1 convert integer value to 5 bytes string value : 10 --> "00010"
+        len_of_pickled_msg = convertLengthToFiveByteString(len_of_pickled_msg)
+
+        ## 2.2 do pickling
+        packet = doPickling(len_of_pickled_msg)
+
+        ## 2.3 send msg
+        conn.sendall(packet)  # None or raise Exception
+
+        ## 3. receive ack
+        # packet = conn.recv(_LENGTH_OF_MAX_MSG_)
+        packet = conn.recv(_LENGTH_OF_PICKLED_ACK_)
+        ack = doUnpickling(packet)
+        assert ack == _ACK_, f"internal error : in sendMsg()"
+
+        ## 4. send contents
+        conn.sendall(pickled_msg)
+
         return pickled_msg
 
 
@@ -136,14 +157,33 @@ class ServingClientThread(threading.Thread):
     def receiveMsg(self, conn):
         '''
         receive a message
+        separate length & contents because socket::recv() can not guarantee that it receives the whole message
+
         :param conn:
         :return:
         '''
-        recv_msg = conn.recv(_LENGTH_OF_MAX_MSG_)
-        recv_msg_obj = doUnpickling(recv_msg)
 
+        ## 1. receive length of msg
+        # we converted int value (length of message) to 5 byte string
+        # ref. convertLengthToFiveByteString()
+        packet = getBytesStream(conn, _LENGTH_OF_PICKLED_FIVE_BYTE_STRING_)
+
+        if packet == b'':
+            raise RuntimeError("socket connection broken")
+        msg_len = doUnpickling(packet)
+        msg_len = int(msg_len)   ##-- convert string to integer
+
+        ## 2. send ack
+        packet = doPickling(_ACK_)
+        conn.sendall(packet)
+
+        ## 3. receive message contents
+        recv_msg = getBytesStream(conn, msg_len)
+        recv_msg_obj = doUnpickling(recv_msg)
         if DBG_OPTIONS.PrintServingThread:
-            print("## recv_msg from {}:{} -- {}".format(self.details[0], self.details[1], recv_msg_obj.toString()))
+            import sys
+            print("## [with_contents] recv_msg from {}:{} len={} sys.getsizeof={} -- {}".format(self.details[0], self.details[1],
+                                                            len(recv_msg), sys.getsizeof(recv_msg), recv_msg_obj.toString()))
         return recv_msg_obj
 
 
@@ -180,6 +220,8 @@ class ServingClientThread(threading.Thread):
         '''
         is_terminate = False
         while not is_terminate:
+            if DBG_OPTIONS.PrintServingThread:
+                print(f"before self.receiveMsg() in SCT ")
             recv_msg_obj = self.receiveMsg(self.channel)
 
             if recv_msg_obj.msg_type == _MSG_TYPE_.CONNECT_OK:
@@ -467,7 +509,7 @@ if __name__ == '__main__':
     ## Set up the server:
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('', args.port))  # server.bind((socket.gethostname(), 2727))
-    server.listen(5)
+    server.listen(10)  # max num of client to connect
 
     if DBG_OPTIONS.PrintCtrlDaemon:
         print("[CtrlDaemon] now... socket bind & listen")
@@ -494,7 +536,7 @@ if __name__ == '__main__':
             print("[CtrlDaemon] Now, {} clients are connected.. total num of clients to connect={}".format(len(serving_client_dic), args.num_of_learning_daemon))
 
     if DBG_OPTIONS.PrintCtrlDaemon:
-        print("[CtrlDaemon] serving_client_dic=", serving_client_dic)
+        print("[CtrlDaemon] serving_client_dic=", serving_client_dic, flush=True)
 
 
     ##
@@ -532,7 +574,7 @@ if __name__ == '__main__':
 
         ## calculate & dump elapsed time of current round
         current_round_elapsed_time = curent_round_end_time - curent_round_start_time
-        print(f'Time taken for {validation_trials}-th round experiment was {current_round_elapsed_time}.')
+        print(f'Time taken for {validation_trials}-th round experiment was {current_round_elapsed_time}.', flush=True)
 
 
         ### set the checked result : state

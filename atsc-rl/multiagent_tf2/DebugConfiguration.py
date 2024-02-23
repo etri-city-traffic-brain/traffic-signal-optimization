@@ -18,8 +18,14 @@ class DBG_OPTIONS :
         RichActionOutput = True # actions#oofse#duration_per_phase
 
         YJLEE = True  # only for YJLEE script
-        #V20230605 = True # try to fix bugs which are related to multiple SA
-        DoStateAugmentation = False # try to fix bugs which are related to state augmentation
+        DoStateAugmentation = True # try to fix bugs which are related to state augmentation
+
+        ## for dist. processing,
+        ##-- use codes in run_off_ppo_single.py if USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE is True
+        ##-- use this flag (False) when you want to change codes in run_off_ppo_single.py to test
+        ##-- I recommend this flag is set 'True'
+        USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE = True
+
 
         ##-- ing
         IngCompResult = False

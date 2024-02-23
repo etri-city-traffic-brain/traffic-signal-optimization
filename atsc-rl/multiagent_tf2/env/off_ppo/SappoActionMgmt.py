@@ -453,7 +453,6 @@ class SaltActionMgmt:
         :param current_sim_step:
         :return:
         '''
-        return 0
         num_sa = len(self.sa_name_list)
 
         for sa_i in range(num_sa):

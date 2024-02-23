@@ -5,8 +5,12 @@
 #  [$] python run_dist_considered.py  --mode train --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --epoch 1 --num-concurrent-env 2  --output-home zzz
 #  [$] python run_dist_considered.py  --mode simulate --map doan --target-TL "SA 101" --output-home zzz
 #  [$] python run_dist_considered.py  --mode test --map doan --target-TL "SA 101" --model-save-period 1 --mem-len 10 --model-num 0  --output-home zzz
+#  [$] python run_dist_considered.py  --mode test --map doan --target-TL "SA 101" --model-save-period 1
+#                                     --mem-len 10 --model-num 0  --output-home zzz
+#                                     --result-comp True --comp-total-only True
 
-#  [$] python run_dist_considered.py --distributed True --mode train --map doan --target-TL "SA 101, SA 104" --model-save-period 1 --mem-len 10 --epoch 1
+
+#  [$] python run_dist_considered.py --mode train --map doan --target-TL "SA 101, SA 104" --model-save-period 1 --mem-len 10 --epoch 1
 
 
 #
@@ -24,7 +28,6 @@ import shutil
 import time
 import sys
 import copy
-from deprecated import deprecated
 
 
 #os.environ['CUDA_VISIBLE_DEVICES'] = "-1" # "0" # "0,1,2"
@@ -79,9 +82,6 @@ from env.off_ppo.SappoRewardMgmt import SaltRewardMgmtV3
 
 from policy.off_ppoTF2 import PPOAgentTF2 #from policy.ppoTF2 import PPOAgentTF2
 
-# from ResultCompare import compareResult
-from env.SaltConnector import SaltConnector
-
 from TSOConstants import _FN_PREFIX_, _RESULT_COMP_, _RESULT_COMPARE_SKIP_
 from TSOUtil import addArgumentsToParser
 from TSOUtil import appendLine
@@ -99,36 +99,495 @@ from TSOUtil import removeWhitespaceBtnComma
 from TSOUtil import writeLine
 
 
+##
+# DBG_OPTIONS.USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE = True
+## use codes in run_off_ppo_single.py if USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE is True
+## I copied the code from run_off_ppo_single.py (2023.07.13)
+## This is to prepare for when the code (run_off_ppo_single.py) is changed.
+##
 
 ###
-### this file is based on run_off_ppo.py
+### this file is based on run_off_ppo_single.py
 ###
-##### TSOUtil.py
 
 # from run_off_ppo_single import parseArgument
-from run_off_ppo_single import makeDirectories
-# from run_off_ppo_single import createEnvironment
+if DBG_OPTIONS.USE_IMPORT_FROM_RUN_OFF_PPO_SINGLE:
+    from run_off_ppo_single import makeDirectories
+    # from run_off_ppo_single import createEnvironment
 
-# from run_off_ppo_single import makeLoadModelFnPrefix
-# ----- modify it to work with distributed learning
-# ----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
+    # from run_off_ppo_single import makeLoadModelFnPrefix
+    # ----- modify it to work with distributed learning
+    # ----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
 
-##### run_off_ppo_single.py
-# from run_off_ppo_single import one_hot
-# from run_off_ppo_single import StateAugmentation
-from run_off_ppo_single import Agent
-from run_off_ppo_single import Env
-# from run_off_ppo_single import isolated # modify it to work with DL ... see isolatedDist()
-from run_off_ppo_single import IsolatedEnv
-from run_off_ppo_single import run_test_episode
-from run_off_ppo_single import run_valid_episode
-from run_off_ppo_single import run_multi_thread
+    ##### run_off_ppo_single.py
+    # from run_off_ppo_single import one_hot
+    # from run_off_ppo_single import StateAugmentation
+    from run_off_ppo_single import Agent
+    from run_off_ppo_single import Env
+    # from run_off_ppo_single import isolated # modify it to work with DL ... see isolatedDist()
+    from run_off_ppo_single import IsolatedEnv
+    from run_off_ppo_single import run_test_episode
+    from run_off_ppo_single import run_valid_episode
+    from run_off_ppo_single import run_multi_thread
 
-# from run_off_ppo_single import compareResultAndStore
-# ----- modify it to work with distributed learning
-# ----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
+    # from run_off_ppo_single import compareResultAndStore
+    # ----- modify it to work with distributed learning
+    # ----- use getOutputDirectoryRoot(args) instead of args.io_home to construct path
 
-#from run_off_ppo_single import __printImprovementRate
+    # from run_off_ppo_single import __printImprovementRate
+else:
+    from env.off_ppo.SappoEnv import SaltSappoEnvV3
+
+    def makeDirectories(dir_name_list):
+        '''
+        create directories
+        :param dir_name_list:
+        :return:
+        '''
+        for dir_name in dir_name_list:
+            os.makedirs(dir_name, exist_ok=True)
+        return
+
+
+    def one_hot(indices, depth, on_value=1.0, off_value=0.0):
+        scalar = False
+        if not isinstance(indices, (list, tuple, np.ndarray)):
+            scalar = True
+            indices = [indices]
+
+        length = len(indices)
+        one_hot = np.ones((length, depth)) * off_value
+        one_hot[np.arange(length), indices] = on_value
+
+        if scalar: one_hot = one_hot[0]
+
+        return one_hot
+
+
+    class StateAugmentation:
+
+        def __init__(self, step_size, on_value=1.0, off_value=0.0):
+            self.step_size = step_size
+            self.on_value = on_value
+            self.off_value = off_value
+            self.time_step = 0
+
+        def reset(self):
+            self.time_step = 0
+
+        def augment(self, state):
+            time_encoded = one_hot(self.time_step, depth=self.step_size, on_value=self.on_value,
+                                   off_value=self.off_value)
+            # print('state:', state)
+            # print('time_encoded:', time_encoded)
+            state = np.concatenate([state, time_encoded], axis=-1)
+
+            self.time_step += 1
+
+            return state
+
+
+    class Agent:
+
+        def __init__(self, env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args):
+
+            self._init_holder(agent_num, action_sizes)
+            self.env_name = env_name
+            self.ppo_config = ppo_config
+            self.problem_var = problem_var
+
+            self.args = args
+
+            self.ppo_agent = []
+            for i in range(agent_num):
+                agent = PPOAgentTF2(env_name, ppo_config, action_sizes[i], state_sizes[i],
+                                    target_sas[i].strip().replace(' ', '_'))
+                self.ppo_agent.append(agent)
+
+        def _init_holder(self, agent_num, action_sizes):
+
+            actions, logps = [], []
+
+            for i in range(agent_num):
+                actions.append(list(0 for _ in range(action_sizes[i])))
+                logps.append([0])
+
+            self._action_holder = actions
+            self._logp_holder = logps
+
+        def act(self, state, info, sampling=True):
+
+            action_holder = copy.deepcopy(self._action_holder)  # For multi-treading
+            logp_holder = copy.deepcopy(self._logp_holder)
+
+            idx_of_act_sa = info['idx_of_act_sa']
+
+            for i in idx_of_act_sa:
+                obs = state[i]
+                action, logp, mu, std = self.ppo_agent[i].action(obs, sampling)
+
+                self._action_holder[i] = action[0]
+                self._logp_holder[i] = logp[0]
+
+            action_holder = copy.deepcopy(self._action_holder)
+            logp_holder = copy.deepcopy(self._logp_holder)
+
+            return action_holder, logp_holder
+
+        def store(self, current_state, action, reward, new_state, done, logp, info):
+
+            idx_of_act_sa = info['idx_of_act_sa']
+
+            for i in idx_of_act_sa:
+
+                if current_state[i] is not None and new_state[i] is not None:
+                    self.ppo_agent[i].memory.store(current_state[i],
+                                                   action[i],
+                                                   reward[i],
+                                                   new_state[i],
+                                                   done,
+                                                   logp[i])
+
+        def train(self):
+
+            for agent in self.ppo_agent:
+                agent.replayNew()
+
+        def getMemorySize(self):
+            memory_size = self.ppo_agent[0].memory.getSize()
+            return memory_size
+
+        def save_agent(self, trial):
+            args = self.args
+            problem_var = self.problem_var
+            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                            trial)
+            for agent in self.ppo_agent:
+                agent.saveModel(fn_prefix)
+
+        def load_agent(self, trial):
+            args = self.args
+            problem_var = self.problem_var
+            fn_prefix = "{}/model/{}/{}-{}-trial_{}".format(args.io_home, args.method, args.method.upper(), problem_var,
+                                                            trial)
+            for agent in self.ppo_agent:
+                agent.loadModel(fn_prefix)
+
+
+    class Env(SaltSappoEnvV3):
+
+        def __init__(self, args):
+
+            args = copy.deepcopy(args)
+            # args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+            if DBG_OPTIONS.YJLEE:
+                args.scenario_file_path = f"{args.scenario_file_path}/{args.map}/{args.map}_{args.mode}_{args.scenario}.scenario.json"
+
+            start_time, end_time = getSimulationStartStepAndEndStep(args)
+            trial_len = end_time - start_time
+
+            args.start_time = start_time
+            args.end_time = end_time
+
+            super(Env, self).__init__(args)
+            self._init_holder()
+
+            self.step_size = []
+            self.state_augment = []
+            for sa_cycle in self.sa_cycle_list:  # SappoEnv.py Line 156
+                # print('sa_cycle:', sa_cycle)
+                # step_size = int(trial_len/(sa_cycle * args.control_cycle))
+                # step_size = int(np.ceil(trial_len/(sa_cycle * args.control_cycle)))
+                step_size = self._calculateStepSize(trial_len, sa_cycle)
+                # print('step_size:', step_size)
+                aug = StateAugmentation(step_size, on_value=1.0, off_value=-1.0)
+
+                # print('step_size', step_size)
+                self.step_size.append(step_size)
+                self.state_augment.append(aug)
+
+        def _calculateStepSize(self, trial_len, sa_cycle):
+            return int(np.ceil(trial_len / (sa_cycle * args.control_cycle)))
+
+        def get_agent_configuration(self):
+
+            env_name = self.env_name
+            args = self.args
+            ppo_config, problem_var = makeConfigAndProblemVar(self.args)
+            agent_num = self.agent_num
+
+            action_sizes = []
+            state_sizes = []
+            target_sas = []
+            for i in range(agent_num):
+                target_sa = self.sa_name_list[i]
+
+                is_train_target = self.isTrainTarget(target_sa)
+                ppo_config["is_train"] = is_train_target
+
+                state_space = self.sa_obj[target_sa]['state_space']
+                action_space = self.sa_obj[target_sa]['action_space']
+
+                ##-- TF 2.x : ppo_continuous_hs,py
+                action_size = action_space.shape[0]
+                # print('action_size', action_size)
+                # state_size = (state_space,)
+                state_size = (state_space + self.step_size[i],)
+
+                action_sizes.append(action_size)
+                state_sizes.append(state_size)
+                target_sas.append(target_sa)
+
+            return env_name, agent_num, action_sizes, state_sizes, ppo_config, problem_var, target_sas, args
+
+        def _init_holder(self):
+
+            # To store reward history of each episode
+            self.ep_reward_list = []
+
+            # self.current_state = [] # Actually, it is not used. Keep it to maintain consistency with the previous code.
+
+            # actions, logp_ts = [], []
+            agent_num = self.agent_num
+
+            discrete_actions = []
+
+            for i in range(agent_num):
+                target_sa = self.sa_name_list[i]
+                action_space = self.sa_obj[target_sa]['action_space']
+                action_size = action_space.shape[0]
+                # actions.append(list(0 for _ in range(action_size)))
+                # logp_ts.append([0])
+
+                discrete_actions.append(list(0 for _ in range(action_size)))
+
+            self._discrete_action_holder = discrete_actions
+
+        def _reshape_state(self, state, idx_of_act_sa):
+
+            state = copy.deepcopy(state)
+
+            for i in idx_of_act_sa:
+                obs = state[i]
+                obs = self.state_augment[i].augment(obs)
+                obs = obs.reshape(1, -1)  # [1,2,3]  ==> [ [1,2,3] ]
+                state[i] = obs
+
+            return state
+
+        def reset(self):
+
+            for aug in self.state_augment: aug.reset()
+            self._augmented_state = [None for i in range(self.agent_num)]
+
+            state = super(Env, self).reset()
+
+            idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
+            augmented_state = self._reshape_state(state, idx_of_act_sa)
+            for i in idx_of_act_sa:
+                self._augmented_state[i] = augmented_state[i]
+
+            augmented_state = copy.deepcopy(self._augmented_state)
+            info = {'idx_of_act_sa': idx_of_act_sa}
+
+            self.episodic_reward = 0
+            self.episodic_agent_reward = [0] * self.agent_num
+
+            return augmented_state, info
+
+        def step(self, actions):
+
+            idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
+            for i in idx_of_act_sa:
+                sa_name = self.sa_name_list[i]
+
+                discrete_action = np.clip(actions[i], -1.0, +1.0)
+                discrete_action = self.action_mgmt.convertToDiscreteAction(sa_name, discrete_action)
+                self._discrete_action_holder[i] = discrete_action
+
+            next_state, reward, done, info = super(Env, self).step(
+                self._discrete_action_holder)  # After calling step(), self.idx_of_act_sa is updated.
+
+            idx_of_act_sa = copy.deepcopy(self.idx_of_act_sa)
+            augmented_next_state = self._reshape_state(next_state, idx_of_act_sa)
+
+            # update observation
+            for i in idx_of_act_sa:
+                self._augmented_state[i] = augmented_next_state[i]
+                self.episodic_reward += reward[i]
+                self.episodic_agent_reward[i] += reward[i]
+
+            next_augmented_state = copy.deepcopy(self._augmented_state)
+            info['idx_of_act_sa'] = idx_of_act_sa
+
+            if done:
+                self.ep_reward_list.append(self.episodic_reward)
+                info['episodic_reward'] = self.episodic_reward
+                info['recent_returns'] = self.ep_reward_list[-10:]
+                info['ma40_reward'] = np.mean(self.ep_reward_list[-40:])
+
+            return next_augmented_state, reward, done, info
+
+
+    def isolated(conn, args):
+
+        env = Env(args)
+
+        while True:
+            msg = conn.recv()
+
+            if msg[0] == 'get_agent_configuration':
+                config = env.get_agent_configuration()
+                conn.send(config)
+
+            elif msg[0] == 'reset':
+                state, info = env.reset()
+                conn.send((state, info))
+
+            elif msg[0] == 'step':
+                state, reward, done, info = env.step(msg[1])
+
+                transition = (state, reward, done, info)
+                conn.send(transition)
+
+            elif msg[0] == 'close':
+                conn.close()
+                env.close()
+                del env
+                break
+
+
+    class IsolatedEnv():
+
+        def __init__(self, args, max_run=100):
+
+            self.args = copy.deepcopy(args)
+            self._max_run = max_run
+            self._run = 0
+            self._conn = None
+            self._env_process = None
+
+            self.ep_reward_list = []
+
+            self._create_env_process()
+
+        def _create_env_process(self):
+
+            if self._env_process is not None: self.close()
+
+            parent_conn, child_conn = Pipe()
+            self._conn = parent_conn
+            self._env_process = Process(target=isolated, args=(child_conn, self.args))
+            # self._env_process.daemon = True
+            self._env_process.start()
+
+        def get_agent_configuration(self):
+
+            self._conn.send(('get_agent_configuration',))
+            config = self._conn.recv()
+            return config
+
+        def reset(self):
+            self._run += 1
+            if self._run > self._max_run:
+                self._run = 0
+                self._create_env_process()
+
+            self._conn.send(('reset',))
+            state, info = self._conn.recv()
+
+            return state, info
+
+        def step(self, actions):
+
+            self._conn.send(('step', actions))
+            state, reward, done, info = self._conn.recv()
+
+            if done:
+                self.ep_reward_list.append(info['episodic_reward'])
+                info['recent_returns'] = self.ep_reward_list[-10:]
+                info['ma40_reward'] = np.mean(self.ep_reward_list[-40:])
+
+            return state, reward, done, info
+
+        def close(self):
+            # if self.process.is_alive():
+            self._conn.send(('close',))
+            self._env_process.join()
+            self._conn.close()
+            # self.process.terminate()
+
+
+    def run_train_episode(trial, env, agent):
+
+        current_state, info = env.reset()
+        done = False
+        while not done:
+            action, logp = agent.act(current_state, info, sampling=True)
+            next_state, reward, done, info = env.step(action)
+
+            agent.store(current_state, action, reward, next_state, done, logp, info)
+            current_state = next_state
+
+
+    def run_test_episode(trial, env, agent):
+
+        start_time = time.time()
+        state, info = env.reset()
+        done = False
+        while not done:
+            action, logp = agent.act(state, info, sampling=False)
+            state, reward, done, info = env.step(action)
+
+        end_time = time.time()
+
+        print("Reward in current episode:", info['episodic_reward'])
+        print('Recent returns:', info['recent_returns'])
+        print("Episode * {} * Avg Reward is ==> {}".format(trial, info['ma40_reward']))
+        print("Simulation time :", end_time - start_time)
+
+        return info
+
+
+    def run_valid_episode(trial, env, agent, best_trial, best_score):
+
+        info = run_test_episode(trial, env, agent)
+        score = info['episodic_reward']
+        if score > best_score:
+            best_trial = trial
+            best_score = score
+
+        # print('Best trial:', best_trial, best_score)
+
+        return best_trial, best_score
+
+
+    def run_multi_thread(trial, envs, agent):
+
+        start_time = time.time()
+        num_envs = len(envs)
+        threads = []
+        for i, env in enumerate(envs):
+            thread = Thread(target=run_train_episode, args=(trial * num_envs + i, env, agent))
+            thread.start()
+            threads.append(thread)
+
+        for thread in threads: thread.join()
+        end_time = time.time()
+
+        rewards = [env.ep_reward_list[-1] for env in envs]
+        mean = np.mean(rewards)
+        std = np.std(rewards)
+
+        print("Episode: {}, Simulation time: {}, Memory Size: {}".format(trial, end_time - start_time,
+                                                                         agent.getMemorySize()))
+        for i, env in enumerate(envs):
+            print('Env:', i)
+            print("Reward in current episode:", env.ep_reward_list[-1])
+            print('Recent returns:', env.ep_reward_list[-10:])
+            print("Avg Reward is ==> {}".format(np.mean(env.ep_reward_list[-40:])))
+
+        return rewards, mean, std
 
 
 ##
@@ -207,8 +666,6 @@ def makeLoadModelFnPrefix(args, problem_var, is_train_target=False):
 
 
 ##########
-# CompareResultDist  : DELETE  SIMPLE_COMPARE
-
 def __processStatisticalInformation(field, op, op2, ft_0, ft_all, rl_0, rl_all, individual_output):
     '''
     process statistics info to calculate improvement rate
@@ -331,7 +788,7 @@ def __compareResultDistInternal(individual_output, comp_tl_list, target_tl_obj, 
         return individual_output
 
 
-def compareResultDistOrg(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip=-1):
+def compareResultAll(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip=-1):
     '''
     compare two result files and calculate improvement rate for each intersection, each SA and overall
     This func compare results and then make statistical info per TL, SA, and whole target.
@@ -414,7 +871,7 @@ def compareResultDistOrg(args, target_tl_obj, ft_output, rl_output, model_num, p
     return total_output
 
 
-def compareResultDist(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip=-1):
+def compareResultTotalOnly(args, target_tl_obj, ft_output, rl_output, model_num, passed_res_comp_skip=-1):
     '''
     compare two result files and calculate improvement rate for each intersection, each SA and overall
     This function compares results of whole target.
@@ -464,12 +921,12 @@ def compareResultDist(args, target_tl_obj, ft_output, rl_output, model_num, pass
 
 
 def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
-    if args.distributed:
-        return compareResultAndStore4Dist(args, env, ft_output, rl_output, problem_var,  comp_skip)
+    if args.comp_total_only:
+        return compareResultAndStoreTotalOnly(args, env, ft_output, rl_output, problem_var,  comp_skip)
     else:
-        return compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp_skip)
+        return compareResultAndStoreAll(args, env, ft_output, rl_output, problem_var,  comp_skip)
 
-def compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp_skip):
+def compareResultAndStoreAll(args, env, ft_output, rl_output, problem_var,  comp_skip):
     '''
     compare result of fxied-time-control and RL-agent-control
     and save the comparison results
@@ -486,11 +943,7 @@ def compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
 
     #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    if 0:  # DELETE  SIMPLE_COMPARE
-        sc = SaltConnector()
-        total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    else: # DELETE
-        total_output = compareResultDistOrg(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    total_output = compareResultAll(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
 
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
@@ -499,7 +952,7 @@ def compareResultAndStoreOrg(args, env, ft_output, rl_output, problem_var,  comp
     return result_fn
 
 
-def compareResultAndStore4Dist(args, env, ft_output, rl_output, problem_var,  comp_skip):
+def compareResultAndStoreTotalOnly(args, env, ft_output, rl_output, problem_var,  comp_skip):
     '''
     compare result of fxied-time-control and RL-agent-control
     and save the comparison results
@@ -516,11 +969,7 @@ def compareResultAndStore4Dist(args, env, ft_output, rl_output, problem_var,  co
     dst_fn = "{}/{}_s{}.{}.csv".format(args.infer_model_path, _FN_PREFIX_.RESULT_COMP, comp_skip, args.model_num)
 
     #total_output = compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    if 0:  # DELETE  SIMPLE_COMPARE
-        sc = SaltConnector()
-        total_output = sc.compareResult(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
-    else:
-        total_output = compareResultDist(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
+    total_output = compareResultTotalOnly(args, env.tl_obj, ft_output, rl_output, args.model_num, comp_skip)
 
     total_output.to_csv(result_fn, encoding='utf-8-sig', index=False)
 
@@ -559,6 +1008,8 @@ class AgentDist(Agent):
                 ppo_config["is_train"] = is_train_target
 
             agent = PPOAgentTF2(env_name, ppo_config, action_sizes[i], state_sizes[i], sa_name.strip().replace(' ', '_'))
+            # if 1:
+            #     print(f"DELETE sa_name = {sa_name}  action_sizes[{i}] = {action_sizes[i]} in AgentDist")
             self.ppo_agent.append(agent)
 
         if 1: # added for dist
@@ -566,11 +1017,6 @@ class AgentDist(Agent):
 
 
     def __loadModelAndReplayMemory(self):
-
-        # 빠르게 빠져나가길 바란다면....
-        # if args.distributed == False :  # @todo 인자로 distributed 추가
-        #     return
-
         for i in range(self.num_of_agent):
             sa_name = self.sa_name_list[i]
             an_agent = self.ppo_agent[i]
@@ -620,9 +1066,11 @@ class AgentDist(Agent):
                                            done,
                                            logp[i])
 
+
     def train(self):
         for agent in self.ppo_agent:
             if agent.is_train:
+                # print(f"DELETE agent for {agent.id} is now replay : memory.getSize()={agent.memory.getSize()}")
                 agent.replay()
 
 
@@ -680,6 +1128,9 @@ class EnvDist(Env):
 
             state_space = self.sa_obj[sa_name]['state_space']
             action_space = self.sa_obj[sa_name]['action_space']
+
+            # if 1:
+            #     print(f"DELETE sa_name = {sa_name}  action_space = {action_space} in EnvDist")
 
             ##-- TF 2.x : ppo_continuous_hs,py
             action_size = action_space.shape[0]
@@ -932,11 +1383,7 @@ def trainSappo(args):
         envs.append(env)
     
     #create a validation/test evnironment. 
-    #valid_env = IsolatedEnv(valid_args)
-
-    #valid_output_dir_prefix = f"./output/{valid_args.mode}"
     valid_output_dir_prefix = valid_args.output_home
-
     valid_env = IsolatedEnvDist(valid_args, "valid_env", valid_output_dir_prefix, valid_args.max_run_with_an_env_process)
     best_trial = 0; best_score = -np.inf
     
@@ -946,26 +1393,30 @@ def trainSappo(args):
     agent_config = valid_env.get_agent_configuration()
 
     print(f"agent_config={agent_config}")
-    #agent = Agent(*agent_config)
     agent = AgentDist(*agent_config)
 
     if int(args.infer_model_num) < 0:
         # fill the replay memory with random plays
         while agent.getMemorySize() < args.mem_len: 
             run_multi_thread(0, envs, agent)
-            ## 프로세스/쓰레드 남아있는 것 생기지 않는지 확인해보자...
+
+        # if 1:
+        #     for an_agent in agent.ppo_agent:
+        #         if an_agent.is_train:
+        #             print(f"DELETE agent for {an_agent.id} : fill the replay memory : memory.getSize()={an_agent.memory.getSize()}")
+
     else:
         # we already load replay memory within AgentDist::__init__() 
         #   if it is cummulative_training & training target
         pass 
 
-    ep_reward_list = []
-    #
+
     # @todo 최적 모델 선정 방법: dbg_options_opt_choice
     #       choice 1 : best score
     #       choice 2 : training reward w/ exploration
     #       choice 3 : training reward w/o exploration
     dbg_options_opt_choice = 1
+    ep_reward_list = []
 
     for trial in range(args.epoch):
         #run_multi_thread(trial, envs, agent)
@@ -978,7 +1429,8 @@ def trainSappo(args):
             ### rewards에는num_envs 개수만큼 들어있다. 이것(평균)을 계속 저장해서 가지고 있다가 최적 모델 선정에 활용할 수 있을 것 같다.
             ## gather reward info of trials
             ep_reward_list.append(np.average(rewards))
-        
+
+        print("##### now..... agent train for parameter update")
         start_time = time.time()
         agent.train()
         end_time = time.time()
@@ -1080,8 +1532,7 @@ def testSappo(args):
 
         comp_skip = _RESULT_COMPARE_SKIP_
         result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
-        # __printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
-        if args.distributed:
+        if args.comp_total_only:
             printImprovementRate(result_fn, msg=f'Skip {comp_skip} second')
         else:
             printImprovementRate(result_fn, env.target_sa_name_list, msg=f'Skip {comp_skip} second')
@@ -1090,8 +1541,7 @@ def testSappo(args):
         if DBG_OPTIONS.ResultCompareSkipWarmUp: # comparison excluding warm-up time
             comp_skip = args.warmup_time
             result_fn = compareResultAndStore(args, env, ft_output, rl_output, problem_var, comp_skip)
-            #__printImprovementRate(env, result_fn, f'Skip {comp_skip} second')
-            if args.distributed:
+            if args.comp_total_only:
                 printImprovementRate(result_fn, msg=f'Skip {comp_skip} second')
             else:
                 printImprovementRate(result_fn, env.target_sa_name_list, msg=f'Skip {comp_skip} second')
@@ -1102,10 +1552,6 @@ def testSappo(args):
     avg_reward = 0
     return avg_reward
 
-
-# def compareResultAndStore(args, env, ft_output, rl_output, problem_var,  comp_skip):
-#
-# def __printImprovementRate(env, result_fn, msg="Skip one hour"):
 
 
 
@@ -1205,11 +1651,13 @@ if __name__ == "__main__":
     args = parseArgument()
 
     # if args.map=="dj200":
-    #     args.target_TL = "SA 3, SA 28, SA 101, SA 6, SA 41, SA 20, SA 37, SA 38, SA 9, SA 1, SA 57, SA 102, SA 104, SA 98, SA 8, SA 33, SA 59, SA 30"
+    #     args.target_TL = "SA 3, SA 28, SA 101, SA 6, SA 41, SA 20, SA 37, SA 38, SA 9, SA 1, "
+    #                      + "SA 57, SA 102, SA 104, SA 98, SA 8, SA 33, SA 59, SA 30"
 
     args.target_TL = removeWhitespaceBtnComma(args.target_TL)
     args.infer_TL = removeWhitespaceBtnComma(args.infer_TL)
 
+    # getOutputDirectoryRoot() returns  f"{args.io_home}/{args.output_home}"
     dir_name_list = [
                          f"{getOutputDirectoryRoot(args)}/model",
                          f"{getOutputDirectoryRoot(args)}/model/{args.method}",
@@ -1248,4 +1696,4 @@ if __name__ == "__main__":
 
     ## calculate & dump duration
     interval = terminated-launched
-    print(f'Time taken for experiment was {interval.seconds} seconds')
+    print(f'Time taken for experiment was {interval} ')  #  2 days, 14:36:28.245176

@@ -312,11 +312,18 @@ def constructTSSRelatedInfo(args, tss_file_path, sa_name_list):
             target_tl_obj[x.attrib['nodeID']] = {}
             target_tl_obj[x.attrib['nodeID']]['crossName'] = x.attrib['crossName']
 
-            _signalGroup = x.attrib['signalGroup']
-            if "SA" not in _signalGroup:
-                _signalGroup = "SA " + _signalGroup
-            if "SA " not in _signalGroup:
-                _signalGroup = _signalGroup.replace("SA", "SA ")
+            # to make same format : "101", "SA101", "SA 101" ==> "SA 101"
+            # _signalGroup = x.attrib['signalGroup']
+            _signalGroup = x.attrib['signalGroup'].strip()
+            if 0:
+                if "SA" not in _signalGroup:
+                    _signalGroup = "SA " + _signalGroup
+                if "SA " not in _signalGroup:
+                    _signalGroup = _signalGroup.replace("SA", "SA ")
+            else :
+                _signalGroup = _signalGroup.replace("SA", "") # remove "SA"
+                _signalGroup.strip()         # remove leading & tailing whitespace
+                _signalGroup = "SA " + _signalGroup     # add "SA "
 
             target_tl_obj[x.attrib['nodeID']]['signalGroup'] = _signalGroup
 
@@ -544,9 +551,12 @@ def getSaRelatedInfo(args, sa_name_list, salt_scenario):
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'] += [+1.0] * num_controllable_green_signals
 
         else:
+            num_controllable_green_signals = target_tl_obj[tl_obj]['action_space']
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_space'] += 1
             sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_min'].append(0)
-            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)
+            # sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(target_tl_obj[tl_obj]['action_space'] - 1)
+            sa_obj[target_tl_obj[tl_obj]['signalGroup']]['action_max'].append(num_controllable_green_signals - 1)
+
 
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['offset_list'].append(target_tl_obj[tl_obj]['offset'])
         sa_obj[target_tl_obj[tl_obj]['signalGroup']]['minDur_list'].append(target_tl_obj[tl_obj]['minDur'])
